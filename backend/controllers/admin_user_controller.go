@@ -33,41 +33,6 @@ func TriggerReminders(c *gin.Context, cfg config.Config) {
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder emails sent successfully"})
 }
 
-// GetCurrentUser returns the current authenticated user's information
-func GetCurrentUser(c *gin.Context) {
-	userID, ok := currentUserID(c)
-	if !ok {
-		return
-	}
-
-	db := c.MustGet("db").(*gorm.DB)
-
-	var user models.User
-	if err := db.First(&user, userID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			apperrors.AbortWithError(c, apperrors.ErrNotFound("User"))
-			return
-		}
-		apperrors.AbortWithError(c, apperrors.ErrDatabase("query user").WithError(err))
-		return
-	}
-
-	c.JSON(http.StatusOK, models.CurrentUserResponse{
-		AdminUserResponse: models.AdminUserResponse{
-			ID:         user.ID,
-			Username:   user.Username,
-			Email:      user.Email,
-			Language:   user.Language,
-			DateFormat: user.DateFormat,
-			IsAdmin:    user.IsAdmin,
-			CreatedAt:  user.CreatedAt,
-			UpdatedAt:  user.UpdatedAt,
-		},
-		CustomFieldNames:     user.CustomFieldNames,
-		EnabledContactFields: user.EnabledContactFields,
-	})
-}
-
 // ListUsers returns a paginated list of all users (admin only)
 func ListUsers(c *gin.Context) {
 	log := logger.FromContext(c)

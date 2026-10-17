@@ -121,7 +121,7 @@ func (h *handlers) twoFactorStatus(ctx context.Context, _ *struct{}) (*TwoFactor
 	}
 	st, err := h.uc.TwoFactorStatus(ctx, actor)
 	if err != nil {
-		return nil, twoFactorError(err)
+		return nil, accountError(err)
 	}
 	out := &TwoFactorStatusOutput{}
 	out.Body.Enabled, out.Body.RecoveryCodesRemaining, out.Body.Available = st.Enabled, st.CodesLeft, st.Available
@@ -135,7 +135,7 @@ func (h *handlers) twoFactorSetup(ctx context.Context, _ *struct{}) (*TwoFactorS
 	}
 	setup, err := h.uc.BeginTwoFactorSetup(ctx, actor)
 	if err != nil {
-		return nil, twoFactorError(err)
+		return nil, accountError(err)
 	}
 	out := &TwoFactorSetupOutput{}
 	out.Body.Secret, out.Body.OtpauthURI = setup.Secret, setup.URI
@@ -149,7 +149,7 @@ func (h *handlers) twoFactorEnable(ctx context.Context, in *EnableTwoFactorInput
 	}
 	changed, err := h.uc.EnableTwoFactor(ctx, actor, in.Body.Password, in.Body.Code, api.SessionID(ctx), client(ctx), api.Now(ctx), realNow())
 	if err != nil {
-		return nil, twoFactorError(err)
+		return nil, accountError(err)
 	}
 	logSignOut(ctx, actor, changed.SignOutErr)
 	out := &TwoFactorCodesOutput{}
@@ -165,7 +165,7 @@ func (h *handlers) twoFactorDisable(ctx context.Context, in *ConfirmTwoFactorInp
 	b := in.Body
 	changed, err := h.uc.DisableTwoFactor(ctx, actor, b.Password, b.Code, b.RecoveryCode, api.SessionID(ctx), client(ctx), api.Now(ctx), realNow())
 	if err != nil {
-		return nil, twoFactorError(err)
+		return nil, accountError(err)
 	}
 	logSignOut(ctx, actor, changed.SignOutErr)
 	out := &TwoFactorMessageOutput{}
@@ -181,7 +181,7 @@ func (h *handlers) twoFactorRecoveryCodes(ctx context.Context, in *ConfirmTwoFac
 	b := in.Body
 	codes, err := h.uc.RegenerateRecoveryCodes(ctx, actor, b.Password, b.Code, b.RecoveryCode, client(ctx), realNow())
 	if err != nil {
-		return nil, twoFactorError(err)
+		return nil, accountError(err)
 	}
 	out := &TwoFactorCodesOutput{}
 	out.Body.RecoveryCodes = codes
@@ -194,7 +194,7 @@ func logSignOut(ctx context.Context, actor domain.UserID, err error) {
 	}
 }
 
-func twoFactorError(err error) error {
+func accountError(err error) error {
 	var locked *domain.LockedError
 	var f *app.Failure
 	switch {

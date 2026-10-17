@@ -11,6 +11,7 @@ import (
 	apperrors "meerkat/errors"
 	"meerkat/middleware"
 	"meerkat/users/internal/app"
+	"meerkat/users/internal/domain"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
@@ -22,10 +23,74 @@ func registerPublic(a huma.API, public gin.IRoutes, h *handlers) {
 	op := func(id, path, summary string) huma.Operation {
 		return huma.Operation{OperationID: id, Method: http.MethodPost, Path: path, Summary: summary, Tags: []string{"auth"}}
 	}
+	api.RegisterOn(a, public, huma.Operation{
+		OperationID: "register-user", Method: http.MethodPost, Path: "/register", DefaultStatus: http.StatusCreated,
+		Summary: "Create an account; the first one of an instance is its administrator", Tags: []string{"auth"},
+	}, h.register, limit)
 	api.RegisterOn(a, public, op("check-password-strength", "/check-password-strength", "Rate a password without registering"), h.passwordStrength, limit)
 	api.RegisterOn(a, public, op("request-password-reset", "/password-reset/request", "Mail reset instructions to the account with this email; the answer is the same for unknown emails"), h.requestReset, limit)
 	api.RegisterOn(a, public, op("confirm-password-reset", "/password-reset/confirm", "Set a new password with a reset token and end every session"), h.confirmReset, limit)
 	documentPublicErrors(a)
+	documentRegistrationSwitch(a)
+}
+
+type registrationDisabledDetail struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// RegistrationDisabledResponse is the 403 answer while registration is switched off. Its shape
+// is the one clients know, not the AppError format.
+type RegistrationDisabledResponse struct {
+	Detail registrationDisabledDetail `json:"error"`
+}
+
+func (e *RegistrationDisabledResponse) GetStatus() int { return http.StatusForbidden }
+func (e *RegistrationDisabledResponse) Error() string  { return e.Detail.Message }
+
+func registrationDisabled() *RegistrationDisabledResponse {
+	return &RegistrationDisabledResponse{Detail: registrationDisabledDetail{Code: "registration_disabled", Message: "Registration is disabled."}}
+}
+
+func documentRegistrationSwitch(a huma.API) {
+	schema := huma.SchemaFromType(a.OpenAPI().Components.Schemas, reflect.TypeOf(RegistrationDisabledResponse{}))
+	a.OpenAPI().Paths["/register"].Post.Responses["403"] = &huma.Response{
+		Description: "Registration is switched off on this instance",
+		Content:     map[string]*huma.MediaType{"application/json": {Schema: schema}},
+	}
+}
+
+type RegisterBody struct {
+	Username string `json:"username" validate:"required,min=1,max=50,no_at_sign"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,strong_password"`
+	Language string `json:"language,omitempty" validate:"omitempty,oneof=en de it es fr" enum:"en,de,it,es,fr"`
+}
+
+type RegisterInput struct{ Body RegisterBody }
+
+type RegisteredOutput struct {
+	Body struct {
+		Message string `json:"message"`
+	}
+}
+
+func (i *RegisterInput) Resolve(_ huma.Context, prefix *huma.PathBuffer) []error {
+	return api.ValidateBody(prefix, &i.Body)
+}
+
+func (h *handlers) register(ctx context.Context, in *RegisterInput) (*RegisteredOutput, error) {
+	b := in.Body
+	err := h.uc.Register(ctx, domain.NewUser{Username: b.Username, Email: b.Email, Language: b.Language}, b.Password)
+	if errors.Is(err, domain.ErrRegistrationDisabled) {
+		return nil, registrationDisabled()
+	}
+	if err != nil {
+		return nil, toAppError(err, b.Email)
+	}
+	out := &RegisteredOutput{}
+	out.Body.Message = "User registered successfully"
+	return out, nil
 }
 
 // RateLimitedResponse is the 429 of the rate limit middleware, which is not in the AppError

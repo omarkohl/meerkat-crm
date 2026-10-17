@@ -45,3 +45,11 @@ func TestAResetTokenWithoutATimeIsExpired(t *testing.T) {
 	assert.False(t, domain.ResetToken{ExpiresAt: &at}.Expired(at), "valid until its time is up")
 	assert.True(t, domain.ResetToken{ExpiresAt: &at}.Expired(at.Add(time.Second)))
 }
+
+func TestNewUsersAreIdentifiedInLowerCase(t *testing.T) {
+	u := domain.NewUser{Username: "Alice", Email: "Alice@Example.COM", Language: "De"}
+	u.Normalise()
+	assert.Equal(t, "alice", u.Username)
+	assert.Equal(t, "alice@example.com", u.Email)
+	assert.Equal(t, "De", u.Language, "the language is not an identifier")
+}

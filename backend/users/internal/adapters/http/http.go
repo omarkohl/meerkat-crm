@@ -28,6 +28,7 @@ func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cooki
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary, Tags: tags}
 	}
 	registerPublic(a, public, h)
+	api.RegisterOn(a, group, reg("current-user", http.MethodGet, "/users/me", "The signed-in user with their preferences"), h.currentUser)
 	api.RegisterOn(a, group, reg("list-sessions", http.MethodGet, "/sessions", "The user's live login sessions, newest first"), h.sessions)
 	api.RegisterOn(a, group, reg("revoke-session", http.MethodDelete, "/sessions/{id}", "Sign one session out"), h.revoke)
 	api.RegisterOn(a, group, reg("sign-out-everywhere", http.MethodPost, "/sessions/revoke-all", "Sign out of every session"), h.signOutEverywhere)
@@ -237,6 +238,8 @@ func toAppError(err error, field string) *apperrors.AppError {
 		return apperrors.ErrInvalidInput("new_password", "New password must differ from current password")
 	case errors.Is(err, domain.ErrPasswordTooLong):
 		return apperrors.ErrValidation(err.Error())
+	case errors.Is(err, domain.ErrUserExists):
+		return apperrors.ErrAlreadyExists("User").WithDetails("email", strings.ToLower(field))
 	case errors.Is(err, domain.ErrResetTokenInvalid):
 		return apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired")
 	}

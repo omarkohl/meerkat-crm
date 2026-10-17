@@ -102,7 +102,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		}
 
 		// Public routes (no authentication required, strict rate limiting)
-		v1.POST("/register", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), controllers.RegisterUser(cfg))
 		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {
 			controllers.LoginUser(c, cfg)
 		})
@@ -119,7 +118,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
-			protected.GET("/users/me", controllers.GetCurrentUser)
 
 			// Contact routes
 			RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected})

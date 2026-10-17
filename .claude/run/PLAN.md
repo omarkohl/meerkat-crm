@@ -141,7 +141,8 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
     - [x] 13g3. two-factor (TOTP) endpoints
     - [ ] 13g4. register, login, logout, password reset, password strength, current user (split):
       - [x] 13g4a. password strength and password reset (public routes, rate limit)
-      - [ ] 13g4b. register, login with the second step, logout, `GET /users/me`
+      - [x] 13g4b. register and `GET /users/me`
+      - [ ] 13g4c. login with the second step and logout
     - [ ] 13g5. OIDC login and callback (redirects; stay Gin handlers in the module)
   - [ ] 13h. API tokens and ICS feeds
   - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job)

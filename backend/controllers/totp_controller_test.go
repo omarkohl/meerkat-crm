@@ -21,8 +21,6 @@ import (
 func newTOTPEnv(t *testing.T) *sessionEnv {
 	t.Helper()
 	e := newSessionEnv(t)
-	p := e.r.Group("/", middleware.AuthMiddleware(e.cfg))
-	p.GET("/users/me", GetCurrentUser)
 	admin := e.r.Group("/admin", middleware.AuthMiddleware(e.cfg), middleware.AdminMiddleware())
 	admin.POST("/users/:id/2fa/reset", ResetUserTOTP)
 	admin.GET("/users", ListUsers)

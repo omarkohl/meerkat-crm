@@ -84,15 +84,6 @@ type DiscoveredAddressBook struct {
 	Description string `json:"description"`
 }
 
-// UserRegistrationInput represents the DTO for user registration
-// This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
-type UserRegistrationInput struct {
-	Username string `json:"username" validate:"required,min=1,max=50,no_at_sign"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,strong_password"`
-	Language string `json:"language" validate:"omitempty,oneof=en de it es fr"`
-}
-
 // Birthday represents a unified birthday entry for contacts and relationships
 type Birthday struct {
 	Type                  string `json:"type"`                              // "contact" or "relationship"
@@ -116,13 +107,6 @@ type AdminUserResponse struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 	// TwoFactorEnabled tells an admin whether a reset is needed; never the secret.
 	TwoFactorEnabled bool `json:"two_factor_enabled"`
-}
-
-// /users/me payload: standard user fields plus caller's UI preferences (custom field names and enabled contact fields)
-type CurrentUserResponse struct {
-	AdminUserResponse
-	CustomFieldNames     []string `json:"custom_field_names"`
-	EnabledContactFields []string `json:"enabled_contact_fields"`
 }
 
 // AdminUserUpdateInput - DTO for admin updating a user

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { components } from './types/generated/api';
 import { API_BASE_URL } from './auth';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +26,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, username }),
+        body: JSON.stringify({ email, password, username } satisfies components['schemas']['RegisterBody']),
       });
       if (!response.ok) {
         const data = await response.json();

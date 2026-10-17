@@ -40,6 +40,10 @@ type Accounts interface {
 	ResetToken(ctx context.Context, hash string) (domain.ResetToken, error)
 	// ClearResetToken removes the token with this hash; a newer token stays.
 	ClearResetToken(ctx context.Context, actor domain.UserID, hash string) error
+	// Register creates the account, as administrator if it is the first one. Any failure to
+	// create it is reported as domain.ErrUserExists, as it always was.
+	Register(ctx context.Context, user domain.NewUser) error
+	Profile(ctx context.Context, actor domain.UserID) (domain.Profile, error)
 	// ResetPassword stores the hash and ends every session if the account still holds the
 	// token with tokenHash, which is what makes a token work once. Otherwise it returns
 	// domain.ErrResetTokenInvalid.
@@ -133,12 +137,15 @@ type UseCases struct {
 	lockout   Lockout
 	tokens    ResetTokens
 	mail      ResetMail
+
+	registrationDisabled bool
 }
 
-func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail) *UseCases {
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail, registrationDisabled bool) *UseCases {
 	return &UseCases{
 		prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords,
 		audit: audit, factor: factor, lockout: lockout, tokens: tokens, mail: mail,
+		registrationDisabled: registrationDisabled,
 	}
 }
 

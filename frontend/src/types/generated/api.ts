@@ -425,6 +425,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an account; the first one of an instance is its administrator */
+        post: operations["register-user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reminder-completions/{id}": {
         parameters: {
             query?: never;
@@ -700,6 +717,23 @@ export interface paths {
         head?: never;
         /** Set the language of the user */
         patch: operations["update-language"];
+        trace?: never;
+    };
+    "/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user with their preferences */
+        get: operations["current-user"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/users/me/2fa": {
@@ -1116,6 +1150,23 @@ export interface components {
             type: string;
             value: string;
         };
+        CurrentUserOutputBody: {
+            /** Format: date-time */
+            created_at: string;
+            custom_field_names: string[] | null;
+            date_format: string;
+            email: string;
+            enabled_contact_fields: string[] | null;
+            /** Format: int64 */
+            id: number;
+            is_admin: boolean;
+            language: string;
+            /** @description Always false here; GET /users/me/2fa says whether two-factor is on */
+            two_factor_enabled: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            username: string;
+        };
         CustomFieldsBody: {
             names?: string[] | null;
         };
@@ -1258,6 +1309,20 @@ export interface components {
         };
         RandomOutputBody: {
             contacts: components["schemas"]["ContactListItem"][] | null;
+        };
+        RegisterBody: {
+            email: string;
+            /** @enum {string} */
+            language?: "en" | "de" | "it" | "es" | "fr";
+            password: string;
+            username: string;
+        };
+        RegisteredOutputBody: {
+            message: string;
+        };
+        RegistrationDisabledDetail: {
+            code: string;
+            message: string;
         };
         RelatedContactResponse: {
             /** Format: int64 */
@@ -2794,6 +2859,50 @@ export interface operations {
             };
         };
     };
+    "register-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisteredOutputBody"];
+                };
+            };
+            /** @description Registration is switched off on this instance */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: components["schemas"]["RegistrationDisabledDetail"];
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     "delete-reminder-completion": {
         parameters: {
             query?: never;
@@ -3441,6 +3550,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserLanguageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "current-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserOutputBody"];
                 };
             };
             /** @description Error */

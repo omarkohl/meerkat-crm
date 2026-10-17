@@ -37,7 +37,7 @@ func New(d Deps) *Module {
 	}
 	uc := app.New(persistence.New(d.DB), i18n.SupportedLanguages,
 		persistence.NewSessions(d.DB, &cfg), persistence.NewAccounts(d.DB), passwords.Bcrypt{}, persistence.NewAudit(d.DB),
-		persistence.NewTwoFactor(d.DB, &cfg), lockout.Limiter{}, resettokens.Tokens{}, persistence.NewMail(d.DB, &cfg))
+		persistence.NewTwoFactor(d.DB, &cfg), lockout.Limiter{}, resettokens.Tokens{}, persistence.NewMail(d.DB, &cfg), cfg.RegistrationDisabled)
 	return &Module{uc: uc, cfg: cfg}
 }
 

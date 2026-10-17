@@ -1338,6 +1338,75 @@
         ],
         "type": "object"
       },
+      "CurrentUserOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "custom_field_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "date_format": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled_contact_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "two_factor_enabled": {
+            "description": "Always false here; GET /users/me/2fa says whether two-factor is on",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "email",
+          "language",
+          "date_format",
+          "is_admin",
+          "created_at",
+          "updated_at",
+          "two_factor_enabled",
+          "custom_field_names",
+          "enabled_contact_fields"
+        ],
+        "type": "object"
+      },
       "CustomFieldsBody": {
         "properties": {
           "names": {
@@ -1838,6 +1907,63 @@
         },
         "required": [
           "contacts"
+        ],
+        "type": "object"
+      },
+      "RegisterBody": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "de",
+              "it",
+              "es",
+              "fr"
+            ],
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
+      "RegisteredOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "RegistrationDisabledDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
         ],
         "type": "object"
       },
@@ -4606,6 +4732,66 @@
         ]
       }
     },
+    "/register": {
+      "post": {
+        "operationId": "register-user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredOutputBody"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "$ref": "#/components/schemas/RegistrationDisabledDetail"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Registration is switched off on this instance"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create an account; the first one of an instance is its administrator",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/reminder-completions/{id}": {
       "delete": {
         "operationId": "delete-reminder-completion",
@@ -5418,6 +5604,37 @@
           }
         },
         "summary": "Set the language of the user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "current-user",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The signed-in user with their preferences",
         "tags": [
           "users"
         ]

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"meerkat/config"
-	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
 
@@ -21,58 +20,6 @@ const (
 	strongPasswordAlt     = "TrulySecurePassphrase99#"
 	strongPasswordAnother = "UltraSafePassphrase88$"
 )
-
-func TestRegisterUser(t *testing.T) {
-	_, router := setupRouter()
-	cfg := &config.Config{}
-	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser(cfg))
-
-	// Create a new user using the registration DTO
-	newUser := models.UserRegistrationInput{
-		Username: "testuser",
-		Email:    "testuser@example.com",
-		Password: strongPassword,
-	}
-
-	jsonValue, _ := json.Marshal(newUser)
-	req, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusCreated, w.Code)
-
-	var responseBody map[string]string
-	json.Unmarshal(w.Body.Bytes(), &responseBody)
-	assert.Equal(t, "User registered successfully", responseBody["message"])
-}
-
-func TestRegisterUser_InvalidInput(t *testing.T) {
-	_, router := setupRouter()
-	cfg := &config.Config{}
-	router.POST("/register", middleware.ValidateJSONMiddleware(&models.UserRegistrationInput{}), RegisterUser(cfg))
-
-	// Invalid input (no email)
-	invalidUser := models.UserRegistrationInput{
-		Username: "invaliduser",
-		Password: strongPassword,
-	}
-
-	jsonValue, _ := json.Marshal(invalidUser)
-	req, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &response)
-	errorDetail := response["error"].(map[string]interface{})
-	assert.Equal(t, "VALIDATION_ERROR", errorDetail["code"])
-}
 
 func TestLoginUser(t *testing.T) {
 	config := config.Config{

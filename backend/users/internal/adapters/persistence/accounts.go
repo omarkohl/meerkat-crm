@@ -125,6 +125,36 @@ func (a *Accounts) ResetPassword(ctx context.Context, actor domain.UserID, token
 	})
 }
 
+func (a *Accounts) Register(ctx context.Context, user domain.NewUser) error {
+	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&models.User{}).Count(&count).Error; err != nil {
+			return domain.ErrUserExists
+		}
+		row := models.User{Username: user.Username, Email: user.Email, Password: user.PasswordHash, Language: user.Language, IsAdmin: count == 0}
+		if err := tx.Create(&row).Error; err != nil {
+			return domain.ErrUserExists
+		}
+		return nil
+	})
+}
+
+func (a *Accounts) Profile(ctx context.Context, actor domain.UserID) (domain.Profile, error) {
+	var user models.User
+	err := a.db.WithContext(ctx).First(&user, uint(actor)).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.Profile{}, domain.ErrUserNotFound
+	}
+	if err != nil {
+		return domain.Profile{}, err
+	}
+	return domain.Profile{
+		ID: domain.UserID(user.ID), Username: user.Username, Email: user.Email, Language: user.Language, DateFormat: user.DateFormat,
+		IsAdmin: user.IsAdmin, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
+		CustomFieldNames: user.CustomFieldNames, EnabledContactFields: user.EnabledContactFields,
+	}, nil
+}
+
 func (a *Accounts) ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error {
 	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		user := models.User{Model: gorm.Model{ID: uint(actor)}, Password: hash}

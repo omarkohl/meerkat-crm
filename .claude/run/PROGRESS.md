@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g4b (register, login with the second step, logout, GET /users/me).
+13g4c (login with the second step, logout).
 
 ## Stack
 
@@ -210,6 +210,10 @@
   the controller tests of the reset flow moved into 12 module tests (enumeration-safe answer, hashed
   token, expiry, single use, sessions ended, audit, demo mode, rate limit per route, 401-free
   access). `make precommit` green.
+- Step 13g4b: `POST /register` (public group, auth rate limit) and `GET /users/me` (protected) in
+  the users module: domain `NewUser.Normalise`, `Profile`; use cases `Register`, `Profile`; the
+  account count and the insert run in one transaction. Old handlers and the DTOs
+  `UserRegistrationInput`/`CurrentUserResponse` removed; 9 module tests. `make precommit` green.
 
 ## Decisions
 
@@ -374,8 +378,9 @@
   error ("update") instead of a silent wrong code. The `/admin/users/{id}/2fa/reset` handler and the
   login's second step stay in `controllers` until 13g4 and 13l and share
   `middleware.SecondFactorKey`.
-- Step 13g4 is split again: **13g4a** password strength and password reset (done), **13g4b**
-  register, login with its second step, logout and `GET /users/me` (cookies, lockouts, OIDC users).
+- Step 13g4 is split again (13g4b was then cut again, into register and `GET /users/me` and the
+  login): **13g4a** password strength and password reset (done), **13g4b** register, login with its
+  second step, logout and `GET /users/me` (cookies, lockouts, OIDC users).
 - 13g4a, behaviour kept and tested: a reset request for an unknown email answers 200 with the same
   words as a known one and stores and mails nothing; the email is lowercased; only the SHA-256 of
   the token is stored, valid one hour from the request time (the request clock); the token is
@@ -395,6 +400,18 @@
   three columns instead of saving the whole user; a body that is not JSON now gets the generic
   request error (400) instead of `MISSING_FIELD` on the strength check; an unknown email is still
   faster to answer than a known one (no token, no write, no mail), as before.
+- 13g4b, behaviour kept and tested: validation comes before the registration switch (an invalid
+  request is 400 even when registration is off); the switched-off answer is 403 with the body
+  `{"error": {"code": "registration_disabled", "message": "Registration is disabled."}}`, which is
+  documented in the spec; username and email are lower-cased; the first account is the
+  administrator; a duplicate username or email is 409 `ALREADY_EXISTS` with the email in the
+  details; the password is hashed before the write; the language defaults to `en`; the route has the
+  auth rate limit. `GET /users/me` keeps its `two_factor_enabled: false` (the field is never filled
+  there; `GET /users/me/2fa` says whether it is on), 404 "User" for a vanished account, and works
+  for API tokens as before.
+- 13g4b, deviations: counting users and creating the first administrator are one transaction (two
+  parallel first registrations can no longer both become administrators); a body that is not JSON
+  gets the generic request error.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.
@@ -448,6 +465,12 @@
   `YARN: yarn`, `make fuzz` env vars.
 
 ## Questions
+
+- `frontend/src/auth.ts` `fetchAndCacheUserInfo` reads `data.ID` and `data.Username` from
+  `GET /users/me`, which answers `id` and `username`, so the cached `user_id` and `username` are
+  undefined. Not part of 13g4b.
+- `POST /register` answers 409 "User already exists" for any failure to create the account (not only
+  a duplicate), as it always did; a real database error is reported as a conflict.
 
 - `services/password_reset_service.go` logs the user's email address when a reset mail is queued or
   cannot be sent ("email" field of the log lines). Addresses are personal data in logs; not part of
