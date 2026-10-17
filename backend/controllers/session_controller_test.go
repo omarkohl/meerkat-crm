@@ -10,10 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"meerkat/api"
 	"meerkat/config"
 	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
+	"meerkat/users"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -37,10 +39,7 @@ func newSessionEnv(t *testing.T) *sessionEnv {
 	r.POST("/login", func(c *gin.Context) { LoginUser(c, cfg) })
 	r.POST("/logout", func(c *gin.Context) { LogoutUser(c, cfg) })
 	p := r.Group("/", middleware.AuthMiddleware(cfg))
-	p.GET("/sessions", ListSessions)
-	p.DELETE("/sessions/:id", RevokeSession)
-	p.POST("/sessions/revoke-all", SignOutEverywhere)
-	p.POST("/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), ChangePassword)
+	users.New(users.Deps{DB: db, Config: cfg}).Register(api.New(r.Group(""), r), p)
 	r.POST("/password-reset/confirm", middleware.ValidateJSONMiddleware(&models.PasswordResetConfirmInput{}), ConfirmPasswordReset)
 	p.GET("/me", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
 	_ = router
@@ -215,27 +214,13 @@ func TestLogoutRevokesTheSession(t *testing.T) {
 	assert.Equal(t, http.StatusOK, e.do("POST", "/logout", "garbage", nil).Code)
 }
 
-func TestAPITokensCannotManageSessions(t *testing.T) {
-	e := newSessionEnv(t)
-	u := e.user(t, "alice")
-	r := gin.New()
-	r.Use(func(c *gin.Context) { c.Set("db", e.db); c.Set("userID", u.ID); c.Set("isAPIToken", true); c.Next() })
-	r.GET("/sessions", ListSessions)
-	r.POST("/sessions/revoke-all", SignOutEverywhere)
-	for _, req := range []*http.Request{httptest.NewRequest("GET", "/sessions", nil), httptest.NewRequest("POST", "/sessions/revoke-all", nil)} {
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusForbidden, w.Code)
-	}
-}
-
 func TestChangingThePasswordSignsOutTheOtherBrowsers(t *testing.T) {
 	e := newSessionEnv(t)
 	e.user(t, "alice")
 	laptop := e.login(t, "alice")
 	phone := e.login(t, "alice")
 
-	w := e.do("POST", "/change-password", laptop, map[string]string{"current_password": strongPassword, "new_password": strongPasswordAlt})
+	w := e.do("POST", "/users/change-password", laptop, map[string]string{"current_password": strongPassword, "new_password": strongPasswordAlt})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
 	assert.Equal(t, http.StatusUnauthorized, e.do("GET", "/me", phone, nil).Code, "the other browser is out")

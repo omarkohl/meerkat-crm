@@ -18,12 +18,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
-	h := &handlers{uc: uc}
+func Register(a huma.API, group gin.IRoutes, uc *app.UseCases, cookie Cookie) {
+	h := &handlers{uc: uc, cookie: cookie}
 	tags := []string{"users"}
 	reg := func(id, method, path, summary string) huma.Operation {
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary, Tags: tags}
 	}
+	api.RegisterOn(a, group, reg("list-sessions", http.MethodGet, "/sessions", "The user's live login sessions, newest first"), h.sessions)
+	api.RegisterOn(a, group, reg("revoke-session", http.MethodDelete, "/sessions/{id}", "Sign one session out"), h.revoke)
+	api.RegisterOn(a, group, reg("sign-out-everywhere", http.MethodPost, "/sessions/revoke-all", "Sign out of every session"), h.signOutEverywhere)
+	api.RegisterOn(a, group, reg("change-password", http.MethodPost, "/users/change-password", "Change the password; other sessions end and this browser gets a new one"), h.changePassword)
 	api.RegisterOn(a, group, reg("update-language", http.MethodPatch, "/users/language", "Set the language of the user"), h.language)
 	api.RegisterOn(a, group, reg("update-date-format", http.MethodPatch, "/users/date-format", "Set the date format of the user"), h.dateFormat)
 	api.RegisterOn(a, group, reg("get-custom-field-names", http.MethodGet, "/users/custom-fields", "The names of the user's custom contact fields"), h.customFields)
@@ -32,7 +36,10 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 	api.RegisterOn(a, group, reg("update-enabled-contact-fields", http.MethodPatch, "/users/enabled-contact-fields", "Replace the extended contact fields the user shows"), h.setEnabledFields)
 }
 
-type handlers struct{ uc *app.UseCases }
+type handlers struct {
+	uc     *app.UseCases
+	cookie Cookie
+}
 
 type LanguageBody struct {
 	Language string `json:"language"`
@@ -114,8 +121,17 @@ func actorOf(ctx context.Context) (domain.UserID, error) {
 	return domain.UserID(id), nil
 }
 
+// sessionActorOf is actorOf for operations an API token must not do: a token carries no
+// username, which is how they have always been told apart from a login.
+func sessionActorOf(ctx context.Context) (domain.UserID, error) {
+	if _, ok := api.Username(ctx); !ok || api.IsAPIToken(ctx) {
+		return 0, apperrors.ErrUnauthorized("Authentication required")
+	}
+	return actorOf(ctx)
+}
+
 func (h *handlers) language(ctx context.Context, in *LanguageInput) (*UserLanguageOutput, error) {
-	actor, err := actorOf(ctx)
+	actor, err := sessionActorOf(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +144,7 @@ func (h *handlers) language(ctx context.Context, in *LanguageInput) (*UserLangua
 }
 
 func (h *handlers) dateFormat(ctx context.Context, in *DateFormatInput) (*UserDateFormatOutput, error) {
-	actor, err := actorOf(ctx)
+	actor, err := sessionActorOf(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -203,11 +219,26 @@ func toAppError(err error, field string) *apperrors.AppError {
 		return apperrors.ErrInvalidInput(field, "Unsupported "+unsupported.What+". Supported: "+strings.Join(unsupported.Supported, ", "))
 	case errors.Is(err, domain.ErrUserNotFound):
 		return apperrors.ErrUnauthorized("Authentication required")
+	case errors.Is(err, domain.ErrSessionNotFound):
+		return apperrors.ErrNotFound("Session")
+	case errors.Is(err, domain.ErrCurrentPasswordWrong):
+		return apperrors.ErrInvalidInput("current_password", "Current password is incorrect")
+	case errors.Is(err, domain.ErrPasswordUnchanged):
+		return apperrors.ErrInvalidInput("new_password", "New password must differ from current password")
+	case errors.Is(err, domain.ErrPasswordTooLong):
+		return apperrors.ErrValidation(err.Error())
 	}
 	var f *app.Failure
 	if errors.As(err, &f) {
-		if f.Stage == app.StageQuery {
+		switch f.Stage {
+		case app.StageQuery:
 			return apperrors.ErrDatabase("query user").WithError(f.Err)
+		case app.StageSessionList:
+			return apperrors.ErrDatabase("query").WithError(f.Err)
+		case app.StageSessionRevoke:
+			return apperrors.ErrDatabase("update").WithError(f.Err)
+		case app.StageHash:
+			return apperrors.ErrInternal("Could not hash password").WithError(f.Err)
 		}
 		return apperrors.ErrDatabase("update user").WithError(f.Err)
 	}

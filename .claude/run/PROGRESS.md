@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g (users, sessions, TOTP, OIDC, password reset, same pattern).
+13g3 (two-factor TOTP endpoints, same pattern).
 
 ## Stack
 
@@ -183,6 +183,15 @@
   (isolation between users, untouched password, null versus empty, wording of the unsupported-value
   errors, 401). Frontend `api/users.ts` types its requests and responses from the generated types.
   `make precommit` green.
+- Step 13g2: the users module gets `GET /sessions`, `DELETE /sessions/{id}`,
+  `POST /sessions/revoke-all` and `POST /users/change-password`: domain (session ID shape, the
+  password rules as errors), use cases `ListSessions`, `RevokeSession`, `SignOutEverywhere`,
+  `ChangePassword`; ports `Sessions`, `Accounts`, `Passwords`, `Audit`; persistence adapters over
+  `services` (sessions, token version, JWT issue, audit entry), a bcrypt adapter, and the cookie set
+  by the http adapter through new `api` helpers (`Username`, `IsAPIToken`, `SessionID`, `ClientIP`,
+  `UserAgent`, `SetCookie`). The old handlers, `models.ChangePasswordInput` and the duplicated
+  controller tests are removed; the end-to-end session tests in `controllers` (real login, real auth
+  middleware) now mount the module. 11 new module tests. `make precommit` green.
 
 ## Decisions
 
@@ -311,6 +320,27 @@
   no user sees a difference and there is no CHANGELOG line. A body that is not JSON, or empty, now
   gets the generic request error ("request body" / "validation failed" or "request body is
   required", 400) instead of "Invalid language value". Status codes verified by test: 200, 400, 401.
+- 13g2, **fix of 13g1**: an API token has no `username` in the request context, so the old language,
+  date-format and change-password handlers (which looked the user up by username) answered 401 to
+  API tokens. 13g1 switched them to the user ID and silently let API tokens change the language and
+  date format. They now require a username again (`sessionActorOf`), so API tokens get 401 as
+  before; the other preference endpoints stay open to tokens, as before. Tested for all three.
+- 13g2, behaviour kept and tested: sessions endpoints answer 403 "API tokens cannot manage sessions"
+  to API tokens, 404 "Session not found" for a malformed, unknown, foreign, revoked or expired ID,
+  and clear the cookie only when the revoked session is the current one or for sign-out-everywhere;
+  a password change keeps its order (wrong current password, then same password, then the 72 byte
+  limit as 400 `VALIDATION_ERROR`), hashes before the transaction, clears the pending reset, ends
+  every session and raises the token version in one transaction, and starts a new session (cookie
+  with the configured domain, `Secure`, `HttpOnly`, `SameSite=Lax`, path `/`, max age of the JWT
+  lifetime) unless the caller is an API token or no signing key is set; a failure to start it is
+  only logged. Audit entries (`session_revoked`, `sign_out_everywhere`, `password_changed`) keep the
+  client IP and user agent and the username. Database errors keep their words per stage ("query",
+  "update", "query user", "update user", "Could not hash password").
+- 13g2, deviations: the user is found by ID, not by username; the `password_reset_*` columns and the
+  password are written as four columns instead of saving the whole user; the cookie and JWT settings
+  are read once when the module is built; with a request that fails validation while unauthenticated
+  the 400 comes before the 401, which the router's auth middleware makes unreachable. `DEMO_MODE` is
+  read per request, before the user is looked at, as before.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.

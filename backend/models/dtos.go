@@ -104,12 +104,6 @@ type PasswordResetConfirmInput struct {
 	Password string `json:"password" validate:"required,min=8,strong_password"`
 }
 
-// ChangePasswordInput is used by authenticated users to rotate credentials
-type ChangePasswordInput struct {
-	CurrentPassword string `json:"current_password" validate:"required"`
-	NewPassword     string `json:"new_password" validate:"required,min=8,strong_password"`
-}
-
 // Birthday represents a unified birthday entry for contacts and relationships
 type Birthday struct {
 	Type                  string `json:"type"`                              // "contact" or "relationship"

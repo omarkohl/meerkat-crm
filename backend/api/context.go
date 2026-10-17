@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"meerkat/clock"
@@ -34,6 +35,53 @@ func UserID(ctx context.Context) (id uint, ok bool) {
 	}
 	id, ok = v.(uint)
 	return id, ok
+}
+
+// Username is the username the authentication middleware set; an API token has none.
+func Username(ctx context.Context) (string, bool) {
+	c := ginContext(ctx)
+	if c == nil {
+		return "", false
+	}
+	name, ok := c.Get("username")
+	s, isString := name.(string)
+	return s, ok && isString && s != ""
+}
+
+// IsAPIToken reports whether the request was authenticated with an API token.
+func IsAPIToken(ctx context.Context) bool {
+	c := ginContext(ctx)
+	return c != nil && c.GetBool("isAPIToken")
+}
+
+// SessionID is the login session of the request, "" when it has none.
+func SessionID(ctx context.Context) string {
+	if c := ginContext(ctx); c != nil {
+		return c.GetString("sessionID")
+	}
+	return ""
+}
+
+// ClientIP and UserAgent describe the caller, for audit entries and new sessions.
+func ClientIP(ctx context.Context) string {
+	if c := ginContext(ctx); c != nil {
+		return c.ClientIP()
+	}
+	return ""
+}
+
+func UserAgent(ctx context.Context) string {
+	if c := ginContext(ctx); c != nil {
+		return c.Request.UserAgent()
+	}
+	return ""
+}
+
+// SetCookie adds a Set-Cookie header to the response of the operation.
+func SetCookie(ctx context.Context, cookie *http.Cookie) {
+	if c := ginContext(ctx); c != nil {
+		http.SetCookie(c.Writer, cookie)
+	}
 }
 
 // Logger is the request's logger, with its request and user IDs.

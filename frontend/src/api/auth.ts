@@ -1,5 +1,6 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
 export async function requestPasswordReset(email: string): Promise<string> {
   const response = await apiFetch(`${API_BASE_URL}/password-reset/request`, {
@@ -34,7 +35,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
     body: JSON.stringify({
       current_password: currentPassword,
       new_password: newPassword,
-    }),
+    } satisfies components['schemas']['ChangePasswordBody']),
   });
 
   const data = await handleResponse(response, 'Unable to change password.');

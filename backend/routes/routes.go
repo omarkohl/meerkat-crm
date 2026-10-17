@@ -122,13 +122,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
-			protected.POST("/users/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), controllers.ChangePassword)
 			protected.GET("/users/me", controllers.GetCurrentUser)
-
-			// Login sessions: list, sign one out, sign out everywhere
-			protected.GET("/sessions", controllers.ListSessions)
-			protected.POST("/sessions/revoke-all", controllers.SignOutEverywhere)
-			protected.DELETE("/sessions/:id", controllers.RevokeSession)
 
 			// Two-factor (TOTP): status, enrol, enable, disable, new recovery codes
 			protected.GET("/users/me/2fa", controllers.GetTOTPStatus)

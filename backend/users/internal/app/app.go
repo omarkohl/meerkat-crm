@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"errors"
+	"time"
 
 	"meerkat/users/internal/domain"
 )
@@ -20,11 +21,45 @@ type Preferences interface {
 	SetEnabledContactFields(ctx context.Context, actor domain.UserID, fields []string) error
 }
 
+// Sessions are the actor's browser logins.
+type Sessions interface {
+	Live(ctx context.Context, actor domain.UserID, now time.Time) ([]domain.Session, error)
+	// Revoke ends a live session of the actor and reports whether there was one.
+	Revoke(ctx context.Context, actor domain.UserID, id string, now time.Time) (bool, error)
+	// RevokeAll ends every session of the actor and raises the token version, so tokens
+	// issued earlier die too.
+	RevokeAll(ctx context.Context, actor domain.UserID, now time.Time) error
+	// Start records a new session and returns the token that belongs to it.
+	Start(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) (string, error)
+}
+
+// Accounts reads and changes the credentials of the actor.
+type Accounts interface {
+	PasswordHash(ctx context.Context, actor domain.UserID) (string, error)
+	// ChangePassword stores the new hash, clears any pending password reset and ends every
+	// session, as one change.
+	ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error
+}
+
+type Passwords interface {
+	Matches(hash, password string) bool
+	// Hash returns domain.ErrPasswordTooLong for a password bcrypt cannot take.
+	Hash(password string) (string, error)
+}
+
+// Audit records security events; it never fails the use case.
+type Audit interface {
+	Record(ctx context.Context, actor domain.UserID, event string, client domain.Client)
+}
+
 type Stage string
 
 const (
-	StageQuery  Stage = "query"
-	StageUpdate Stage = "update"
+	StageQuery         Stage = "query"
+	StageUpdate        Stage = "update"
+	StageSessionList   Stage = "session-list"
+	StageSessionRevoke Stage = "session-revoke"
+	StageHash          Stage = "hash"
 )
 
 // Failure wraps an infrastructure error with the stage it happened in. A missing user and a
@@ -40,10 +75,14 @@ func (f *Failure) Unwrap() error { return f.Err }
 type UseCases struct {
 	prefs     Preferences
 	languages []string
+	sessions  Sessions
+	accounts  Accounts
+	passwords Passwords
+	audit     Audit
 }
 
-func New(prefs Preferences, supportedLanguages []string) *UseCases {
-	return &UseCases{prefs: prefs, languages: supportedLanguages}
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit) *UseCases {
+	return &UseCases{prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords, audit: audit}
 }
 
 func stage(s Stage, err error) error {
@@ -95,4 +134,77 @@ func (u *UseCases) EnabledContactFields(ctx context.Context, actor domain.UserID
 
 func (u *UseCases) SetEnabledContactFields(ctx context.Context, actor domain.UserID, fields []string) error {
 	return stage(StageUpdate, u.prefs.SetEnabledContactFields(ctx, actor, fields))
+}
+
+// ListSessions returns the actor's live sessions, newest first, the one in current marked.
+func (u *UseCases) ListSessions(ctx context.Context, actor domain.UserID, current string, now time.Time) ([]domain.Session, error) {
+	list, err := u.sessions.Live(ctx, actor, now)
+	if err != nil {
+		return nil, stage(StageSessionList, err)
+	}
+	for i := range list {
+		list[i].Current = current != "" && list[i].ID == current
+	}
+	return list, nil
+}
+
+func (u *UseCases) RevokeSession(ctx context.Context, actor domain.UserID, id string, client domain.Client, now time.Time) error {
+	if !domain.ValidSessionID(id) {
+		return domain.ErrSessionNotFound
+	}
+	revoked, err := u.sessions.Revoke(ctx, actor, id, now)
+	if err != nil {
+		return stage(StageSessionRevoke, err)
+	}
+	if !revoked {
+		return domain.ErrSessionNotFound
+	}
+	u.audit.Record(ctx, actor, domain.EventSessionRevoked, client)
+	return nil
+}
+
+func (u *UseCases) SignOutEverywhere(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) error {
+	if err := u.sessions.RevokeAll(ctx, actor, now); err != nil {
+		return stage(StageSessionRevoke, err)
+	}
+	u.audit.Record(ctx, actor, domain.EventSignOutEverywhere, client)
+	return nil
+}
+
+// PasswordChanged carries the token of the session started after a password change; when it
+// could not be started the change still stands and SessionErr says why.
+type PasswordChanged struct {
+	Token      string
+	SessionErr error
+}
+
+// ChangePassword rotates the password. The hash is made before the transaction. Every other
+// browser is signed out and the caller gets a new session unless startSession is false.
+func (u *UseCases) ChangePassword(ctx context.Context, actor domain.UserID, current, next string, startSession bool, client domain.Client, now time.Time) (PasswordChanged, error) {
+	hash, err := u.accounts.PasswordHash(ctx, actor)
+	if err != nil {
+		return PasswordChanged{}, stage(StageQuery, err)
+	}
+	if !u.passwords.Matches(hash, current) {
+		return PasswordChanged{}, domain.ErrCurrentPasswordWrong
+	}
+	if u.passwords.Matches(hash, next) {
+		return PasswordChanged{}, domain.ErrPasswordUnchanged
+	}
+	newHash, err := u.passwords.Hash(next)
+	if errors.Is(err, domain.ErrPasswordTooLong) {
+		return PasswordChanged{}, err
+	}
+	if err != nil {
+		return PasswordChanged{}, &Failure{Stage: StageHash, Err: err}
+	}
+	if err := u.accounts.ChangePassword(ctx, actor, newHash, now); err != nil {
+		return PasswordChanged{}, stage(StageUpdate, err)
+	}
+	var out PasswordChanged
+	if startSession {
+		out.Token, out.SessionErr = u.sessions.Start(ctx, actor, client, now)
+	}
+	u.audit.Record(ctx, actor, domain.EventPasswordChanged, client)
+	return out, nil
 }

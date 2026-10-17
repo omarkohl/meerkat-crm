@@ -385,37 +385,3 @@ func TestConfirmPasswordReset_Succeeds(t *testing.T) {
 	assert.Nil(t, updated.PasswordResetRequestedAt)
 	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.Password), []byte(strongPasswordAlt)))
 }
-
-func TestChangePassword_Succeeds(t *testing.T) {
-	db, router := setupRouter()
-
-	initialPassword, _ := services.HashPassword(strongPassword)
-	user := models.User{
-		Username: "changeme",
-		Email:    "change@example.com",
-		Password: initialPassword,
-	}
-	db.Create(&user)
-
-	router.POST("/change-password", func(c *gin.Context) {
-		c.Set("username", "changeme")
-		c.Set("validated", &models.ChangePasswordInput{
-			CurrentPassword: strongPassword,
-			NewPassword:     strongPasswordAnother,
-		})
-		ChangePassword(c)
-	})
-
-	req, _ := http.NewRequest("POST", "/change-password", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var updated models.User
-	db.Where("username = ?", "changeme").First(&updated)
-	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.Password), []byte(strongPasswordAnother)))
-	assert.Nil(t, updated.PasswordResetTokenHash)
-	assert.Nil(t, updated.PasswordResetExpiresAt)
-	assert.Nil(t, updated.PasswordResetRequestedAt)
-}

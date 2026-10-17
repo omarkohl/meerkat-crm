@@ -234,6 +234,21 @@
         ],
         "type": "object"
       },
+      "ChangePasswordBody": {
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "type": "object"
+      },
       "CompletionListOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2115,6 +2130,76 @@
         "required": [
           "message",
           "reminder"
+        ],
+        "type": "object"
+      },
+      "SessionListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sessions"
+        ],
+        "type": "object"
+      },
+      "SessionMessageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "SessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "current": {
+            "description": "The session of this request",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_agent": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_agent",
+          "ip",
+          "last_seen_at",
+          "expires_at",
+          "created_at",
+          "current"
         ],
         "type": "object"
       },
@@ -4422,6 +4507,111 @@
         ]
       }
     },
+    "/sessions": {
+      "get": {
+        "operationId": "list-sessions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The user's live login sessions, newest first",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/sessions/revoke-all": {
+      "post": {
+        "operationId": "sign-out-everywhere",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign out of every session",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/sessions/{id}": {
+      "delete": {
+        "operationId": "revoke-session",
+        "parameters": [
+          {
+            "description": "The session's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The session's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign one session out",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/trash/contacts": {
       "delete": {
         "operationId": "empty-trash",
@@ -4565,6 +4755,47 @@
         "summary": "Restore a deleted contact with its notes, reminders and relationships",
         "tags": [
           "trash"
+        ]
+      }
+    },
+    "/users/change-password": {
+      "post": {
+        "operationId": "change-password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Change the password; other sessions end and this browser gets a new one",
+        "tags": [
+          "users"
         ]
       }
     },

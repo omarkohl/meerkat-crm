@@ -328,14 +328,6 @@
       "count": 9
     }
   },
-  "src/api/sessions.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
-    }
-  },
   "src/api/trash.ts": {
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 3

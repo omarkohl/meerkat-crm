@@ -25,3 +25,10 @@ func TestOnlyKnownDateFormatsAreValid(t *testing.T) {
 	}
 	assert.EqualError(t, domain.ValidateDateFormat("dmy"), "unsupported date format. Supported: eu, us, iso")
 }
+
+func TestSessionIDsAre32LowercaseHexCharacters(t *testing.T) {
+	assert.True(t, domain.ValidSessionID("0123456789abcdef0123456789abcdef"))
+	for _, id := range []string{"", "0123456789ABCDEF0123456789ABCDEF", "0123456789abcdef0123456789abcde", "0123456789abcdef0123456789abcdeg"} {
+		assert.False(t, domain.ValidSessionID(id), id)
+	}
+}

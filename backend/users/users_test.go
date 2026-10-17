@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"meerkat/api"
 	"meerkat/clock"
@@ -22,8 +23,11 @@ import (
 	"gorm.io/gorm"
 )
 
+var now = time.Date(2026, 3, 10, 15, 30, 0, 0, time.UTC)
+
 type env struct {
 	db   *gorm.DB
+	cfg  *config.Config
 	a, b models.User
 	asA  *gin.Engine
 	asB  *gin.Engine
@@ -37,25 +41,38 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}))
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Session{}, &models.AuditLog{}))
 	e := &env{db: db}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
 
-	mount := func(user *models.User) *gin.Engine {
-		r := gin.New()
-		r.Use(middleware.ClockMiddleware(clock.Real()))
-		authenticated := r.Group("")
-		if user != nil {
-			authenticated.Use(func(c *gin.Context) { c.Set("userID", user.ID); c.Set("username", user.Username); c.Next() })
-		}
-		users.New(users.Deps{DB: db, Config: &config.Config{}}).Register(api.New(r.Group(""), r), authenticated)
-		return r
-	}
-	e.asA, e.asB, e.anon = mount(&e.a), mount(&e.b), mount(nil)
+	e.cfg = &config.Config{JWTSecretKey: "test-secret-test-secret-test-secret", JWTExpiryHours: 24}
+	e.asA, e.asB, e.anon = e.engine(&e.a, nil), e.engine(&e.b, nil), e.engine(nil, nil)
 	return e
+}
+
+// engine mounts the module the way the router does: behind a middleware that sets what the
+// authentication middleware sets. extras are further context values (isAPIToken, sessionID).
+func (e *env) engine(user *models.User, extras map[string]any) *gin.Engine {
+	r := gin.New()
+	r.Use(middleware.ClockMiddleware(clock.NewFake(now)))
+	authenticated := r.Group("")
+	if user != nil {
+		authenticated.Use(func(c *gin.Context) {
+			c.Set("userID", user.ID)
+			if _, apiToken := extras["isAPIToken"]; !apiToken {
+				c.Set("username", user.Username)
+			}
+			for k, v := range extras {
+				c.Set(k, v)
+			}
+			c.Next()
+		})
+	}
+	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(api.New(r.Group(""), r), authenticated)
+	return r
 }
 
 func (e *env) reload(t *testing.T, id uint) models.User {

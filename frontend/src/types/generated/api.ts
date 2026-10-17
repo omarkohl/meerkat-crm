@@ -461,6 +461,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The user's live login sessions, newest first */
+        get: operations["list-sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out of every session */
+        post: operations["sign-out-everywhere"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Sign one session out */
+        delete: operations["revoke-session"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trash/contacts": {
         parameters: {
             query?: never;
@@ -507,6 +558,23 @@ export interface paths {
         put?: never;
         /** Restore a deleted contact with its notes, reminders and relationships */
         post: operations["restore-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the password; other sessions end and this browser gets a new one */
+        post: operations["change-password"];
         delete?: never;
         options?: never;
         head?: never;
@@ -649,6 +717,10 @@ export interface components {
         };
         BirthdaysOutputBody: {
             birthdays: components["schemas"]["BirthdayResponse"][] | null;
+        };
+        ChangePasswordBody: {
+            current_password: string;
+            new_password: string;
         };
         CompletionListOutputBody: {
             completions: components["schemas"]["CompletionResponse"][] | null;
@@ -1123,6 +1195,25 @@ export interface components {
         ReminderSavedOutputBody: {
             message: string;
             reminder: components["schemas"]["ReminderResponse"];
+        };
+        SessionListOutputBody: {
+            sessions: components["schemas"]["SessionResponse"][] | null;
+        };
+        SessionMessageOutputBody: {
+            message: string;
+        };
+        SessionResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** @description The session of this request */
+            current: boolean;
+            /** Format: date-time */
+            expires_at: string;
+            id: string;
+            ip: string;
+            /** Format: date-time */
+            last_seen_at: string;
+            user_agent: string;
         };
         SourceContactResponse: {
             /** Format: int64 */
@@ -2581,6 +2672,96 @@ export interface operations {
             };
         };
     };
+    "list-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "sign-out-everywhere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "revoke-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     "list-trash": {
         parameters: {
             query?: never;
@@ -2690,6 +2871,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrashRestoredOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessageOutputBody"];
                 };
             };
             /** @description Error */

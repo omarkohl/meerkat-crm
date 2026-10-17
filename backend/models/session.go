@@ -15,9 +15,3 @@ type Session struct {
 	ExpiresAt  time.Time  `json:"expires_at"`
 	RevokedAt  *time.Time `json:"-"`
 }
-
-// SessionResponse is a session as the owner sees it.
-type SessionResponse struct {
-	Session
-	Current bool `json:"current"`
-}
