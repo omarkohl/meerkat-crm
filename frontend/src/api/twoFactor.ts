@@ -1,25 +1,11 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
+import type { components } from '../types/generated/api';
 
-export interface TwoFactorStatus {
-  enabled: boolean;
-  recovery_codes_remaining: number;
-  /** False for accounts without a password (single sign-on only). */
-  available: boolean;
-}
-
-export interface TwoFactorSetup {
-  /** Base32 key, for typing into the app. */
-  secret: string;
-  /** otpauth:// URI, what the QR code encodes. */
-  otpauth_uri: string;
-}
-
+export type TwoFactorStatus = components['schemas']['TwoFactorStatusOutputBody'];
+export type TwoFactorSetup = components['schemas']['TwoFactorSetupOutputBody'];
 /** Password plus one authenticator code or recovery code. */
-export interface TwoFactorConfirmation {
-  password: string;
-  code?: string;
-  recovery_code?: string;
-}
+export type TwoFactorConfirmation = components['schemas']['ConfirmTwoFactorBody'];
+type CodesBody = components['schemas']['TwoFactorCodesOutputBody'];
 
 async function call<T>(path: string, method: string, body?: unknown): Promise<T> {
   const response = await apiFetch(`${API_BASE_URL}${path}`, {
@@ -40,8 +26,11 @@ export const setupTwoFactor = () => call<TwoFactorSetup>('/users/me/2fa/setup', 
 
 /** Returns the recovery codes. They are shown once and never again. */
 export async function enableTwoFactor(password: string, code: string): Promise<string[]> {
-  const data = await call<{ recovery_codes: string[] }>('/users/me/2fa/enable', 'POST', { password, code });
-  return data.recovery_codes;
+  const data = await call<CodesBody>('/users/me/2fa/enable', 'POST', {
+    password,
+    code,
+  } satisfies components['schemas']['EnableTwoFactorBody']);
+  return data.recovery_codes ?? [];
 }
 
 export async function disableTwoFactor(confirmation: TwoFactorConfirmation): Promise<void> {
@@ -49,8 +38,8 @@ export async function disableTwoFactor(confirmation: TwoFactorConfirmation): Pro
 }
 
 export async function regenerateRecoveryCodes(confirmation: TwoFactorConfirmation): Promise<string[]> {
-  const data = await call<{ recovery_codes: string[] }>('/users/me/2fa/recovery-codes', 'POST', confirmation);
-  return data.recovery_codes;
+  const data = await call<CodesBody>('/users/me/2fa/recovery-codes', 'POST', confirmation);
+  return data.recovery_codes ?? [];
 }
 
 /** Admin only: switches off a user's two-factor and signs the user out everywhere. */

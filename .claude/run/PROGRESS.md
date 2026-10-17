@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g3 (two-factor TOTP endpoints, same pattern).
+13g4 (register, login, logout, password reset, password strength, current user).
 
 ## Stack
 
@@ -192,6 +192,15 @@
   `UserAgent`, `SetCookie`). The old handlers, `models.ChangePasswordInput` and the duplicated
   controller tests are removed; the end-to-end session tests in `controllers` (real login, real auth
   middleware) now mount the module. 11 new module tests. `make precommit` green.
+- Step 13g3: the users module gets the five two-factor endpoints (`GET /users/me/2fa`,
+  `POST .../setup`, `.../enable`, `.../disable`, `.../recovery-codes`): use cases `TwoFactorStatus`,
+  `BeginTwoFactorSetup`, `EnableTwoFactor`, `DisableTwoFactor`, `RegenerateRecoveryCodes`; ports
+  `SecondFactor` and `Lockout` (the same per-account counter the login uses,
+  `middleware.SecondFactorKey`); the secret, recovery code hashing and encryption stay in
+  `services`, which the login shares. The old handlers and `models.TOTPCodeInput/ConfirmInput` are
+  gone; the end-to-end tests (real login, lockout, replay, encryption, admin reset) now mount the
+  module, and 10 new module tests cover 401/403/429, single sign-on accounts and recovery codes.
+  `make precommit` green.
 
 ## Decisions
 
@@ -341,6 +350,21 @@
   are read once when the module is built; with a request that fails validation while unauthenticated
   the 400 comes before the 401, which the router's auth middleware makes unreachable. `DEMO_MODE` is
   read per request, before the user is looked at, as before.
+- 13g3, behaviour kept and tested: every two-factor endpoint answers 403 "API tokens cannot manage
+  two-factor authentication" to API tokens (after the 401 check); order of checks in enable (not
+  available for single sign-on accounts, already enabled 409, lockout 429, password counted, code
+  counted); the 429 body keeps its non-AppError shape (`error`, `message`, `retry_after`,
+  `retry_after_at`, `retry_after_at` from the real clock); codes are checked against the real time,
+  never `FAKE_NOW`; enabling and disabling end the other sessions (a failure is only logged); audit
+  events `totp_enabled`, `totp_disabled`, `totp_recovery_used`, `totp_recovery_regenerated`; a
+  missing user is 404 "User" here (401 for the preferences). The secret and the recovery codes
+  appear only in the responses that returned them before (setup: secret and URI; enable and
+  regenerate: recovery codes once) and are never logged.
+- 13g3, deviations: the second lockout check after the password (a no-op when the account was not
+  locked a moment before) is gone; a failure reading the user during the code check is a database
+  error ("update") instead of a silent wrong code. The `/admin/users/{id}/2fa/reset` handler and the
+  login's second step stay in `controllers` until 13g4 and 13l and share
+  `middleware.SecondFactorKey`.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.

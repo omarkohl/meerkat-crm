@@ -10,8 +10,6 @@ import (
 	"meerkat/users/internal/domain"
 )
 
-// Preferences reads and writes one user's settings, one at a time: a write never touches the
-// password or any other column.
 type Preferences interface {
 	CustomFieldNames(ctx context.Context, actor domain.UserID) ([]string, error)
 	EnabledContactFields(ctx context.Context, actor domain.UserID) ([]string, error)
@@ -21,7 +19,6 @@ type Preferences interface {
 	SetEnabledContactFields(ctx context.Context, actor domain.UserID, fields []string) error
 }
 
-// Sessions are the actor's browser logins.
 type Sessions interface {
 	Live(ctx context.Context, actor domain.UserID, now time.Time) ([]domain.Session, error)
 	// Revoke ends a live session of the actor and reports whether there was one.
@@ -29,16 +26,38 @@ type Sessions interface {
 	// RevokeAll ends every session of the actor and raises the token version, so tokens
 	// issued earlier die too.
 	RevokeAll(ctx context.Context, actor domain.UserID, now time.Time) error
-	// Start records a new session and returns the token that belongs to it.
+	RevokeOthers(ctx context.Context, actor domain.UserID, keep string, now time.Time) error
 	Start(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) (string, error)
 }
 
-// Accounts reads and changes the credentials of the actor.
 type Accounts interface {
 	PasswordHash(ctx context.Context, actor domain.UserID) (string, error)
+	Account(ctx context.Context, actor domain.UserID) (domain.Account, error)
 	// ChangePassword stores the new hash, clears any pending password reset and ends every
 	// session, as one change.
 	ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error
+}
+
+// SecondFactor is the authenticator-app (TOTP) secret and recovery codes of the actor.
+type SecondFactor interface {
+	RecoveryCodesLeft(ctx context.Context, actor domain.UserID) (int, error)
+	// BeginSetup stores a pending secret and returns it with the URI for the QR code. It
+	// returns domain.ErrTwoFactorEnabled when two-factor is already on.
+	BeginSetup(ctx context.Context, actor domain.UserID, username string) (secret, uri string, err error)
+	// Enable turns two-factor on if code fits the pending secret and returns the recovery
+	// codes. Errors: domain.ErrInvalidVerificationCode, domain.ErrTwoFactorEnabled.
+	Enable(ctx context.Context, actor domain.UserID, code string, at time.Time) ([]string, error)
+	// Check accepts an authenticator code or, with none, a recovery code; each works once.
+	Check(ctx context.Context, actor domain.UserID, code, recovery string, at time.Time) (ok, usedRecovery bool, err error)
+	Disable(ctx context.Context, actor domain.UserID) error
+	NewRecoveryCodes(ctx context.Context, actor domain.UserID) ([]string, error)
+}
+
+// Lockout counts wrong second-factor attempts per account; login shares the same counter.
+type Lockout interface {
+	Locked(actor domain.UserID) (bool, int)
+	Fail(actor domain.UserID) (locked bool, seconds int)
+	Reset(actor domain.UserID)
 }
 
 type Passwords interface {
@@ -60,6 +79,9 @@ const (
 	StageSessionList   Stage = "session-list"
 	StageSessionRevoke Stage = "session-revoke"
 	StageHash          Stage = "hash"
+	StageSetup         Stage = "setup"
+	StageEnable        Stage = "enable"
+	StageFactor        Stage = "factor"
 )
 
 // Failure wraps an infrastructure error with the stage it happened in. A missing user and a
@@ -79,10 +101,15 @@ type UseCases struct {
 	accounts  Accounts
 	passwords Passwords
 	audit     Audit
+	factor    SecondFactor
+	lockout   Lockout
 }
 
-func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit) *UseCases {
-	return &UseCases{prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords, audit: audit}
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout) *UseCases {
+	return &UseCases{
+		prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords,
+		audit: audit, factor: factor, lockout: lockout,
+	}
 }
 
 func stage(s Stage, err error) error {
@@ -109,7 +136,6 @@ func (u *UseCases) SetDateFormat(ctx context.Context, actor domain.UserID, forma
 	return stage(StageUpdate, u.prefs.SetDateFormat(ctx, actor, format))
 }
 
-// CustomFieldNames returns the user's names, an empty list when none were set.
 func (u *UseCases) CustomFieldNames(ctx context.Context, actor domain.UserID) ([]string, error) {
 	names, err := u.prefs.CustomFieldNames(ctx, actor)
 	if err != nil {
@@ -136,7 +162,6 @@ func (u *UseCases) SetEnabledContactFields(ctx context.Context, actor domain.Use
 	return stage(StageUpdate, u.prefs.SetEnabledContactFields(ctx, actor, fields))
 }
 
-// ListSessions returns the actor's live sessions, newest first, the one in current marked.
 func (u *UseCases) ListSessions(ctx context.Context, actor domain.UserID, current string, now time.Time) ([]domain.Session, error) {
 	list, err := u.sessions.Live(ctx, actor, now)
 	if err != nil {

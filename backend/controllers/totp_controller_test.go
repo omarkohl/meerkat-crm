@@ -16,16 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTOTPEnv extends the session environment with the two-factor routes (user and admin).
+// newTOTPEnv extends the session environment (which mounts the users module, two-factor
+// included) with the admin routes.
 func newTOTPEnv(t *testing.T) *sessionEnv {
 	t.Helper()
 	e := newSessionEnv(t)
 	p := e.r.Group("/", middleware.AuthMiddleware(e.cfg))
-	p.GET("/2fa", GetTOTPStatus)
-	p.POST("/2fa/setup", SetupTOTP)
-	p.POST("/2fa/enable", middleware.ValidateJSONMiddleware(&models.TOTPCodeInput{}), EnableTOTP)
-	p.POST("/2fa/disable", middleware.ValidateJSONMiddleware(&models.TOTPConfirmInput{}), DisableTOTP)
-	p.POST("/2fa/recovery-codes", middleware.ValidateJSONMiddleware(&models.TOTPConfirmInput{}), RegenerateRecoveryCodes)
 	p.GET("/users/me", GetCurrentUser)
 	admin := e.r.Group("/admin", middleware.AuthMiddleware(e.cfg), middleware.AdminMiddleware())
 	admin.POST("/users/:id/2fa/reset", ResetUserTOTP)
@@ -43,12 +39,12 @@ func decode(t *testing.T, body []byte) map[string]any {
 // enrol sets 2FA up for the logged-in user and returns the secret and the recovery codes.
 func (e *sessionEnv) enrol(t *testing.T, token string) (string, []string) {
 	t.Helper()
-	w := e.do("POST", "/2fa/setup", token, nil)
+	w := e.do("POST", "/users/me/2fa/setup", token, nil)
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	setup := decode(t, w.Body.Bytes())
 	secret := setup["secret"].(string)
 	require.True(t, strings.HasPrefix(setup["otpauth_uri"].(string), "otpauth://totp/"))
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": strongPassword, "code": services.TOTPCode(secret, time.Now())})
+	w = e.do("POST", "/users/me/2fa/enable", token, map[string]string{"password": strongPassword, "code": services.TOTPCode(secret, time.Now())})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	var out struct {
 		RecoveryCodes []string `json:"recovery_codes"`
@@ -75,21 +71,21 @@ func TestEnrolmentAndLoginRequireTheSecondStep(t *testing.T) {
 	token := e.login(t, "totp_flow")
 
 	// before enrolment: off
-	st := decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())
+	st := decode(t, e.do("GET", "/users/me/2fa", token, nil).Body.Bytes())
 	assert.Equal(t, false, st["enabled"])
 
 	// setup alone does not turn it on; a wrong code does not either
-	w := e.do("POST", "/2fa/setup", token, nil)
+	w := e.do("POST", "/users/me/2fa/setup", token, nil)
 	require.Equal(t, http.StatusOK, w.Code)
 	secret := decode(t, w.Body.Bytes())["secret"].(string)
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": strongPassword, "code": "000000"})
+	w = e.do("POST", "/users/me/2fa/enable", token, map[string]string{"password": strongPassword, "code": "000000"})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, http.StatusOK, e.loginWith("totp_flow", nil).Code, "still no second step")
-	assert.Equal(t, false, decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())["enabled"])
+	assert.Equal(t, false, decode(t, e.do("GET", "/users/me/2fa", token, nil).Body.Bytes())["enabled"])
 
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": strongPassword, "code": services.TOTPCode(secret, time.Now())})
+	w = e.do("POST", "/users/me/2fa/enable", token, map[string]string{"password": strongPassword, "code": services.TOTPCode(secret, time.Now())})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	st = decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())
+	st = decode(t, e.do("GET", "/users/me/2fa", token, nil).Body.Bytes())
 	assert.Equal(t, true, st["enabled"])
 	assert.EqualValues(t, services.RecoveryCodeCount, st["recovery_codes_remaining"])
 	assert.Len(t, e.events(models.AuditTOTPEnabled), 1)
@@ -149,7 +145,7 @@ func TestRecoveryCodeLogsInOnceAndIsAudited(t *testing.T) {
 
 	w = e.loginWith("totp_rec", map[string]string{"recovery_code": codes[0]})
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	st := decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())
+	st := decode(t, e.do("GET", "/users/me/2fa", token, nil).Body.Bytes())
 	assert.EqualValues(t, services.RecoveryCodeCount-1, st["recovery_codes_remaining"])
 }
 
@@ -185,72 +181,6 @@ func TestWrongCodesLockTheAccountAcrossIdentifiersAndPasswordOnlyRequestsDoNotRe
 	assert.Nil(t, cookie(w, "auth_token"))
 }
 
-func TestDisableNeedsPasswordAndASecondFactorAndRemovesEverything(t *testing.T) {
-	e := newTOTPEnv(t)
-	u := e.user(t, "totp_off")
-	token := e.login(t, "totp_off")
-	secret, codes := e.enrol(t, token)
-
-	w := e.do("POST", "/2fa/disable", token, map[string]string{"password": "wrong-password-1", "code": nextCode(secret)})
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	w = e.do("POST", "/2fa/disable", token, map[string]string{"password": strongPassword})
-	assert.Equal(t, http.StatusBadRequest, w.Code, "no code")
-	w = e.do("POST", "/2fa/disable", token, map[string]string{"password": strongPassword, "code": "000000"})
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, true, decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())["enabled"])
-
-	// a recovery code is accepted in place of the authenticator code
-	w = e.do("POST", "/2fa/disable", token, map[string]string{"password": strongPassword, "recovery_code": codes[1]})
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	assert.Equal(t, false, decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())["enabled"])
-	assert.Len(t, e.events(models.AuditTOTPDisabled), 1)
-
-	var user models.User
-	require.NoError(t, e.db.First(&user, u.ID).Error)
-	assert.Empty(t, user.TOTPSecret)
-	var n int64
-	e.db.Model(&models.RecoveryCode{}).Where("user_id = ?", u.ID).Count(&n)
-	assert.Zero(t, n)
-	assert.Equal(t, http.StatusOK, e.loginWith("totp_off", nil).Code)
-	assert.Nil(t, decode(t, e.loginWith("totp_off", nil).Body.Bytes())["totp_required"])
-}
-
-func TestRegenerateRecoveryCodes(t *testing.T) {
-	e := newTOTPEnv(t)
-	e.user(t, "totp_regen")
-	token := e.login(t, "totp_regen")
-	secret, old := e.enrol(t, token)
-
-	w := e.do("POST", "/2fa/recovery-codes", token, map[string]string{"password": "wrong-password-1", "code": nextCode(secret)})
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	w = e.do("POST", "/2fa/recovery-codes", token, map[string]string{"password": strongPassword, "code": nextCode(secret)})
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var out struct {
-		RecoveryCodes []string `json:"recovery_codes"`
-	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
-	require.Len(t, out.RecoveryCodes, services.RecoveryCodeCount)
-	assert.NotEqual(t, old[0], out.RecoveryCodes[0])
-	assert.Len(t, e.events(models.AuditTOTPRecoveryRegenerated), 1)
-
-	assert.Equal(t, http.StatusUnauthorized, e.loginWith("totp_regen", map[string]string{"recovery_code": old[0]}).Code)
-	assert.Equal(t, http.StatusOK, e.loginWith("totp_regen", map[string]string{"recovery_code": out.RecoveryCodes[0]}).Code)
-}
-
-func TestSetupIsRefusedWhenEnabledAndRecoveryCodesNeedTwoFactorOn(t *testing.T) {
-	e := newTOTPEnv(t)
-	e.user(t, "totp_state")
-	token := e.login(t, "totp_state")
-	w := e.do("POST", "/2fa/recovery-codes", token, map[string]string{"password": strongPassword, "code": "123456"})
-	assert.Equal(t, http.StatusBadRequest, w.Code, "not enabled")
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": strongPassword, "code": "123456"})
-	assert.Equal(t, http.StatusBadRequest, w.Code, "no setup yet")
-	e.enrol(t, token)
-	w = e.do("POST", "/2fa/setup", token, nil)
-	assert.Equal(t, http.StatusConflict, w.Code)
-}
-
 func TestSecretIsEncryptedAtRestAndNeverReturned(t *testing.T) {
 	e := newTOTPEnv(t)
 	u := e.user(t, "totp_enc")
@@ -262,7 +192,7 @@ func TestSecretIsEncryptedAtRestAndNeverReturned(t *testing.T) {
 	assert.NotEmpty(t, user.TOTPSecret)
 	assert.NotContains(t, user.TOTPSecret, secret)
 
-	for _, path := range []string{"/2fa", "/users/me"} {
+	for _, path := range []string{"/users/me/2fa", "/users/me"} {
 		body := e.do("GET", path, token, nil).Body.String()
 		assert.NotContains(t, body, secret)
 		assert.NotContains(t, strings.ToLower(body), "totp_secret")
@@ -285,13 +215,13 @@ func TestTOTPIsPerUser(t *testing.T) {
 	tokenB := e.login(t, "totp_b")
 	e.enrol(t, tokenA)
 
-	assert.Equal(t, false, decode(t, e.do("GET", "/2fa", tokenB, nil).Body.Bytes())["enabled"])
+	assert.Equal(t, false, decode(t, e.do("GET", "/users/me/2fa", tokenB, nil).Body.Bytes())["enabled"])
 	assert.Equal(t, http.StatusOK, e.loginWith("totp_b", nil).Code)
 	assert.Nil(t, decode(t, e.loginWith("totp_b", nil).Body.Bytes())["totp_required"])
 	// B cannot use A's recovery codes or disable A's 2FA
-	w := e.do("POST", "/2fa/disable", tokenB, map[string]string{"password": strongPassword, "code": "000000"})
+	w := e.do("POST", "/users/me/2fa/disable", tokenB, map[string]string{"password": strongPassword, "code": "000000"})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, true, decode(t, e.do("GET", "/2fa", tokenA, nil).Body.Bytes())["enabled"])
+	assert.Equal(t, true, decode(t, e.do("GET", "/users/me/2fa", tokenA, nil).Body.Bytes())["enabled"])
 }
 
 func TestAdminResetClearsTwoFactorAndSignsTheUserOut(t *testing.T) {
@@ -324,7 +254,7 @@ func TestAdminResetClearsTwoFactorAndSignsTheUserOut(t *testing.T) {
 	assert.Contains(t, entries[0].Detail, "totp_victim")
 
 	// the other user is untouched
-	assert.Equal(t, true, decode(t, e.do("GET", "/2fa", otherToken, nil).Body.Bytes())["enabled"])
+	assert.Equal(t, true, decode(t, e.do("GET", "/users/me/2fa", otherToken, nil).Body.Bytes())["enabled"])
 
 	// the admin list tells which users have it
 	list := e.do("GET", "/admin/users", adminToken, nil)
@@ -344,53 +274,6 @@ func TestAdminResetClearsTwoFactorAndSignsTheUserOut(t *testing.T) {
 	assert.True(t, got["totp_other"])
 }
 
-func TestEnableNeedsThePassword(t *testing.T) {
-	e := newTOTPEnv(t)
-	e.user(t, "totp_enable_pw")
-	token := e.login(t, "totp_enable_pw")
-	w := e.do("POST", "/2fa/setup", token, nil)
-	secret := decode(t, w.Body.Bytes())["secret"].(string)
-	code := services.TOTPCode(secret, time.Now())
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": "wrong-password-1", "code": code})
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"code": code})
-	assert.Equal(t, http.StatusBadRequest, w.Code, "password is required")
-	assert.Equal(t, false, decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())["enabled"])
-	w = e.do("POST", "/2fa/enable", token, map[string]string{"password": strongPassword, "code": code})
-	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
-}
-
-func TestWrongPasswordsInTheDialogsLockTheSecondFactor(t *testing.T) {
-	e := newTOTPEnv(t)
-	u := e.user(t, "totp_pwlock")
-	token := e.login(t, "totp_pwlock")
-	secret, _ := e.enrol(t, token)
-	lim := middleware.GetAccountRateLimiter()
-	t.Cleanup(func() { lim.RecordSuccessfulLogin(totpLimiterKey(u.ID)) })
-	var last int
-	for i := 0; i < middleware.MaxLoginAttempts; i++ {
-		last = e.do("POST", "/2fa/disable", token, map[string]string{"password": "wrong-password-1", "code": nextCode(secret)}).Code
-	}
-	assert.Equal(t, http.StatusTooManyRequests, last)
-	w := e.do("POST", "/2fa/disable", token, map[string]string{"password": strongPassword, "code": nextCode(secret)})
-	assert.Equal(t, http.StatusTooManyRequests, w.Code, "locked even with the right password")
-	assert.Equal(t, true, decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())["enabled"])
-}
-
-func TestSingleSignOnOnlyAccountsCannotEnrol(t *testing.T) {
-	e := newTOTPEnv(t)
-	u := e.user(t, "totp_sso")
-	token := e.login(t, "totp_sso")
-	require.NoError(t, e.db.Model(&models.User{}).Where("id = ?", u.ID).Update("password", "").Error)
-	assert.Equal(t, http.StatusBadRequest, e.do("POST", "/2fa/setup", token, nil).Code)
-	assert.Equal(t, http.StatusBadRequest, e.do("POST", "/2fa/enable", token, map[string]string{"password": "", "code": "123456"}).Code)
-	st := decode(t, e.do("GET", "/2fa", token, nil).Body.Bytes())
-	assert.Equal(t, false, st["available"])
-	var user models.User
-	require.NoError(t, e.db.First(&user, u.ID).Error)
-	assert.Empty(t, user.TOTPSecret)
-}
-
 func TestEnablingAndDisablingEndOtherSessionsButNotThisOne(t *testing.T) {
 	e := newTOTPEnv(t)
 	e.user(t, "totp_sess")
@@ -405,7 +288,7 @@ func TestEnablingAndDisablingEndOtherSessionsButNotThisOne(t *testing.T) {
 	tablet := cookie(w, "auth_token").Value
 	require.Equal(t, http.StatusOK, e.do("GET", "/me", tablet, nil).Code)
 
-	w = e.do("POST", "/2fa/disable", laptop, map[string]string{"password": strongPassword, "recovery_code": codes[0]})
+	w = e.do("POST", "/users/me/2fa/disable", laptop, map[string]string{"password": strongPassword, "recovery_code": codes[0]})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.Equal(t, http.StatusOK, e.do("GET", "/me", laptop, nil).Code)
 	assert.Equal(t, http.StatusUnauthorized, e.do("GET", "/me", tablet, nil).Code)

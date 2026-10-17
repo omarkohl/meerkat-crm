@@ -43,6 +43,10 @@ func (s *Sessions) RevokeAll(ctx context.Context, actor domain.UserID, now time.
 	return services.RevokeAllSessions(s.db.WithContext(ctx), uint(actor), now)
 }
 
+func (s *Sessions) RevokeOthers(ctx context.Context, actor domain.UserID, keep string, now time.Time) error {
+	return services.RevokeOtherSessions(s.db.WithContext(ctx), uint(actor), keep, now)
+}
+
 func (s *Sessions) Start(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) (string, error) {
 	db := s.db.WithContext(ctx)
 	var user models.User
@@ -65,6 +69,15 @@ func (a *Accounts) PasswordHash(ctx context.Context, actor domain.UserID) (strin
 		return "", domain.ErrUserNotFound
 	}
 	return user.Password, err
+}
+
+func (a *Accounts) Account(ctx context.Context, actor domain.UserID) (domain.Account, error) {
+	var user models.User
+	err := a.db.WithContext(ctx).First(&user, uint(actor)).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.Account{}, domain.ErrUserNotFound
+	}
+	return domain.Account{Username: user.Username, PasswordHash: user.Password, TOTPEnabled: user.TOTPEnabled}, err
 }
 
 func (a *Accounts) ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error {

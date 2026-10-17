@@ -32,3 +32,8 @@ func TestSessionIDsAre32LowercaseHexCharacters(t *testing.T) {
 		assert.False(t, domain.ValidSessionID(id), id)
 	}
 }
+
+func TestAnAccountWithoutAPasswordHasNoPasswordStep(t *testing.T) {
+	assert.False(t, domain.Account{}.HasPassword())
+	assert.True(t, domain.Account{PasswordHash: "x"}.HasPassword())
+}

@@ -7,6 +7,7 @@ import (
 	"meerkat/config"
 	"meerkat/i18n"
 	httpadapter "meerkat/users/internal/adapters/http"
+	"meerkat/users/internal/adapters/lockout"
 	"meerkat/users/internal/adapters/passwords"
 	"meerkat/users/internal/adapters/persistence"
 	"meerkat/users/internal/app"
@@ -34,7 +35,8 @@ func New(d Deps) *Module {
 		cfg = *d.Config
 	}
 	uc := app.New(persistence.New(d.DB), i18n.SupportedLanguages,
-		persistence.NewSessions(d.DB, &cfg), persistence.NewAccounts(d.DB), passwords.Bcrypt{}, persistence.NewAudit(d.DB))
+		persistence.NewSessions(d.DB, &cfg), persistence.NewAccounts(d.DB), passwords.Bcrypt{}, persistence.NewAudit(d.DB),
+		persistence.NewTwoFactor(d.DB, &cfg), lockout.Limiter{})
 	return &Module{uc: uc, cfg: cfg}
 }
 

@@ -33,7 +33,7 @@ backend/
   relationships/       # hexagonal module for relationships and the network graph, same layout
   photos/              # hexagonal module for profile pictures and thumbnails (image downloads are plain Gin handlers)
   trash/               # hexagonal module for the trash; restore and purge still run in services (shared with the contact sync)
-  users/               # hexagonal module for user preferences, sessions and the password change (login, 2FA and OIDC follow in 13g3 to 13g5)
+  users/               # hexagonal module for user preferences, sessions, the password change and two-factor (login, password reset and OIDC follow in 13g4 and 13g5)
   reminders/           # hexagonal module for reminders, same layout (the e-mail job is still in services)
   models/              # GORM models and input DTOs
   services/            # Business logic (reminders, import, birthdays, password reset)

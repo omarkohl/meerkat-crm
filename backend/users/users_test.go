@@ -41,7 +41,7 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Session{}, &models.AuditLog{}))
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Session{}, &models.AuditLog{}, &models.RecoveryCode{}))
 	e := &env{db: db}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}

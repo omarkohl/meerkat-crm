@@ -124,13 +124,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		{
 			protected.GET("/users/me", controllers.GetCurrentUser)
 
-			// Two-factor (TOTP): status, enrol, enable, disable, new recovery codes
-			protected.GET("/users/me/2fa", controllers.GetTOTPStatus)
-			protected.POST("/users/me/2fa/setup", controllers.SetupTOTP)
-			protected.POST("/users/me/2fa/enable", middleware.ValidateJSONMiddleware(&models.TOTPCodeInput{}), controllers.EnableTOTP)
-			protected.POST("/users/me/2fa/disable", middleware.ValidateJSONMiddleware(&models.TOTPConfirmInput{}), controllers.DisableTOTP)
-			protected.POST("/users/me/2fa/recovery-codes", middleware.ValidateJSONMiddleware(&models.TOTPConfirmInput{}), controllers.RegenerateRecoveryCodes)
-
 			// Contact routes
 			RegisterAPI(humaAPI, cfg, modules, Groups{Protected: protected})
 

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -343,3 +344,7 @@ func APIRateLimitMiddleware() gin.HandlerFunc {
 func CardDAVRateLimitMiddleware() gin.HandlerFunc {
 	return RateLimitMiddleware(cardDAVLimiter)
 }
+
+// SecondFactorKey names the failed-attempt counter of an account's second factor. It is by
+// account, not by what was typed at login, so changing the identifier does not reset it.
+func SecondFactorKey(userID uint) string { return fmt.Sprintf("2fa:%d", userID) }

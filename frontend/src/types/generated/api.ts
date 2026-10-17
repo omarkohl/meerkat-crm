@@ -651,6 +651,91 @@ export interface paths {
         patch: operations["update-language"];
         trace?: never;
     };
+    "/users/me/2fa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether two-factor is on and how many recovery codes are left */
+        get: operations["two-factor-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/2fa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn two-factor off with the password and a code or recovery code */
+        post: operations["two-factor-disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/2fa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn two-factor on with the password and a code; returns the recovery codes */
+        post: operations["two-factor-enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/2fa/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the recovery codes */
+        post: operations["two-factor-recovery-codes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/2fa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a pending secret; two-factor stays off until it is enabled */
+        post: operations["two-factor-setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -741,6 +826,11 @@ export interface components {
             message: string;
             /** Format: int64 */
             reminder_id?: number;
+        };
+        ConfirmTwoFactorBody: {
+            code?: string;
+            password: string;
+            recovery_code?: string;
         };
         ContactActivitiesOutputBody: {
             activities: components["schemas"]["ActivityResponse"][] | null;
@@ -984,6 +1074,10 @@ export interface components {
         EmailInput: {
             type?: string;
             value: string;
+        };
+        EnableTwoFactorBody: {
+            code: string;
+            password: string;
         };
         EnabledFieldsBody: {
             fields?: string[] | null;
@@ -1254,6 +1348,25 @@ export interface components {
              * @description When the automatic purge removes it
              */
             purge_at: string;
+        };
+        TwoFactorCodesOutputBody: {
+            /** @description Shown this once */
+            recovery_codes: string[] | null;
+        };
+        TwoFactorMessageOutputBody: {
+            message: string;
+        };
+        TwoFactorSetupOutputBody: {
+            /** @description For the QR code the authenticator app scans */
+            otpauth_uri: string;
+            secret: string;
+        };
+        TwoFactorStatusOutputBody: {
+            /** @description False for accounts without a password (single sign-on only) */
+            available: boolean;
+            enabled: boolean;
+            /** Format: int64 */
+            recovery_codes_remaining: number;
         };
         URLInput: {
             type?: string;
@@ -3094,6 +3207,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserLanguageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "two-factor-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorStatusOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "two-factor-disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTwoFactorBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorMessageOutputBody"];
+                };
+            };
+            /** @description Too many wrong attempts: the account's second factor is locked for retry_after seconds */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                        /** Format: int64 */
+                        retry_after: number;
+                        retry_after_at: string;
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "two-factor-enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnableTwoFactorBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorCodesOutputBody"];
+                };
+            };
+            /** @description Too many wrong attempts: the account's second factor is locked for retry_after seconds */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                        /** Format: int64 */
+                        retry_after: number;
+                        retry_after_at: string;
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "two-factor-recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTwoFactorBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorCodesOutputBody"];
+                };
+            };
+            /** @description Too many wrong attempts: the account's second factor is locked for retry_after seconds */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                        /** Format: int64 */
+                        retry_after: number;
+                        retry_after_at: string;
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "two-factor-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorSetupOutputBody"];
                 };
             };
             /** @description Error */

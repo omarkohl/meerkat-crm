@@ -319,6 +319,23 @@
         ],
         "type": "object"
       },
+      "ConfirmTwoFactorBody": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "recovery_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "ContactActivitiesOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1357,6 +1374,21 @@
         ],
         "type": "object"
       },
+      "EnableTwoFactorBody": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "code"
+        ],
+        "type": "object"
+      },
       "EnabledFieldsBody": {
         "properties": {
           "fields": {
@@ -2337,6 +2369,76 @@
           "photo_thumbnail",
           "deleted_at",
           "purge_at"
+        ],
+        "type": "object"
+      },
+      "TwoFactorCodesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "recovery_codes": {
+            "description": "Shown this once",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "recovery_codes"
+        ],
+        "type": "object"
+      },
+      "TwoFactorMessageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "TwoFactorSetupOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "otpauth_uri": {
+            "description": "For the QR code the authenticator app scans",
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret",
+          "otpauth_uri"
+        ],
+        "type": "object"
+      },
+      "TwoFactorStatusOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "description": "False for accounts without a password (single sign-on only)",
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "recovery_codes_remaining": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "recovery_codes_remaining",
+          "available"
         ],
         "type": "object"
       },
@@ -5016,6 +5118,287 @@
           }
         },
         "summary": "Set the language of the user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/2fa": {
+      "get": {
+        "operationId": "two-factor-status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorStatusOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Whether two-factor is on and how many recovery codes are left",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/2fa/disable": {
+      "post": {
+        "operationId": "two-factor-disable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmTwoFactorBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "retry_after_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message",
+                    "retry_after",
+                    "retry_after_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many wrong attempts: the account's second factor is locked for retry_after seconds"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Turn two-factor off with the password and a code or recovery code",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/2fa/enable": {
+      "post": {
+        "operationId": "two-factor-enable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableTwoFactorBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorCodesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "retry_after_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message",
+                    "retry_after",
+                    "retry_after_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many wrong attempts: the account's second factor is locked for retry_after seconds"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Turn two-factor on with the password and a code; returns the recovery codes",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/2fa/recovery-codes": {
+      "post": {
+        "operationId": "two-factor-recovery-codes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmTwoFactorBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorCodesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "retry_after_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message",
+                    "retry_after",
+                    "retry_after_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many wrong attempts: the account's second factor is locked for retry_after seconds"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Replace the recovery codes",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/me/2fa/setup": {
+      "post": {
+        "operationId": "two-factor-setup",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create a pending secret; two-factor stays off until it is enabled",
         "tags": [
           "users"
         ]

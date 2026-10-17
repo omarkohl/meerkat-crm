@@ -129,20 +129,6 @@ type AdminUserResponse struct {
 	TwoFactorEnabled bool `json:"two_factor_enabled"`
 }
 
-// TOTPCodeInput enables two-factor: the password plus one authenticator code.
-type TOTPCodeInput struct {
-	Password string `json:"password" validate:"required"`
-	Code     string `json:"code" validate:"required,max=16"`
-}
-
-// TOTPConfirmInput re-authenticates a sensitive two-factor change: the password plus an
-// authenticator code or a recovery code.
-type TOTPConfirmInput struct {
-	Password     string `json:"password" validate:"required"`
-	Code         string `json:"code" validate:"omitempty,max=16"`
-	RecoveryCode string `json:"recovery_code" validate:"omitempty,max=32"`
-}
-
 // /users/me payload: standard user fields plus caller's UI preferences (custom field names and enabled contact fields)
 type CurrentUserResponse struct {
 	AdminUserResponse
