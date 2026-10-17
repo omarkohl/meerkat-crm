@@ -135,7 +135,12 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
   - [x] 13d. relationships and graph
   - [x] 13e. photos and thumbnails
   - [x] 13f. trash
-  - [ ] 13g. users, sessions, TOTP, OIDC, password reset
+  - [ ] 13g. users, sessions, TOTP, OIDC, password reset (split in five, see PROGRESS Decisions):
+    - [x] 13g1. user preferences: language, date format, custom field names, enabled contact fields
+    - [ ] 13g2. sessions (list, revoke, sign out everywhere) and change password
+    - [ ] 13g3. two-factor (TOTP) endpoints
+    - [ ] 13g4. register, login, logout, password reset, password strength, current user
+    - [ ] 13g5. OIDC login and callback (redirects; stay Gin handlers in the module)
   - [ ] 13h. API tokens and ICS feeds
   - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job)
   - [ ] 13j. import (CSV, VCF, Monica) and export

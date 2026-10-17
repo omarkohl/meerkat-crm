@@ -16,6 +16,7 @@ import (
 	"meerkat/reminders"
 	"meerkat/services"
 	"meerkat/trash"
+	"meerkat/users"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,7 @@ type Modules struct {
 	Relationships *relationships.Module
 	Photos        *photos.Module
 	Trash         *trash.Module
+	Users         *users.Module
 }
 
 // NewModules builds every converted module on db. db may be nil when only the operations'
@@ -44,6 +46,7 @@ func NewModules(db *gorm.DB, cfg *config.Config) Modules {
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
+		Users:         users.New(users.Deps{DB: db, Config: cfg}),
 	}
 }
 
@@ -68,6 +71,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Relationships.Register(a, g.Protected)
 	m.Photos.Register(a, g.Protected)
 	m.Trash.Register(a, g.Protected)
+	m.Users.Register(a, g.Protected)
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider, modules Modules) {
@@ -119,12 +123,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
 			protected.POST("/users/change-password", middleware.ValidateJSONMiddleware(&models.ChangePasswordInput{}), controllers.ChangePassword)
-			protected.PATCH("/users/language", controllers.UpdateLanguage)
-			protected.PATCH("/users/date-format", controllers.UpdateDateFormat)
-			protected.GET("/users/custom-fields", controllers.GetCustomFieldNames)
-			protected.PATCH("/users/custom-fields", middleware.ValidateJSONMiddleware(&models.CustomFieldNamesInput{}), controllers.UpdateCustomFieldNames)
-			protected.GET("/users/enabled-contact-fields", controllers.GetEnabledContactFields)
-			protected.PATCH("/users/enabled-contact-fields", middleware.ValidateJSONMiddleware(&models.EnabledContactFieldsInput{}), controllers.UpdateEnabledContactFields)
 			protected.GET("/users/me", controllers.GetCurrentUser)
 
 			// Login sessions: list, sign one out, sign out everywhere

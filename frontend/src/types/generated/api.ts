@@ -513,6 +513,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/custom-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The names of the user's custom contact fields */
+        get: operations["get-custom-field-names"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the names of the user's custom contact fields */
+        patch: operations["update-custom-field-names"];
+        trace?: never;
+    };
+    "/users/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set the date format of the user */
+        patch: operations["update-date-format"];
+        trace?: never;
+    };
+    "/users/enabled-contact-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The extended contact fields the user shows; null when never configured */
+        get: operations["get-enabled-contact-fields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Replace the extended contact fields the user shows */
+        patch: operations["update-enabled-contact-fields"];
+        trace?: never;
+    };
+    "/users/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set the language of the user */
+        patch: operations["update-language"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -833,9 +903,18 @@ export interface components {
             type: string;
             value: string;
         };
+        CustomFieldsBody: {
+            names?: string[] | null;
+        };
+        DateFormatBody: {
+            date_format?: string;
+        };
         EmailInput: {
             type?: string;
             value: string;
+        };
+        EnabledFieldsBody: {
+            fields?: string[] | null;
         };
         Error: {
             error: components["schemas"]["ErrorDetail"];
@@ -874,6 +953,9 @@ export interface components {
         IMPPInput: {
             type?: string;
             value: string;
+        };
+        LanguageBody: {
+            language?: string;
         };
         NoteBody: {
             /**
@@ -1085,6 +1167,28 @@ export interface components {
         URLInput: {
             type?: string;
             value: string;
+        };
+        UserCustomFieldsOutputBody: {
+            custom_field_names: string[] | null;
+        };
+        UserCustomFieldsSavedOutputBody: {
+            custom_field_names: string[] | null;
+            message: string;
+        };
+        UserDateFormatOutputBody: {
+            date_format: string;
+            message: string;
+        };
+        UserEnabledFieldsOutputBody: {
+            enabled_contact_fields: string[] | null;
+        };
+        UserEnabledFieldsSavedOutputBody: {
+            enabled_contact_fields: string[] | null;
+            message: string;
+        };
+        UserLanguageOutputBody: {
+            language: string;
+            message: string;
         };
     };
     responses: never;
@@ -2586,6 +2690,196 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrashRestoredOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-custom-field-names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCustomFieldsOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-custom-field-names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFieldsBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCustomFieldsSavedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DateFormatBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDateFormatOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-enabled-contact-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserEnabledFieldsOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-enabled-contact-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledFieldsBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserEnabledFieldsSavedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLanguageOutputBody"];
                 };
             };
             /** @description Error */

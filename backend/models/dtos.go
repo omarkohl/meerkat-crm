@@ -84,16 +84,6 @@ type DiscoveredAddressBook struct {
 	Description string `json:"description"`
 }
 
-// CustomFieldNamesInput represents the DTO for updating user's custom field definitions
-type CustomFieldNamesInput struct {
-	Names []string `json:"names" validate:"dive,max=100"`
-}
-
-// represents the DTO for updating which extended contact fields are visible in the UI. A nil/absent list means "use the default set"
-type EnabledContactFieldsInput struct {
-	Fields []string `json:"fields" validate:"dive,max=50"`
-}
-
 // UserRegistrationInput represents the DTO for user registration
 // This DTO intentionally excludes IsAdmin to prevent mass assignment attacks
 type UserRegistrationInput struct {

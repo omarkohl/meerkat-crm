@@ -1306,6 +1306,28 @@
         ],
         "type": "object"
       },
+      "CustomFieldsBody": {
+        "properties": {
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "DateFormatBody": {
+        "properties": {
+          "date_format": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EmailInput": {
         "properties": {
           "type": {
@@ -1318,6 +1340,20 @@
         "required": [
           "value"
         ],
+        "type": "object"
+      },
+      "EnabledFieldsBody": {
+        "properties": {
+          "fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "Error": {
@@ -1469,6 +1505,14 @@
         "required": [
           "value"
         ],
+        "type": "object"
+      },
+      "LanguageBody": {
+        "properties": {
+          "language": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "NoteBody": {
@@ -2222,6 +2266,118 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "UserCustomFieldsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "custom_field_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "custom_field_names"
+        ],
+        "type": "object"
+      },
+      "UserCustomFieldsSavedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "custom_field_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "custom_field_names"
+        ],
+        "type": "object"
+      },
+      "UserDateFormatOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "date_format": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "date_format"
+        ],
+        "type": "object"
+      },
+      "UserEnabledFieldsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled_contact_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "enabled_contact_fields"
+        ],
+        "type": "object"
+      },
+      "UserEnabledFieldsSavedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled_contact_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "enabled_contact_fields"
+        ],
+        "type": "object"
+      },
+      "UserLanguageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "language"
         ],
         "type": "object"
       }
@@ -4409,6 +4565,228 @@
         "summary": "Restore a deleted contact with its notes, reminders and relationships",
         "tags": [
           "trash"
+        ]
+      }
+    },
+    "/users/custom-fields": {
+      "get": {
+        "operationId": "get-custom-field-names",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCustomFieldsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The names of the user's custom contact fields",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "update-custom-field-names",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomFieldsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCustomFieldsSavedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Replace the names of the user's custom contact fields",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/date-format": {
+      "patch": {
+        "operationId": "update-date-format",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateFormatBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDateFormatOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Set the date format of the user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/enabled-contact-fields": {
+      "get": {
+        "operationId": "get-enabled-contact-fields",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnabledFieldsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The extended contact fields the user shows; null when never configured",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "update-enabled-contact-fields",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledFieldsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserEnabledFieldsSavedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Replace the extended contact fields the user shows",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/language": {
+      "patch": {
+        "operationId": "update-language",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguageBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserLanguageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Set the language of the user",
+        "tags": [
+          "users"
         ]
       }
     }

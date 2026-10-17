@@ -133,14 +133,3 @@ func interpolate(s string, params ...map[string]string) string {
 	}
 	return result
 }
-
-// IsValidLanguage checks if a language code is supported
-func IsValidLanguage(lang string) bool {
-	normalized := normalizeLanguage(lang)
-	for _, supported := range SupportedLanguages {
-		if normalized == supported {
-			return true
-		}
-	}
-	return false
-}

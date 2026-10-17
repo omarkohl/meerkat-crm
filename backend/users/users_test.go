@@ -1,0 +1,195 @@
+package users_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"meerkat/api"
+	"meerkat/clock"
+	"meerkat/config"
+	"meerkat/middleware"
+	"meerkat/models"
+	"meerkat/users"
+
+	"github.com/gin-gonic/gin"
+	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+)
+
+type env struct {
+	db   *gorm.DB
+	a, b models.User
+	asA  *gin.Engine
+	asB  *gin.Engine
+	anon *gin.Engine
+}
+
+func newEnv(t *testing.T) *env {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	db, err := gorm.Open(sqlite.Open(":memory:?_pragma=foreign_keys(1)"), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, _ := db.DB()
+	sqlDB.SetMaxOpenConns(1)
+	require.NoError(t, db.AutoMigrate(&models.User{}))
+	e := &env{db: db}
+	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
+	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
+	require.NoError(t, db.Create(&e.a).Error)
+	require.NoError(t, db.Create(&e.b).Error)
+
+	mount := func(user *models.User) *gin.Engine {
+		r := gin.New()
+		r.Use(middleware.ClockMiddleware(clock.Real()))
+		authenticated := r.Group("")
+		if user != nil {
+			authenticated.Use(func(c *gin.Context) { c.Set("userID", user.ID); c.Set("username", user.Username); c.Next() })
+		}
+		users.New(users.Deps{DB: db, Config: &config.Config{}}).Register(api.New(r.Group(""), r), authenticated)
+		return r
+	}
+	e.asA, e.asB, e.anon = mount(&e.a), mount(&e.b), mount(nil)
+	return e
+}
+
+func (e *env) reload(t *testing.T, id uint) models.User {
+	t.Helper()
+	var u models.User
+	require.NoError(t, e.db.First(&u, id).Error)
+	return u
+}
+
+func send(r http.Handler, method, path, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func raw(t *testing.T, w *httptest.ResponseRecorder, field string) string {
+	t.Helper()
+	var m map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &m), w.Body.String())
+	return string(m[field])
+}
+
+func message(t *testing.T, w *httptest.ResponseRecorder) string {
+	t.Helper()
+	var b struct{ Error struct{ Message string } }
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &b), w.Body.String())
+	return b.Error.Message
+}
+
+func TestLanguageIsChangedForTheActorOnly(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPatch, "/users/language", `{"language":"de"}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.JSONEq(t, `{"message":"Language updated successfully","language":"de"}`, w.Body.String())
+	assert.Equal(t, "de", e.reload(t, e.a.ID).Language)
+	assert.Equal(t, "en", e.reload(t, e.b.ID).Language)
+}
+
+func TestUnsupportedLanguagesAreRefusedWithTheListOfSupportedOnes(t *testing.T) {
+	e := newEnv(t)
+	for _, body := range []string{`{"language":"xx"}`, `{"language":""}`, `{}`, `{"language":"DE"}`, `{"language":"de-DE"}`} {
+		w := send(e.asA, http.MethodPatch, "/users/language", body)
+		assert.Equal(t, http.StatusBadRequest, w.Code, body)
+		assert.Equal(t, "Invalid value for field 'language'", message(t, w), body)
+		assert.Contains(t, w.Body.String(), "Unsupported language. Supported: en, de, it, es, fr", body)
+	}
+	assert.Equal(t, "en", e.reload(t, e.a.ID).Language)
+}
+
+func TestAMalformedBodyIsABadRequest(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPatch, "/users/language", `{"language":`)
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	assert.Equal(t, "Invalid value for field 'request body'", message(t, w))
+	assert.Contains(t, w.Body.String(), "validation failed")
+	w = send(e.asA, http.MethodPatch, "/users/language", ``)
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	assert.Contains(t, w.Body.String(), "request body is required")
+}
+
+func TestDateFormatIsChangedForTheActorOnly(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPatch, "/users/date-format", `{"date_format":"iso"}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.JSONEq(t, `{"message":"Date format updated successfully","date_format":"iso"}`, w.Body.String())
+	assert.Equal(t, "iso", e.reload(t, e.a.ID).DateFormat)
+	assert.Equal(t, "eu", e.reload(t, e.b.ID).DateFormat)
+
+	w = send(e.asA, http.MethodPatch, "/users/date-format", `{"date_format":"dmy"}`)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Unsupported date format. Supported: eu, us, iso")
+	assert.Equal(t, "iso", e.reload(t, e.a.ID).DateFormat)
+}
+
+func TestCustomFieldNamesDefaultToAnEmptyListAndAreKeptPerUser(t *testing.T) {
+	e := newEnv(t)
+	assert.Equal(t, `[]`, raw(t, send(e.asA, http.MethodGet, "/users/custom-fields", ""), "custom_field_names"))
+
+	w := send(e.asA, http.MethodPatch, "/users/custom-fields", `{"names":["Pet","Car"]}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.JSONEq(t, `{"message":"Custom field names updated successfully","custom_field_names":["Pet","Car"]}`, w.Body.String())
+	assert.JSONEq(t, `["Pet","Car"]`, raw(t, send(e.asA, http.MethodGet, "/users/custom-fields", ""), "custom_field_names"))
+	assert.Equal(t, `[]`, raw(t, send(e.asB, http.MethodGet, "/users/custom-fields", ""), "custom_field_names"))
+
+	w = send(e.asA, http.MethodPatch, "/users/custom-fields", `{"names":["`+strings.Repeat("x", 101)+`"]}`)
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+	assert.JSONEq(t, `["Pet","Car"]`, raw(t, send(e.asA, http.MethodGet, "/users/custom-fields", ""), "custom_field_names"))
+}
+
+// Never configured is null (the client applies its defaults); configured empty is [].
+func TestEnabledContactFieldsKeepNullApartFromEmpty(t *testing.T) {
+	e := newEnv(t)
+	get := func(r http.Handler) string {
+		w := send(r, http.MethodGet, "/users/enabled-contact-fields", "")
+		require.Equal(t, http.StatusOK, w.Code)
+		return raw(t, w, "enabled_contact_fields")
+	}
+	assert.Equal(t, "null", get(e.asA))
+
+	w := send(e.asA, http.MethodPatch, "/users/enabled-contact-fields", `{"fields":["emails","phones"]}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.JSONEq(t, `{"message":"Enabled contact fields updated successfully","enabled_contact_fields":["emails","phones"]}`, w.Body.String())
+	assert.JSONEq(t, `["emails","phones"]`, get(e.asA))
+	assert.Equal(t, "null", get(e.asB), "another user's setting is theirs")
+
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPatch, "/users/enabled-contact-fields", `{"fields":[]}`).Code)
+	assert.Equal(t, "[]", get(e.asA))
+
+	w = send(e.asA, http.MethodPatch, "/users/enabled-contact-fields", `{"fields":["`+strings.Repeat("x", 51)+`"]}`)
+	assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
+}
+
+func TestChangingPreferencesLeavesThePasswordAndOtherSettingsAlone(t *testing.T) {
+	e := newEnv(t)
+	require.NoError(t, e.db.Model(&e.a).Updates(map[string]any{"password": "hash", "language": "fr"}).Error)
+
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPatch, "/users/date-format", `{"date_format":"us"}`).Code)
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPatch, "/users/custom-fields", `{"names":["Pet"]}`).Code)
+
+	got := e.reload(t, e.a.ID)
+	assert.Equal(t, "hash", got.Password)
+	assert.Equal(t, "fr", got.Language)
+	assert.Equal(t, "us", got.DateFormat)
+}
+
+func TestEverythingRefusesWithoutAnAuthenticatedUser(t *testing.T) {
+	e := newEnv(t)
+	for _, call := range []struct{ method, path, body string }{
+		{http.MethodPatch, "/users/language", `{"language":"de"}`}, {http.MethodPatch, "/users/date-format", `{"date_format":"us"}`},
+		{http.MethodGet, "/users/custom-fields", ""}, {http.MethodPatch, "/users/custom-fields", `{"names":[]}`},
+		{http.MethodGet, "/users/enabled-contact-fields", ""}, {http.MethodPatch, "/users/enabled-contact-fields", `{"fields":[]}`},
+	} {
+		assert.Equal(t, http.StatusUnauthorized, send(e.anon, call.method, call.path, call.body).Code, call.method+" "+call.path)
+	}
+}

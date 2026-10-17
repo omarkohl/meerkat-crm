@@ -174,6 +174,15 @@
   (fake clock, isolation, files removed on purge, webhook payload, malformed ids, 401); the
   cross-module trash tests stay in `controllers`. Frontend `TrashedContact` and `TrashResponse`
   derive from the generated types. `make precommit` green.
+- Step 13g1: `backend/users` (domain: supported-value rules; use cases; port `Preferences`;
+  persistence and http adapters) with huma operations for `PATCH /users/language`,
+  `PATCH /users/date-format`, `GET/PATCH /users/custom-fields` and
+  `GET/PATCH /users/enabled-contact-fields`, all on the authenticated group; depguard rules
+  `users-*` (shown to fail); `routes.NewModules` extended. Old handlers and
+  `models.CustomFieldNamesInput`/ `EnabledContactFieldsInput` removed; 7 module tests on real SQLite
+  (isolation between users, untouched password, null versus empty, wording of the unsupported-value
+  errors, 401). Frontend `api/users.ts` types its requests and responses from the generated types.
+  `make precommit` green.
 
 ## Decisions
 
@@ -284,6 +293,24 @@
   missing photo directory falling back to `PROFILE_PHOTO_DIR`) is read once when the module is
   built, not per request. `trashPhotoDir` became `photoDir` in the backup controller, its only other
   user.
+- Step 13g is split because it is large and security-critical: **13g1** user preferences (done),
+  **13g2** sessions and change password, **13g3** TOTP, **13g4** register, login, logout, password
+  reset, password strength and `GET /users/me` (public routes with the auth rate limit, cookies),
+  **13g5** OIDC login and callback (redirects, stay Gin handlers inside the module, like the image
+  downloads). The auth middleware, JWT and token-version logic stay in `middleware` and `services`
+  until 13g4 shows what the module needs from them.
+- 13g1: the preference writes now use the user ID from the authenticated context; the language and
+  date-format handlers used to look the user up by `username`. A user that cannot be found answers
+  401 for every preference (before: 401 for language and date format, 500 "query user" for the
+  others); that cannot happen with a valid session. Writes update one column (`Select(...).Updates`)
+  instead of `Save` of the whole user. The old language check never rejected anything:
+  `i18n.IsValidLanguage` normalised every value to "en" (and was removed, no other caller), so "xx",
+  "", "DE" and "de-DE" were stored as sent. Now only `en de it es fr` are accepted and anything else
+  answers 400 "Unsupported language. Supported: en, de, it, es, fr" (the wording the old code meant
+  to give; the date format message is unchanged). The settings page only offers the five codes, so
+  no user sees a difference and there is no CHANGELOG line. A body that is not JSON, or empty, now
+  gets the generic request error ("request body" / "validation failed" or "request body is
+  required", 400) instead of "Invalid language value". Status codes verified by test: 200, 400, 401.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.

@@ -358,14 +358,6 @@
       "count": 1
     }
   },
-  "src/api/users.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 6
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 6
-    }
-  },
   "src/api/webhooks.ts": {
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 2
