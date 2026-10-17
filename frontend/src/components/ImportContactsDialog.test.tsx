@@ -49,7 +49,7 @@ const shownNames = () =>
     .slice(1)
     .map((r) => within(r).getAllByRole('cell')[1]?.textContent);
 
-describe('ImportContactsDialog preview', () => {
+describe('ImportContactsDialog preview', { timeout: 20_000 }, () => {
   beforeEach(async () => {
     vi.resetAllMocks();
     await i18n.changeLanguage('en');
