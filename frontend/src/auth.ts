@@ -3,6 +3,8 @@
 // Token is stored in httpOnly cookie (not accessible from JS for security)
 // User info is cached in localStorage for UI purposes
 
+import type { components } from './types/generated/api';
+
 const API_SERVER_URL = import.meta.env.VITE_API_URL || '';
 export const API_BASE_URL = `${API_SERVER_URL}/api/v1`;
 
@@ -59,7 +61,7 @@ export async function loginUser(
       password,
       totp_code: secondFactor?.code || undefined,
       recovery_code: secondFactor?.recoveryCode || undefined,
-    }),
+    } satisfies components['schemas']['LoginBody']),
   });
   if (!response.ok) {
     if (response.status === 429) {
@@ -73,7 +75,7 @@ export async function loginUser(
     }
     throw new Error('Login failed');
   }
-  const data = await response.json();
+  const data = (await response.json()) as components['schemas']['LoginOutputBody'];
   if (data.totp_required) {
     return { totpRequired: true };
   }

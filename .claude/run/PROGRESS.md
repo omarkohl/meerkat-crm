@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g4c (login with the second step, logout).
+13g5 (OIDC login and callback; stay Gin handlers inside the users module).
 
 ## Stack
 
@@ -214,6 +214,16 @@
   the users module: domain `NewUser.Normalise`, `Profile`; use cases `Register`, `Profile`; the
   account count and the insert run in one transaction. Old handlers and the DTOs
   `UserRegistrationInput`/`CurrentUserResponse` removed; 9 module tests. `make precommit` green.
+- Step 13g4c: `POST /login` (public group, auth rate limit) and `POST /logout` (public, as before no
+  rate limit) in the users module: domain `Credentials`, `LoginAccount`, lockout and failure errors;
+  use cases `Login` (password, the second step under the account's lockout, session start, audit)
+  and `Logout`; ports `Attempts` (counter by typed identifier, same limiter as the CardDAV login),
+  `SessionTokens`, more on `Accounts`, `Sessions` and `Audit`. The old handlers,
+  `verifySecondFactor`, `respondLocked` and the user controller are gone from `controllers` (only
+  `ResetUserTOTP` and the shared lockout key remain); 10 new module tests. The end-to-end tests
+  (real login, lockout across identifiers, replay, recovery codes, sessions) still run and now mount
+  the module. Test requests come from distinct client addresses so the process-wide rate limiter
+  does not trip. `make precommit` green.
 
 ## Decisions
 
@@ -412,6 +422,29 @@
 - 13g4b, deviations: counting users and creating the first administrator are one transaction (two
   parallel first registrations can no longer both become administrators); a body that is not JSON
   gets the generic request error.
+- 13g4c, behaviour kept and tested: the order of checks (missing identifier, missing password, lock
+  on the typed identifier, account lookup, password, second step); a wrong password and an unknown
+  account answer the same 401 `INVALID_CREDENTIALS` "Invalid email or password"; both count on the
+  identifier (the attempt that locks an unknown name still answers 401, the next 429); audit
+  `login_failed` with `reason:unknown_account` (no user, nothing typed stored), `wrong_password`,
+  `wrong_password_locked`, `wrong_2fa_code`, `wrong_2fa_code_locked`, and `login`,
+  `totp_recovery_used`, `logout`; the 429 for the identifier says "Too many failed login attempts"
+  counted from the request clock, the 429 for the second step says "Too many failed attempts"
+  counted from the real clock, and the second-step counter is shared with the two-factor dialogs and
+  the admin reset; asking for the code (`{"totp_required": true}`) starts no session and clears no
+  counter; the JWT carries `user_id`, `username`, `sid`, `tv` and `exp` (no admin flag) and travels
+  only in the `auth_token` cookie (HttpOnly, SameSite=Lax, path `/`, configured domain and Secure,
+  max age of the token lifetime); logout ends the session named by a valid cookie, audits it, always
+  clears the cookie and answers 200, whatever the cookie holds. An unknown account is still answered
+  faster than a wrong password (no bcrypt), as before.
+- 13g4c review: the login rate-limit test now sends a new identifier from one fixed address each
+  time and was shown to fail when the address limiter is not attached to `/login`. `accountError`,
+  the mapper of the two-factor endpoints, now falls back to the common mapper (an unhandled stage of
+  a two-factor use case may give a different 500 message than before). A database error in the
+  second-factor check now answers 500 "query user" (also at login); before, the failed check counted
+  as a wrong code.
+- 13g4c, deviations: a body that is not JSON gets the generic request error (400) instead of the raw
+  JSON decoder message; the lookup runs on the lower-cased identifier with one query.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.

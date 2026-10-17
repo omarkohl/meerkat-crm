@@ -19,60 +19,6 @@ import (
 
 func totpLimiterKey(userID uint) string { return middleware.SecondFactorKey(userID) }
 
-type factorResult int
-
-const (
-	factorOK factorResult = iota
-	factorWrong
-	// factorLocked: the account was already locked; the 429 answer is written.
-	factorLocked
-	// factorWrongNowLocked: this wrong attempt triggered the lockout; nothing is written yet.
-	factorWrongNowLocked
-)
-
-func respondLocked(c *gin.Context, remainingSecs int) {
-	c.JSON(http.StatusTooManyRequests, gin.H{
-		"error":          "Account temporarily locked",
-		"message":        "Too many failed attempts. Please try again later.",
-		"retry_after":    remainingSecs,
-		"retry_after_at": totpNow().Add(time.Duration(remainingSecs) * time.Second).Format(time.RFC3339),
-	})
-	c.Abort()
-}
-
-// rejectIfTOTPLocked answers 429 and returns true when the account's second factor is locked.
-func rejectIfTOTPLocked(c *gin.Context, userID uint) bool {
-	if locked, secs := middleware.GetAccountRateLimiter().IsLocked(totpLimiterKey(userID)); locked {
-		respondLocked(c, secs)
-		return true
-	}
-	return false
-}
-
-// verifySecondFactor checks a code or recovery code under the per-account lockout. On
-// factorLocked the 429 answer is already written; on factorWrong and factorWrongNowLocked
-// (secs is the lockout length) the caller answers.
-func verifySecondFactor(c *gin.Context, db *gorm.DB, user models.User, code, recovery string) (factorResult, int) {
-	cfg := currentConfig(c)
-	limiter := middleware.GetAccountRateLimiter()
-	key := totpLimiterKey(user.ID)
-	if rejectIfTOTPLocked(c, user.ID) {
-		return factorLocked, 0
-	}
-	ok, usedRecovery := services.CheckSecondFactor(db, &cfg, user, code, recovery, totpNow())
-	if ok {
-		limiter.RecordSuccessfulLogin(key)
-		if usedRecovery {
-			auditFor(c, db, &user.ID, models.AuditTOTPRecoveryUsed, "")
-		}
-		return factorOK, 0
-	}
-	if locked, secs := limiter.RecordFailedAttempt(key); locked {
-		return factorWrongNowLocked, secs
-	}
-	return factorWrong, 0
-}
-
 // ResetUserTOTP lets an admin switch off a user's two-factor (lost phone and recovery
 // codes). The user's sessions end, since whoever asked for the reset is not verified here.
 func ResetUserTOTP(c *gin.Context) {

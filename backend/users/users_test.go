@@ -3,9 +3,11 @@ package users_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -82,9 +84,15 @@ func (e *env) reload(t *testing.T, id uint) models.User {
 	return u
 }
 
+var nextClient atomic.Uint32
+
+// send makes a request from a client address of its own: the public routes are rate limited
+// per address, by a limiter shared by the whole process.
 func send(r http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
+	n := nextClient.Add(1)
+	req.RemoteAddr = fmt.Sprintf("10.%d.%d.%d:4000", (n>>16)&255, (n>>8)&255, n&255)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	return w

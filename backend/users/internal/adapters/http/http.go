@@ -28,6 +28,7 @@ func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cooki
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary, Tags: tags}
 	}
 	registerPublic(a, public, h)
+	registerLogin(a, public, h)
 	api.RegisterOn(a, group, reg("current-user", http.MethodGet, "/users/me", "The signed-in user with their preferences"), h.currentUser)
 	api.RegisterOn(a, group, reg("list-sessions", http.MethodGet, "/sessions", "The user's live login sessions, newest first"), h.sessions)
 	api.RegisterOn(a, group, reg("revoke-session", http.MethodDelete, "/sessions/{id}", "Sign one session out"), h.revoke)
@@ -252,6 +253,10 @@ func toAppError(err error, field string) *apperrors.AppError {
 			return apperrors.ErrDatabase("query").WithError(f.Err)
 		case app.StageSessionRevoke:
 			return apperrors.ErrDatabase("update").WithError(f.Err)
+		case app.StageLogin:
+			return apperrors.ErrDatabase("Failed to query user").WithError(f.Err)
+		case app.StageStart:
+			return apperrors.ErrInternal("Could not generate token").WithError(f.Err)
 		case app.StageToken:
 			return apperrors.ErrInternal("Could not generate password reset token").WithError(f.Err)
 		case app.StageMail:

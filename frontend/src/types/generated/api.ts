@@ -354,6 +354,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign in with a username or email and the password, and a code when two-factor is on; the token comes in the auth_token cookie */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End the session named by the auth_token cookie, if any, and clear the cookie */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notes": {
         parameters: {
             query?: never;
@@ -1224,6 +1258,23 @@ export interface components {
         };
         LanguageBody: {
             language?: string;
+        };
+        LoginBody: {
+            /** @description Legacy name of identifier */
+            email?: string;
+            /** @description Username or email */
+            identifier?: string;
+            password?: string;
+            /** @description Second step: a recovery code, in place of the code */
+            recovery_code?: string;
+            /** @description Second step for accounts with two-factor: an authenticator code */
+            totp_code?: string;
+        };
+        LoginOutputBody: {
+            date_format?: string;
+            language?: string;
+            /** @description True when the password was right and the second step is still due */
+            totp_required?: boolean;
         };
         NoteBody: {
             /**
@@ -2565,6 +2616,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GraphOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginOutputBody"];
+                };
+            };
+            /** @description The identifier or the account's second factor is locked for retry_after seconds, or this address sent too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                        /** Format: int64 */
+                        retry_after: number;
+                        retry_after_at: string;
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                auth_token?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessageOutputBody"];
                 };
             };
             /** @description Error */

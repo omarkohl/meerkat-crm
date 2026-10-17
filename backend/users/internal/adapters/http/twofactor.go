@@ -68,6 +68,11 @@ type TwoFactorMessageOutput struct {
 	}
 }
 
+const (
+	secondFactorLockedMessage = "Too many failed attempts. Please try again later."
+	loginLockedMessage        = "Too many failed login attempts. Please try again later."
+)
+
 // LockedResponse is the 429 answer to too many wrong second-factor attempts. Its body keeps
 // the shape the login has always answered with, which is not the AppError format.
 type LockedResponse struct {
@@ -80,9 +85,9 @@ type LockedResponse struct {
 func (e *LockedResponse) GetStatus() int { return http.StatusTooManyRequests }
 func (e *LockedResponse) Error() string  { return e.Err }
 
-func lockedResponse(seconds int, at time.Time) *LockedResponse {
+func lockedResponse(message string, seconds int, at time.Time) *LockedResponse {
 	return &LockedResponse{
-		Err: "Account temporarily locked", Message: "Too many failed attempts. Please try again later.",
+		Err: "Account temporarily locked", Message: message,
 		RetryAfter: seconds, RetryAfterAt: at.Add(time.Duration(seconds) * time.Second).Format(time.RFC3339),
 	}
 }
@@ -199,7 +204,7 @@ func accountError(err error) error {
 	var f *app.Failure
 	switch {
 	case errors.As(err, &locked):
-		return lockedResponse(locked.RetryAfterSeconds, realNow())
+		return lockedResponse(secondFactorLockedMessage, locked.RetryAfterSeconds, realNow())
 	case errors.Is(err, domain.ErrUserNotFound):
 		return apperrors.ErrNotFound("User")
 	case errors.Is(err, domain.ErrTwoFactorEnabled):
@@ -224,5 +229,5 @@ func accountError(err error) error {
 			return apperrors.ErrDatabase("query user").WithError(f.Err)
 		}
 	}
-	return apperrors.ErrInternal("Unexpected error").WithError(err)
+	return toAppError(err, "")
 }

@@ -1631,6 +1631,46 @@
         },
         "type": "object"
       },
+      "LoginBody": {
+        "properties": {
+          "email": {
+            "description": "Legacy name of identifier",
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Username or email",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "recovery_code": {
+            "description": "Second step: a recovery code, in place of the code",
+            "type": "string"
+          },
+          "totp_code": {
+            "description": "Second step for accounts with two-factor: an authenticator code",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LoginOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "date_format": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "totp_required": {
+            "description": "True when the password was right and the second step is still due",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "NoteBody": {
         "properties": {
           "contact_id": {
@@ -4318,6 +4358,119 @@
         "summary": "The network of contacts, relationships and shared activities",
         "tags": [
           "graph"
+        ]
+      }
+    },
+    "/login": {
+      "post": {
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "retry_after": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "retry_after_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message",
+                    "retry_after",
+                    "retry_after_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The identifier or the account's second factor is locked for retry_after seconds, or this address sent too many requests"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign in with a username or email and the password, and a code when two-factor is on; the token comes in the auth_token cookie",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "auth_token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "End the session named by the auth_token cookie, if any, and clear the cookie",
+        "tags": [
+          "auth"
         ]
       }
     },

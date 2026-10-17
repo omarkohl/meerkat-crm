@@ -8,6 +8,24 @@ import (
 	"meerkat/users/internal/domain"
 )
 
+// Identifiers counts failed logins by the identifier typed; the key is the identifier itself,
+// as it is for the CardDAV login.
+type Identifiers struct{}
+
+var _ app.Attempts = Identifiers{}
+
+func (Identifiers) Locked(identifier string) (bool, int) {
+	return middleware.GetAccountRateLimiter().IsLocked(identifier)
+}
+
+func (Identifiers) Fail(identifier string) (bool, int) {
+	return middleware.GetAccountRateLimiter().RecordFailedAttempt(identifier)
+}
+
+func (Identifiers) Reset(identifier string) {
+	middleware.GetAccountRateLimiter().RecordSuccessfulLogin(identifier)
+}
+
 type Limiter struct{}
 
 var _ app.Lockout = Limiter{}

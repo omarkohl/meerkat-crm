@@ -27,6 +27,8 @@ type Sessions interface {
 	// issued earlier die too.
 	RevokeAll(ctx context.Context, actor domain.UserID, now time.Time) error
 	RevokeOthers(ctx context.Context, actor domain.UserID, keep string, now time.Time) error
+	// Owner finds who a session belongs to, whether or not it is still live.
+	Owner(ctx context.Context, id string) (domain.UserID, bool)
 	Start(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) (string, error)
 }
 
@@ -44,6 +46,8 @@ type Accounts interface {
 	// create it is reported as domain.ErrUserExists, as it always was.
 	Register(ctx context.Context, user domain.NewUser) error
 	Profile(ctx context.Context, actor domain.UserID) (domain.Profile, error)
+	// ForLogin finds the account a login names, by email when email is true, else by username.
+	ForLogin(ctx context.Context, identifier string, email bool) (domain.LoginAccount, error)
 	// ResetPassword stores the hash and ends every session if the account still holds the
 	// token with tokenHash, which is what makes a token work once. Otherwise it returns
 	// domain.ErrResetTokenInvalid.
@@ -66,6 +70,18 @@ type SecondFactor interface {
 	Check(ctx context.Context, actor domain.UserID, code, recovery string, at time.Time) (ok, usedRecovery bool, err error)
 	Disable(ctx context.Context, actor domain.UserID) error
 	NewRecoveryCodes(ctx context.Context, actor domain.UserID) ([]string, error)
+}
+
+// Attempts counts failed logins by the identifier that was typed.
+type Attempts interface {
+	Locked(identifier string) (bool, int)
+	Fail(identifier string) (locked bool, seconds int)
+	Reset(identifier string)
+}
+
+// SessionTokens reads the session out of a login token, expired or not.
+type SessionTokens interface {
+	SessionID(token string) string
 }
 
 // Lockout counts wrong second-factor attempts per account; login shares the same counter.
@@ -99,6 +115,9 @@ type ResetMail interface {
 // Audit records security events; it never fails the use case.
 type Audit interface {
 	Record(ctx context.Context, actor domain.UserID, event string, client domain.Client)
+	// LoginFailed records a refused login; actor is nil when the account is unknown, so that
+	// what was typed (which may be a password) is never stored.
+	LoginFailed(ctx context.Context, actor *domain.UserID, reason string, client domain.Client)
 }
 
 type Stage string
@@ -111,6 +130,8 @@ const (
 	StageHash          Stage = "hash"
 	StageSetup         Stage = "setup"
 	StageToken         Stage = "token"
+	StageLogin         Stage = "login"
+	StageStart         Stage = "start"
 	StageMail          Stage = "mail"
 	StageEnable        Stage = "enable"
 	StageFactor        Stage = "factor"
@@ -137,15 +158,17 @@ type UseCases struct {
 	lockout   Lockout
 	tokens    ResetTokens
 	mail      ResetMail
+	attempts  Attempts
+	login     SessionTokens
 
 	registrationDisabled bool
 }
 
-func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail, registrationDisabled bool) *UseCases {
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail, attempts Attempts, login SessionTokens, registrationDisabled bool) *UseCases {
 	return &UseCases{
 		prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords,
 		audit: audit, factor: factor, lockout: lockout, tokens: tokens, mail: mail,
-		registrationDisabled: registrationDisabled,
+		attempts: attempts, login: login, registrationDisabled: registrationDisabled,
 	}
 }
 

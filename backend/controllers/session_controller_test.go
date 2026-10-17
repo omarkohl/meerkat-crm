@@ -36,8 +36,6 @@ func newSessionEnv(t *testing.T) *sessionEnv {
 	cfg := &config.Config{JWTSecretKey: "session-test-secret-0123456789abcdef", JWTExpiryHours: 24}
 	r := gin.New()
 	r.Use(func(c *gin.Context) { c.Set("db", db); c.Set("cfg", *cfg); c.Next() })
-	r.POST("/login", func(c *gin.Context) { LoginUser(c, cfg) })
-	r.POST("/logout", func(c *gin.Context) { LogoutUser(c, cfg) })
 	p := r.Group("/", middleware.AuthMiddleware(cfg))
 	users.New(users.Deps{DB: db, Config: cfg}).Register(api.New(r.Group(""), r), r, p)
 	p.GET("/me", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })

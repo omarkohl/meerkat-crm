@@ -50,3 +50,9 @@ func withValidated(factory func() any) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+const (
+	strongPassword        = "CorrectHorseBattery42!"
+	strongPasswordAlt     = "TrulySecurePassphrase99#"
+	strongPasswordAnother = "UltraSafePassphrase88$"
+)

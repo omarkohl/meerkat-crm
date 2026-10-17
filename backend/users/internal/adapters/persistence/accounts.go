@@ -47,6 +47,14 @@ func (s *Sessions) RevokeOthers(ctx context.Context, actor domain.UserID, keep s
 	return services.RevokeOtherSessions(s.db.WithContext(ctx), uint(actor), keep, now)
 }
 
+func (s *Sessions) Owner(ctx context.Context, id string) (domain.UserID, bool) {
+	var session models.Session
+	if err := s.db.WithContext(ctx).Where("public_id = ?", id).Take(&session).Error; err != nil {
+		return 0, false
+	}
+	return domain.UserID(session.UserID), true
+}
+
 func (s *Sessions) Start(ctx context.Context, actor domain.UserID, client domain.Client, now time.Time) (string, error) {
 	db := s.db.WithContext(ctx)
 	var user models.User
@@ -139,6 +147,25 @@ func (a *Accounts) Register(ctx context.Context, user domain.NewUser) error {
 	})
 }
 
+func (a *Accounts) ForLogin(ctx context.Context, identifier string, email bool) (domain.LoginAccount, error) {
+	column := "username"
+	if email {
+		column = "email"
+	}
+	var user models.User
+	err := a.db.WithContext(ctx).Where(column+" = ?", identifier).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.LoginAccount{}, domain.ErrUserNotFound
+	}
+	if err != nil {
+		return domain.LoginAccount{}, err
+	}
+	return domain.LoginAccount{
+		ID: domain.UserID(user.ID), PasswordHash: user.Password, TOTPEnabled: user.TOTPEnabled,
+		Language: user.Language, DateFormat: user.DateFormat,
+	}, nil
+}
+
 func (a *Accounts) Profile(ctx context.Context, actor domain.UserID) (domain.Profile, error) {
 	var user models.User
 	err := a.db.WithContext(ctx).First(&user, uint(actor)).Error
@@ -174,6 +201,20 @@ type Audit struct{ db *gorm.DB }
 func NewAudit(db *gorm.DB) *Audit { return &Audit{db: db} }
 
 var _ app.Audit = (*Audit)(nil)
+
+func (a *Audit) LoginFailed(ctx context.Context, actor *domain.UserID, reason string, client domain.Client) {
+	db := a.db.WithContext(ctx)
+	entry := models.AuditLog{Event: models.AuditLoginFailed, IP: client.IP, UserAgent: client.UserAgent, Detail: "reason:" + reason}
+	if actor != nil {
+		id := uint(*actor)
+		entry.UserID = &id
+		var name string
+		if err := db.Model(&models.User{}).Where("id = ?", id).Limit(1).Pluck("username", &name).Error; err == nil {
+			entry.Username = name
+		}
+	}
+	services.WriteAudit(db, entry)
+}
 
 func (a *Audit) Record(ctx context.Context, actor domain.UserID, event string, client domain.Client) {
 	db := a.db.WithContext(ctx)

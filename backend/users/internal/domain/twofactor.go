@@ -14,7 +14,12 @@ var (
 )
 
 // LockedError means too many wrong second-factor attempts: the account is locked for a while.
-type LockedError struct{ RetryAfterSeconds int }
+type LockedError struct {
+	RetryAfterSeconds int
+	// FromLogin is true for the lock on the identifier typed at login, false for the lock on
+	// the account's second factor; they answer in different words.
+	FromLogin bool
+}
 
 func (e *LockedError) Error() string {
 	return "account locked for " + strconv.Itoa(e.RetryAfterSeconds) + " seconds"

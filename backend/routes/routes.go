@@ -101,14 +101,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			v1.GET("/auth/oidc/callback", middleware.AuthRateLimitMiddleware(), controllers.OIDCCallbackHandler(oidcProvider, cfg))
 		}
 
-		// Public routes (no authentication required, strict rate limiting)
-		v1.POST("/login", middleware.AuthRateLimitMiddleware(), func(c *gin.Context) {
-			controllers.LoginUser(c, cfg)
-		})
-		v1.POST("/logout", func(c *gin.Context) {
-			controllers.LogoutUser(c, cfg)
-		})
-
 		// Calendar feed (ICS). Public on purpose: calendar apps cannot send cookies or
 		// headers, so the unguessable per-user token in the path is the only credential.
 		v1.GET("/ics/:file", middleware.APIRateLimitMiddleware(), controllers.ServeIcsFeed)
