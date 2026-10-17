@@ -1,21 +1,12 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components, operations } from '../types/generated/api';
 
-export interface TrashedContact {
-  id: number;
-  firstname: string;
-  lastname: string;
-  nickname: string;
-  email: string;
-  photo_thumbnail: string;
-  deleted_at: string;
-  /** When the automatic purge removes the contact for good. */
-  purge_at: string;
-}
+export type TrashedContact = components['schemas']['TrashedContactResponse'];
+type TrashListBody = operations['list-trash']['responses']['200']['content']['application/json'];
 
-export interface TrashResponse {
+export interface TrashResponse extends Omit<TrashListBody, 'contacts'> {
   contacts: TrashedContact[];
-  retention_days: number;
 }
 
 export async function getTrash(): Promise<TrashResponse> {

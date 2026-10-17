@@ -320,11 +320,6 @@ func TestPurgeExpiredTrashIgnoresInvalidRetention(t *testing.T) {
 	assert.Zero(t, n, "a retention below one day must never purge")
 }
 
-func TestTrashPurgeAt(t *testing.T) {
-	deleted := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
-	assert.Equal(t, time.Date(2026, 1, 31, 10, 0, 0, 0, time.UTC), TrashPurgeAt(deleted, 30))
-}
-
 func TestTrashedContactsStayOutOfBirthdaysAndICSFeed(t *testing.T) {
 	db := setupTrashTestDB(t)
 	require.NoError(t, i18n.Init())

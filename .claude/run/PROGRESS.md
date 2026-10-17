@@ -2,7 +2,7 @@
 
 ## Next step
 
-13f (trash, same pattern).
+13g (users, sessions, TOTP, OIDC, password reset, same pattern).
 
 ## Stack
 
@@ -166,6 +166,14 @@
   `photos-*` (shown to fail). There were no photo-specific arch exemptions to remove. `ProxyImage`
   moved to `controllers/image_proxy_controller.go` (not a photos concern, stays Gin).
   `make precommit` green.
+- Step 13f: `backend/trash` (domain `Retention`/`PurgeAt`; use cases `ListTrash`, `RestoreContact`,
+  `PurgeContact`, `EmptyTrash`; ports `Trash`/`Events`; persistence and webhooks adapters) with huma
+  operations for the four trash endpoints; `contact.restored` webhook as before; depguard rules
+  `trash-*` (shown to fail); `routes.NewModules` extended. Old trash controller, `models.Trashed*`
+  types, `services.TrashPurgeAt`/`DefaultTrashRetentionDays` removed. 6 module tests on real SQLite
+  (fake clock, isolation, files removed on purge, webhook payload, malformed ids, 401); the
+  cross-module trash tests stay in `controllers`. Frontend `TrashedContact` and `TrashResponse`
+  derive from the generated types. `make precommit` green.
 
 ## Decisions
 
@@ -263,6 +271,19 @@
 - 13e review: `UploadPhoto` processes the image outside the transaction (SQLite's write lock is not
   held while pictures are decoded and written) and removes the new files whenever the transaction
   fails.
+- 13f, scope: the restore and purge logic (restore window for dependants, chunked purge, CardDAV
+  tombstones, file deletes after each committed chunk, so slow I/O never holds the write lock) stays
+  in `services.RestoreTrashedContact`/`PurgeTrashedContacts`/`ListTrashedContacts`. The contact sync
+  (`restoreTrashedContactTx`, 13k) and the daily purge job (`PurgeExpiredTrash`, main with the
+  injected clock) use them, and the module cannot be imported from `services` without a cycle. The
+  persistence adapter calls them; the logic moves with 13k. The `contact.restored` payload is still
+  the GORM contact (passed through the ports as an opaque event value) because the contacts module's
+  response type is internal to it. `models.ThumbnailURL` stays: contacts, relationships and trash
+  persistence and the birthday service still use it (it can go when the birthdays move). Behaviour
+  kept: a non-numeric or zero `{id}` is a 404 "Contact" (tested), not a 400; the retention (and a
+  missing photo directory falling back to `PROFILE_PHOTO_DIR`) is read once when the module is
+  built, not per request. `trashPhotoDir` became `photoDir` in the backup controller, its only other
+  user.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.
@@ -325,8 +346,10 @@
 
 - Vitest timeouts (5000ms) recur under load when `make precommit` runs everything at once: step 13c
   first run, `ImportContactsDialog.test.tsx` ("a summary chip filters the rows...", "a filtered row
-  stays visible..."), 6.1 s and 5.3 s; earlier in 13a two other files. A rerun passes. Candidate
-  fix: a larger `testTimeout` for the slow component tests.
+  stays visible..."), 6.1 s and 5.3 s; earlier in 13a two other files. A rerun passes. Step 13f: it
+  failed three full runs in a row (about 5.2 s under load, 1 s alone), so
+  `ImportContactsDialog.test.tsx` now has a 20 s timeout on its `describe` (MUI-heavy renders);
+  other slow tests may need the same.
 
 - A request body with `"date": "2026-03-01"` (no time) answers "date is required" for notes and
   activities, which is misleading (the value is there, it is not an RFC 3339 timestamp). Seen while

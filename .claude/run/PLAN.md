@@ -134,7 +134,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
   - [x] 13c. reminders (scheduler job deferred to 13i, see PROGRESS)
   - [x] 13d. relationships and graph
   - [x] 13e. photos and thumbnails
-  - [ ] 13f. trash
+  - [x] 13f. trash
   - [ ] 13g. users, sessions, TOTP, OIDC, password reset
   - [ ] 13h. API tokens and ICS feeds
   - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job)

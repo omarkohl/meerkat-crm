@@ -15,9 +15,6 @@ import (
 // trash, or belongs to another user.
 var ErrTrashedContactNotFound = errors.New("contact not in trash")
 
-// DefaultTrashRetentionDays is how long a deleted contact stays in the trash.
-const DefaultTrashRetentionDays = 30
-
 // dependantWindow is how far before a contact's own deletion its dependants
 // (notes, reminders, relationships) may have been soft-deleted and still count
 // as deleted with it. DeleteContact removes them inside one transaction, so the
@@ -26,11 +23,6 @@ const dependantWindow = 10 * time.Second
 
 // purgeChunk bounds how many contacts one purge transaction touches.
 const purgeChunk = 200
-
-// TrashPurgeAt is when a contact deleted at deletedAt is removed for good.
-func TrashPurgeAt(deletedAt time.Time, retentionDays int) time.Time {
-	return deletedAt.Add(time.Duration(retentionDays) * 24 * time.Hour)
-}
 
 // ListTrashedContacts returns the user's soft-deleted contacts, newest deletion first.
 func ListTrashedContacts(db *gorm.DB, userID uint) ([]models.Contact, error) {

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"meerkat/config"
 	"meerkat/middleware"
 	"net/http"
 	"os"
@@ -62,7 +63,7 @@ func CreateBackup(c *gin.Context) {
 	log := logger.FromContext(c)
 	liftWriteDeadline(c)
 
-	b, err := services.CreateBackup(db, cfg.BackupDir, trashPhotoDir(c), middleware.RequestNow(c))
+	b, err := services.CreateBackup(db, cfg.BackupDir, photoDir(cfg), middleware.RequestNow(c))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create backup")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to create backup").WithError(err))
@@ -118,4 +119,11 @@ func DeleteBackup(c *gin.Context) {
 		logger.FromContext(c).Info().Str("backup", c.Param("name")).Msg("Backup deleted")
 		c.JSON(http.StatusOK, gin.H{"message": "Backup deleted"})
 	}
+}
+
+func photoDir(cfg config.Config) string {
+	if cfg.ProfilePhotoDir != "" {
+		return cfg.ProfilePhotoDir
+	}
+	return os.Getenv("PROFILE_PHOTO_DIR")
 }

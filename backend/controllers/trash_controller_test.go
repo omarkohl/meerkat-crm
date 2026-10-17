@@ -22,9 +22,7 @@ import (
 type trashEnv struct {
 	db      *gorm.DB
 	userA   models.User
-	userB   models.User
 	routerA *gin.Engine
-	routerB *gin.Engine
 	photos  string
 }
 
@@ -34,29 +32,11 @@ func newTrashEnv(t *testing.T) *trashEnv {
 	require.NoError(t, db.AutoMigrate(&models.ReminderCompletion{}))
 	var a models.User
 	db.First(&a)
-	b := models.User{Username: "other", Email: "other@example.com", Password: "x"}
-	require.NoError(t, db.Create(&b).Error)
 	photos := t.TempDir()
-
-	routerA.Use(func(c *gin.Context) {
-		c.Set("cfg", config.Config{ProfilePhotoDir: photos, TrashRetentionDays: 30, WebhookBlockPrivateURLs: true})
-		c.Next()
-	})
-	routerB := gin.New()
-	routerB.Use(func(c *gin.Context) {
-		c.Set("db", db)
-		c.Set("userID", b.ID)
-		c.Set("cfg", config.Config{ProfilePhotoDir: photos, TrashRetentionDays: 30, WebhookBlockPrivateURLs: true})
-		c.Next()
-	})
-	for _, r := range []*gin.Engine{routerA, routerB} {
-		mountContacts(r, db, &config.Config{ProfilePhotoDir: photos, TrashRetentionDays: 30, WebhookBlockPrivateURLs: true})
-		r.GET("/trash/contacts", GetTrash)
-		r.POST("/trash/contacts/:id/restore", RestoreTrashedContact)
-		r.DELETE("/trash/contacts/:id", PurgeTrashedContact)
-		r.DELETE("/trash/contacts", EmptyTrash)
-	}
-	return &trashEnv{db: db, userA: a, userB: b, routerA: routerA, routerB: routerB, photos: photos}
+	cfg := &config.Config{ProfilePhotoDir: photos, TrashRetentionDays: 30, WebhookBlockPrivateURLs: true}
+	mountContacts(routerA, db, cfg)
+	mountTrash(routerA, db, cfg)
+	return &trashEnv{db: db, userA: a, routerA: routerA, photos: photos}
 }
 
 func (e *trashEnv) contact(t *testing.T, userID uint, name string) models.Contact {
@@ -66,11 +46,20 @@ func (e *trashEnv) contact(t *testing.T, userID uint, name string) models.Contac
 	return c
 }
 
-func (e *trashEnv) trashed(t *testing.T, r *gin.Engine) models.TrashResponse {
+type trashResponse struct {
+	Contacts []struct {
+		Firstname string    `json:"firstname"`
+		DeletedAt time.Time `json:"deleted_at"`
+		PurgeAt   time.Time `json:"purge_at"`
+	} `json:"contacts"`
+	RetentionDays int `json:"retention_days"`
+}
+
+func (e *trashEnv) trashed(t *testing.T, r *gin.Engine) trashResponse {
 	t.Helper()
 	w := doReq(r, "GET", "/trash/contacts")
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var resp models.TrashResponse
+	var resp trashResponse
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	return resp
 }
@@ -144,22 +133,6 @@ func TestRestoreFromTrashMakesContactVisibleAgain(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, doReq(e.routerA, "POST", idPath("/trash/contacts/", c.ID, "/restore")).Code)
 }
 
-func TestRestoreFromTrashFiresContactRestoredWebhook(t *testing.T) {
-	e := newTrashEnv(t)
-	c := e.contact(t, e.userA.ID, "Alice")
-	// A private URL with blocking on is recorded as a failed delivery without any network access.
-	wh := models.Webhook{UserID: e.userA.ID, Name: "h", URL: "http://127.0.0.1/hook", Events: []string{"contact.restored"}, Secret: "s", IsActive: true}
-	require.NoError(t, e.db.Create(&wh).Error)
-	doReq(e.routerA, "DELETE", idPath("/contacts/", c.ID, ""))
-	require.Equal(t, http.StatusOK, doReq(e.routerA, "POST", idPath("/trash/contacts/", c.ID, "/restore")).Code)
-
-	assert.Eventually(t, func() bool {
-		var n int64
-		e.db.Model(&models.WebhookDelivery{}).Where("webhook_id = ? AND event_type = ?", wh.ID, "contact.restored").Count(&n)
-		return n == 1
-	}, 3*time.Second, 20*time.Millisecond)
-}
-
 func TestWebhookInputAcceptsContactRestored(t *testing.T) {
 	assert.Empty(t, middleware.ValidateStruct(models.WebhookInput{Name: "n", URL: "https://example.com", Events: []string{"contact.restored"}}))
 }
@@ -181,59 +154,6 @@ func TestPurgeSingleContact(t *testing.T) {
 	_, err := os.Stat(filepath.Join(e.photos, "p.jpg"))
 	assert.True(t, os.IsNotExist(err))
 	assert.Equal(t, http.StatusNotFound, doReq(e.routerA, "DELETE", idPath("/trash/contacts/", c1.ID, "")).Code)
-}
-
-func TestPurgeRefusesLiveContact(t *testing.T) {
-	e := newTrashEnv(t)
-	c := e.contact(t, e.userA.ID, "Alice")
-	assert.Equal(t, http.StatusNotFound, doReq(e.routerA, "DELETE", idPath("/trash/contacts/", c.ID, "")).Code)
-	assert.Equal(t, 1, e.liveContacts(t, e.routerA))
-}
-
-func TestEmptyTrash(t *testing.T) {
-	e := newTrashEnv(t)
-	e.contact(t, e.userA.ID, "Live")
-	for _, n := range []string{"One", "Two"} {
-		c := e.contact(t, e.userA.ID, n)
-		doReq(e.routerA, "DELETE", idPath("/contacts/", c.ID, ""))
-	}
-	w := doReq(e.routerA, "DELETE", "/trash/contacts")
-	require.Equal(t, http.StatusOK, w.Code)
-	var body struct {
-		Purged int `json:"purged"`
-	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, 2, body.Purged)
-	assert.Empty(t, e.trashed(t, e.routerA).Contacts)
-	assert.Equal(t, 1, e.liveContacts(t, e.routerA))
-}
-
-func TestTrashIsolationBetweenUsers(t *testing.T) {
-	e := newTrashEnv(t)
-	ca := e.contact(t, e.userA.ID, "Alice")
-	cb := e.contact(t, e.userB.ID, "Bob")
-	doReq(e.routerA, "DELETE", idPath("/contacts/", ca.ID, ""))
-	doReq(e.routerB, "DELETE", idPath("/contacts/", cb.ID, ""))
-
-	// Each user sees only their own trash.
-	ra, rb := e.trashed(t, e.routerA), e.trashed(t, e.routerB)
-	require.Len(t, ra.Contacts, 1)
-	require.Len(t, rb.Contacts, 1)
-	assert.Equal(t, "Alice", ra.Contacts[0].Firstname)
-	assert.Equal(t, "Bob", rb.Contacts[0].Firstname)
-
-	// B cannot restore or purge A's contact.
-	assert.Equal(t, http.StatusNotFound, doReq(e.routerB, "POST", idPath("/trash/contacts/", ca.ID, "/restore")).Code)
-	assert.Equal(t, http.StatusNotFound, doReq(e.routerB, "DELETE", idPath("/trash/contacts/", ca.ID, "")).Code)
-	// B emptying the trash leaves A's alone.
-	require.Equal(t, http.StatusOK, doReq(e.routerB, "DELETE", "/trash/contacts").Code)
-	assert.Len(t, e.trashed(t, e.routerA).Contacts, 1)
-	assert.Empty(t, e.trashed(t, e.routerB).Contacts)
-	assert.EqualValues(t, 1, func() int64 {
-		var n int64
-		e.db.Unscoped().Model(&models.Contact{}).Where("id = ?", ca.ID).Count(&n)
-		return n
-	}())
 }
 
 func TestTrashedContactIsNotFoundBySearchAndActivities(t *testing.T) {

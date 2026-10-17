@@ -15,6 +15,7 @@ import (
 	"meerkat/relationships"
 	"meerkat/reminders"
 	"meerkat/services"
+	"meerkat/trash"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
@@ -29,6 +30,7 @@ type Modules struct {
 	Reminders     *reminders.Module
 	Relationships *relationships.Module
 	Photos        *photos.Module
+	Trash         *trash.Module
 }
 
 // NewModules builds every converted module on db. db may be nil when only the operations'
@@ -41,6 +43,7 @@ func NewModules(db *gorm.DB, cfg *config.Config) Modules {
 		Reminders:     reminders.New(reminders.Deps{DB: db, Config: cfg}),
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
+		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
 	}
 }
 
@@ -64,6 +67,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Reminders.Register(a, g.Protected)
 	m.Relationships.Register(a, g.Protected)
 	m.Photos.Register(a, g.Protected)
+	m.Trash.Register(a, g.Protected)
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider, modules Modules) {
@@ -137,11 +141,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 
 			// Contact routes
 			RegisterAPI(humaAPI, cfg, modules, Groups{Protected: protected})
-			// Trash: soft-deleted contacts (restore, purge, empty)
-			protected.GET("/trash/contacts", controllers.GetTrash)
-			protected.DELETE("/trash/contacts", controllers.EmptyTrash)
-			protected.POST("/trash/contacts/:id/restore", controllers.RestoreTrashedContact)
-			protected.DELETE("/trash/contacts/:id", controllers.PurgeTrashedContact)
 
 			// Contact import routes (CSV)
 			protected.POST("/contacts/import/upload", controllers.UploadCSVForImport)

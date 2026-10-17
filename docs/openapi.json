@@ -2096,6 +2096,121 @@
         ],
         "type": "object"
       },
+      "TrashEmptiedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "purged": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "message",
+          "purged"
+        ],
+        "type": "object"
+      },
+      "TrashListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/TrashedContactResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "retention_days": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contacts",
+          "retention_days"
+        ],
+        "type": "object"
+      },
+      "TrashMessageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "TrashRestoredOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "id"
+        ],
+        "type": "object"
+      },
+      "TrashedContactResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstname": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "lastname": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "photo_thumbnail": {
+            "type": "string"
+          },
+          "purge_at": {
+            "description": "When the automatic purge removes it",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "firstname",
+          "lastname",
+          "nickname",
+          "email",
+          "photo_thumbnail",
+          "deleted_at",
+          "purge_at"
+        ],
+        "type": "object"
+      },
       "URLInput": {
         "properties": {
           "type": {
@@ -4148,6 +4263,152 @@
         "summary": "Complete a reminder, or skip it with skip=true; a recurring one is scheduled again",
         "tags": [
           "reminders"
+        ]
+      }
+    },
+    "/trash/contacts": {
+      "delete": {
+        "operationId": "empty-trash",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashEmptiedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete every contact in the trash for good",
+        "tags": [
+          "trash"
+        ]
+      },
+      "get": {
+        "operationId": "list-trash",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The deleted contacts, newest deletion first",
+        "tags": [
+          "trash"
+        ]
+      }
+    },
+    "/trash/contacts/{id}": {
+      "delete": {
+        "operationId": "purge-contact",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashMessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete one contact in the trash for good",
+        "tags": [
+          "trash"
+        ]
+      }
+    },
+    "/trash/contacts/{id}/restore": {
+      "post": {
+        "operationId": "restore-contact",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashRestoredOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Restore a deleted contact with its notes, reminders and relationships",
+        "tags": [
+          "trash"
         ]
       }
     }

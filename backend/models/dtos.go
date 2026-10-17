@@ -245,24 +245,6 @@ type WebhookDeliveryResponse struct {
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
-// TrashedContact is one deleted contact in the trash list.
-type TrashedContact struct {
-	ID             uint      `json:"id"`
-	Firstname      string    `json:"firstname"`
-	Lastname       string    `json:"lastname"`
-	Nickname       string    `json:"nickname"`
-	Email          string    `json:"email"`
-	PhotoThumbnail string    `json:"photo_thumbnail"`
-	DeletedAt      time.Time `json:"deleted_at"`
-	PurgeAt        time.Time `json:"purge_at"` // when the automatic purge removes it
-}
-
-// TrashResponse is returned by GET /trash/contacts.
-type TrashResponse struct {
-	Contacts      []TrashedContact `json:"contacts"`
-	RetentionDays int              `json:"retention_days"`
-}
-
 // BackupResponse describes one stored backup.
 type BackupResponse struct {
 	Name      string    `json:"name"`

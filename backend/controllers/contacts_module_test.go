@@ -7,6 +7,7 @@ import (
 	"meerkat/contacts"
 	"meerkat/notes"
 	"meerkat/relationships"
+	"meerkat/trash"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -28,4 +29,8 @@ func mountActivities(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 func mountRelationships(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	relationships.New(relationships.Deps{DB: db, Config: cfg}).Register(api.New(router.Group(""), router), router)
+}
+
+func mountTrash(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
+	trash.New(trash.Deps{DB: db, Config: cfg}).Register(api.New(router.Group(""), router), router)
 }

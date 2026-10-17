@@ -461,6 +461,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trash/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The deleted contacts, newest deletion first */
+        get: operations["list-trash"];
+        put?: never;
+        post?: never;
+        /** Delete every contact in the trash for good */
+        delete: operations["empty-trash"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trash/contacts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one contact in the trash for good */
+        delete: operations["purge-contact"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trash/contacts/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a deleted contact with its notes, reminders and relationships */
+        post: operations["restore-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -995,6 +1047,40 @@ export interface components {
             ID: number;
             firstname: string;
             lastname: string;
+        };
+        TrashEmptiedOutputBody: {
+            message: string;
+            /** Format: int64 */
+            purged: number;
+        };
+        TrashListOutputBody: {
+            contacts: components["schemas"]["TrashedContactResponse"][] | null;
+            /** Format: int64 */
+            retention_days: number;
+        };
+        TrashMessageOutputBody: {
+            message: string;
+        };
+        TrashRestoredOutputBody: {
+            /** Format: int64 */
+            id: number;
+            message: string;
+        };
+        TrashedContactResponse: {
+            /** Format: date-time */
+            deleted_at: string;
+            email: string;
+            firstname: string;
+            /** Format: int64 */
+            id: number;
+            lastname: string;
+            nickname: string;
+            photo_thumbnail: string;
+            /**
+             * Format: date-time
+             * @description When the automatic purge removes it
+             */
+            purge_at: string;
         };
         URLInput: {
             type?: string;
@@ -2378,6 +2464,128 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderCompletedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashListOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "empty-trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashEmptiedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "purge-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "restore-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashRestoredOutputBody"];
                 };
             };
             /** @description Error */
