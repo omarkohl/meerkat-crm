@@ -3,13 +3,11 @@ package controllers
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"meerkat/config"
 	apperrors "meerkat/errors"
-	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
@@ -251,174 +249,6 @@ func LogoutUser(context *gin.Context, cfg *config.Config) {
 		true,             // httpOnly
 	)
 	context.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
-}
-
-// CheckPasswordStrength evaluates password strength without registration
-func CheckPasswordStrength(context *gin.Context) {
-	var request struct {
-		Password string `json:"password" binding:"required"`
-	}
-
-	if err := context.ShouldBindJSON(&request); err != nil {
-		apperrors.AbortWithError(context, apperrors.ErrMissingField("password"))
-		return
-	}
-
-	strength := middleware.EvaluatePasswordStrength(request.Password)
-	context.JSON(http.StatusOK, strength)
-}
-
-// RequestPasswordReset generates a reset token and sends instructions to the user.
-func RequestPasswordReset(context *gin.Context, cfg *config.Config) {
-	// Check if demo mode is enabled - password changes are disabled in demo
-	if os.Getenv("DEMO_MODE") == "true" {
-		apperrors.AbortWithError(context, apperrors.ErrForbidden("Password changes are disabled in demo mode"))
-		return
-	}
-
-	log := logger.FromContext(context)
-
-	validated, exists := context.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
-		return
-	}
-
-	inputPtr, ok := validated.(*models.PasswordResetRequestInput)
-	if !ok || inputPtr == nil {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
-		return
-	}
-	input := *inputPtr
-
-	// Normalize email to lowercase for case-insensitive matching
-	email := strings.ToLower(input.Email)
-
-	db := context.MustGet("db").(*gorm.DB)
-
-	var user models.User
-	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
-			return
-		}
-
-		log.Error().Err(err).Msg("Failed to lookup user for password reset")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
-		return
-	}
-
-	token, hash, err := services.GeneratePasswordResetToken()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to generate password reset token")
-		apperrors.AbortWithError(context, apperrors.ErrInternal("Could not generate password reset token").WithError(err))
-		return
-	}
-
-	requested := middleware.RequestNow(context)
-	expires := services.PasswordResetExpiry(requested)
-
-	user.PasswordResetTokenHash = &hash
-	user.PasswordResetExpiresAt = &expires
-	user.PasswordResetRequestedAt = &requested
-
-	if err := db.Save(&user).Error; err != nil {
-		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset token")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
-		return
-	}
-
-	if err := services.SendPasswordResetEmail(db, user.ID, user.Email, token, user.Language, cfg, middleware.RequestClock(context)); err != nil {
-		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to send password reset email")
-		apperrors.AbortWithError(context, apperrors.ErrExternal("email", "Failed to queue password reset email").WithError(err))
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "If an account exists, password reset instructions were sent"})
-}
-
-// ConfirmPasswordReset validates the token and updates the password.
-func ConfirmPasswordReset(context *gin.Context) {
-	// Check if demo mode is enabled - password changes are disabled in demo
-	if os.Getenv("DEMO_MODE") == "true" {
-		apperrors.AbortWithError(context, apperrors.ErrForbidden("Password changes are disabled in demo mode"))
-		return
-	}
-
-	log := logger.FromContext(context)
-
-	validated, exists := context.Get("validated")
-	if !exists {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "validation data not found"))
-		return
-	}
-
-	inputPtr, ok := validated.(*models.PasswordResetConfirmInput)
-	if !ok || inputPtr == nil {
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("", "invalid validation data type"))
-		return
-	}
-	input := *inputPtr
-
-	db := context.MustGet("db").(*gorm.DB)
-
-	tokenHash := services.HashPasswordResetToken(input.Token)
-
-	var user models.User
-	if err := db.Where("password_reset_token_hash = ?", tokenHash).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			apperrors.AbortWithError(context, apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired"))
-			return
-		}
-
-		log.Error().Err(err).Msg("Failed to lookup password reset token")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("query user").WithError(err))
-		return
-	}
-
-	if user.PasswordResetExpiresAt == nil || middleware.RequestNow(context).After(*user.PasswordResetExpiresAt) {
-		user.PasswordResetTokenHash = nil
-		user.PasswordResetExpiresAt = nil
-		user.PasswordResetRequestedAt = nil
-		if err := db.Save(&user).Error; err != nil {
-			log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to clear expired reset token")
-		}
-		apperrors.AbortWithError(context, apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired"))
-		return
-	}
-
-	hashedPassword, err := services.HashPassword(input.Password)
-	if err != nil {
-		if errors.Is(err, services.ErrPasswordTooLong) {
-			apperrors.AbortWithError(context, apperrors.ErrValidation(err.Error()))
-		} else {
-			log.Error().Err(err).Msg("Failed to hash password during reset")
-			apperrors.AbortWithError(context, apperrors.ErrInternal("Could not hash password").WithError(err))
-		}
-		return
-	}
-
-	user.Password = hashedPassword
-	user.PasswordResetTokenHash = nil
-	user.PasswordResetExpiresAt = nil
-	user.PasswordResetRequestedAt = nil
-
-	// A reset is what you do when the password may be known to someone else: the new
-	// password and the end of every session are one change, or the request fails.
-	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(&user).Error; err != nil {
-			return err
-		}
-		return services.RevokeAllSessions(tx, user.ID, middleware.RequestNow(context))
-	}); err != nil {
-		log.Error().Err(err).Uint("user_id", user.ID).Msg("Failed to persist password reset")
-		apperrors.AbortWithError(context, apperrors.ErrDatabase("update user").WithError(err))
-		return
-	}
-
-	auditFor(context, db, &user.ID, models.AuditPasswordReset, "")
-
-	context.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
 
 func revokeSessionOnLogout(c *gin.Context, db *gorm.DB, sid string) {

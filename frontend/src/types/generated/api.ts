@@ -58,6 +58,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/check-password-strength": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rate a password without registering */
+        post: operations["check-password-strength"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts": {
         parameters: {
             query?: never;
@@ -369,6 +386,40 @@ export interface paths {
         post?: never;
         /** Delete a note */
         delete: operations["delete-note"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set a new password with a reset token and end every session */
+        post: operations["confirm-password-reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/password-reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mail reset instructions to the account with this email; the answer is the same for unknown emails */
+        post: operations["request-password-reset"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1173,6 +1224,29 @@ export interface components {
             /** @description A display name for the provider, present when enabled */
             provider_name?: string;
         };
+        PasswordBody: {
+            password?: string;
+        };
+        PasswordResetOutputBody: {
+            message: string;
+        };
+        PasswordStrengthOutputBody: {
+            /** Format: int64 */
+            char_set_size: number;
+            /** Format: double */
+            entropy: number;
+            feedback: string;
+            is_valid: boolean;
+            /** Format: int64 */
+            length: number;
+            /** Format: double */
+            min_entropy: number;
+            /**
+             * Format: int64
+             * @description 0 (very weak) to 4 (very strong)
+             */
+            score: number;
+        };
         PhoneInput: {
             type?: string;
             value: string;
@@ -1289,6 +1363,13 @@ export interface components {
         ReminderSavedOutputBody: {
             message: string;
             reminder: components["schemas"]["ReminderResponse"];
+        };
+        ResetConfirmBody: {
+            password: string;
+            token: string;
+        };
+        ResetRequestBody: {
+            email: string;
         };
         SessionListOutputBody: {
             sessions: components["schemas"]["SessionResponse"][] | null;
@@ -1594,6 +1675,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OIDCConfigOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "check-password-strength": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordStrengthOutputBody"];
+                };
+            };
+            /** @description Too many requests from this address */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                    };
                 };
             };
             /** @description Error */
@@ -2547,6 +2673,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "confirm-password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetOutputBody"];
+                };
+            };
+            /** @description Password changes are disabled in demo mode */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests from this address */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                    };
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "request-password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetRequestBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordResetOutputBody"];
+                };
+            };
+            /** @description Password changes are disabled in demo mode */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many requests from this address */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        message: string;
+                    };
                 };
             };
             /** @description Error */

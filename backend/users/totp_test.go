@@ -218,7 +218,7 @@ func TestTheSpecDocumentsTheLockoutAnswer(t *testing.T) {
 	e := newEnv(t)
 	r := gin.New()
 	a := api.New(r.Group(""), r)
-	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(a, r.Group(""))
+	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(a, r.Group(""), r.Group(""))
 
 	for _, path := range []string{"/users/me/2fa/enable", "/users/me/2fa/disable", "/users/me/2fa/recovery-codes"} {
 		responses := a.OpenAPI().Paths[path].Post.Responses

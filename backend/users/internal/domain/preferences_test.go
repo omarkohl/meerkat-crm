@@ -3,6 +3,7 @@ package domain_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"meerkat/users/internal/domain"
 
@@ -36,4 +37,11 @@ func TestSessionIDsAre32LowercaseHexCharacters(t *testing.T) {
 func TestAnAccountWithoutAPasswordHasNoPasswordStep(t *testing.T) {
 	assert.False(t, domain.Account{}.HasPassword())
 	assert.True(t, domain.Account{PasswordHash: "x"}.HasPassword())
+}
+
+func TestAResetTokenWithoutATimeIsExpired(t *testing.T) {
+	at := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	assert.True(t, domain.ResetToken{}.Expired(at))
+	assert.False(t, domain.ResetToken{ExpiresAt: &at}.Expired(at), "valid until its time is up")
+	assert.True(t, domain.ResetToken{ExpiresAt: &at}.Expired(at.Add(time.Second)))
 }

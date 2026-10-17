@@ -41,7 +41,7 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Session{}, &models.AuditLog{}, &models.RecoveryCode{}))
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Session{}, &models.AuditLog{}, &models.RecoveryCode{}, &models.EmailOutbox{}))
 	e := &env{db: db}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
@@ -71,7 +71,7 @@ func (e *env) engine(user *models.User, extras map[string]any) *gin.Engine {
 			c.Next()
 		})
 	}
-	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(api.New(r.Group(""), r), authenticated)
+	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(api.New(r.Group(""), r), r.Group(""), authenticated)
 	return r
 }
 

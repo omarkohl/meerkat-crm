@@ -53,6 +53,8 @@ func NewModules(db *gorm.DB, cfg *config.Config) Modules {
 // Groups are the Gin groups huma operations can be registered on. A nil group means the
 // API's default one; cmd/openapi passes none.
 type Groups struct {
+	// Public has no authentication; operations on it bring their own rate limit.
+	Public gin.IRoutes
 	// Protected carries authentication and the general rate limit.
 	Protected gin.IRoutes
 }
@@ -71,7 +73,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Relationships.Register(a, g.Protected)
 	m.Photos.Register(a, g.Protected)
 	m.Trash.Register(a, g.Protected)
-	m.Users.Register(a, g.Protected)
+	m.Users.Register(a, g.Public, g.Protected)
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider, modules Modules) {
@@ -107,11 +109,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		v1.POST("/logout", func(c *gin.Context) {
 			controllers.LogoutUser(c, cfg)
 		})
-		v1.POST("/check-password-strength", middleware.AuthRateLimitMiddleware(), controllers.CheckPasswordStrength)
-		v1.POST("/password-reset/request", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.PasswordResetRequestInput{}), func(c *gin.Context) {
-			controllers.RequestPasswordReset(c, cfg)
-		})
-		v1.POST("/password-reset/confirm", middleware.AuthRateLimitMiddleware(), middleware.ValidateJSONMiddleware(&models.PasswordResetConfirmInput{}), controllers.ConfirmPasswordReset)
 
 		// Calendar feed (ICS). Public on purpose: calendar apps cannot send cookies or
 		// headers, so the unguessable per-user token in the path is the only credential.
@@ -125,7 +122,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 			protected.GET("/users/me", controllers.GetCurrentUser)
 
 			// Contact routes
-			RegisterAPI(humaAPI, cfg, modules, Groups{Protected: protected})
+			RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected})
 
 			// Contact import routes (CSV)
 			protected.POST("/contacts/import/upload", controllers.UploadCSVForImport)

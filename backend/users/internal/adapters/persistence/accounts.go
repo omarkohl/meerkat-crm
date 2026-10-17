@@ -80,6 +80,51 @@ func (a *Accounts) Account(ctx context.Context, actor domain.UserID) (domain.Acc
 	return domain.Account{Username: user.Username, PasswordHash: user.Password, TOTPEnabled: user.TOTPEnabled}, err
 }
 
+func (a *Accounts) ByEmail(ctx context.Context, email string) (domain.ResetTarget, error) {
+	var user models.User
+	err := a.db.WithContext(ctx).Select("id", "email", "language").Where("email = ?", email).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.ResetTarget{}, domain.ErrUserNotFound
+	}
+	return domain.ResetTarget{ID: domain.UserID(user.ID), Email: user.Email, Language: user.Language}, err
+}
+
+func (a *Accounts) StoreResetToken(ctx context.Context, actor domain.UserID, hash string, expires, requested time.Time) error {
+	user := models.User{Model: gorm.Model{ID: uint(actor)}, PasswordResetTokenHash: &hash, PasswordResetExpiresAt: &expires, PasswordResetRequestedAt: &requested}
+	return a.db.WithContext(ctx).Model(&user).
+		Select("PasswordResetTokenHash", "PasswordResetExpiresAt", "PasswordResetRequestedAt").Updates(&user).Error
+}
+
+func (a *Accounts) ResetToken(ctx context.Context, hash string) (domain.ResetToken, error) {
+	var user models.User
+	err := a.db.WithContext(ctx).Select("id", "password_reset_expires_at").Where("password_reset_token_hash = ?", hash).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domain.ResetToken{}, domain.ErrResetTokenInvalid
+	}
+	return domain.ResetToken{UserID: domain.UserID(user.ID), ExpiresAt: user.PasswordResetExpiresAt}, err
+}
+
+func (a *Accounts) ClearResetToken(ctx context.Context, actor domain.UserID, hash string) error {
+	return a.db.WithContext(ctx).Model(&models.User{}).Where("id = ? AND password_reset_token_hash = ?", uint(actor), hash).
+		Updates(map[string]any{"password_reset_token_hash": nil, "password_reset_expires_at": nil, "password_reset_requested_at": nil}).Error
+}
+
+func (a *Accounts) ResetPassword(ctx context.Context, actor domain.UserID, tokenHash, hash string, now time.Time) error {
+	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&models.User{}).Where("id = ? AND password_reset_token_hash = ?", uint(actor), tokenHash).
+			Updates(map[string]any{
+				"password": hash, "password_reset_token_hash": nil, "password_reset_expires_at": nil, "password_reset_requested_at": nil,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return domain.ErrResetTokenInvalid
+		}
+		return services.RevokeAllSessions(tx, uint(actor), now)
+	})
+}
+
 func (a *Accounts) ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error {
 	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		user := models.User{Model: gorm.Model{ID: uint(actor)}, Password: hash}

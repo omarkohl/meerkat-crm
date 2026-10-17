@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"meerkat/config"
 	"meerkat/middleware"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -284,104 +282,4 @@ func TestLoginUser_InvalidInput(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &response)
 	errorDetail := response["error"].(map[string]interface{})
 	assert.Equal(t, "MISSING_FIELD", errorDetail["code"])
-}
-
-func TestRequestPasswordReset_Succeeds(t *testing.T) {
-	cfg := config.Config{
-		FrontendURL: "http://localhost:3000",
-		UseResend:   false,
-	}
-
-	db, router := setupRouter()
-
-	hashed, _ := services.HashPassword(strongPassword)
-	user := models.User{
-		Username: "resetuser",
-		Email:    "reset@example.com",
-		Password: hashed,
-	}
-	db.Create(&user)
-
-	router.POST("/password-reset/request", func(c *gin.Context) {
-		c.Set("validated", &models.PasswordResetRequestInput{Email: "reset@example.com"})
-		RequestPasswordReset(c, &cfg)
-	})
-
-	req, _ := http.NewRequest("POST", "/password-reset/request", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var updated models.User
-	db.Where("email = ?", "reset@example.com").First(&updated)
-	if assert.NotNil(t, updated.PasswordResetTokenHash) {
-		assert.NotEmpty(t, *updated.PasswordResetTokenHash)
-	}
-	if assert.NotNil(t, updated.PasswordResetExpiresAt) {
-		assert.True(t, updated.PasswordResetExpiresAt.After(time.Now().Add(-time.Minute)))
-	}
-	if assert.NotNil(t, updated.PasswordResetRequestedAt) {
-		assert.True(t, updated.PasswordResetRequestedAt.After(time.Now().Add(-time.Minute)))
-	}
-}
-
-func TestRequestPasswordReset_QueuesEmail(t *testing.T) {
-	defer services.StubEmailDelivery(func(func()) {})() // no real background send
-	cfg := config.Config{FrontendURL: "http://localhost:3000", UseSMTP: true, SMTPHost: "127.0.0.1", SMTPPort: 1, SMTPFromEmail: "from@example.com"}
-	db, router := setupRouter()
-	hashed, _ := services.HashPassword(strongPassword)
-	user := models.User{Username: "resetq", Email: "resetq@example.com", Password: hashed}
-	db.Create(&user)
-	router.POST("/password-reset/request", func(c *gin.Context) {
-		c.Set("validated", &models.PasswordResetRequestInput{Email: "resetq@example.com"})
-		RequestPasswordReset(c, &cfg)
-	})
-	req, _ := http.NewRequest("POST", "/password-reset/request", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code, "a down mail server must not fail the request: the outbox retries")
-	var row models.EmailOutbox
-	if assert.NoError(t, db.Where("to_addr = ?", "resetq@example.com").First(&row).Error) {
-		assert.Equal(t, &user.ID, row.UserID)
-		assert.Contains(t, row.HTML, "reset")
-	}
-}
-
-func TestConfirmPasswordReset_Succeeds(t *testing.T) {
-	db, router := setupRouter()
-
-	initialPassword, _ := services.HashPassword(strongPassword)
-	token, tokenHash, _ := services.GeneratePasswordResetToken()
-	expires := services.PasswordResetExpiry(time.Now())
-	requested := time.Now()
-
-	user := models.User{
-		Username:                 "confirmuser",
-		Email:                    "confirm@example.com",
-		Password:                 initialPassword,
-		PasswordResetTokenHash:   &tokenHash,
-		PasswordResetExpiresAt:   &expires,
-		PasswordResetRequestedAt: &requested,
-	}
-	db.Create(&user)
-
-	router.POST("/password-reset/confirm", func(c *gin.Context) {
-		c.Set("validated", &models.PasswordResetConfirmInput{Token: token, Password: strongPasswordAlt})
-		ConfirmPasswordReset(c)
-	})
-
-	req, _ := http.NewRequest("POST", "/password-reset/confirm", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var updated models.User
-	db.Where("email = ?", "confirm@example.com").First(&updated)
-	assert.Nil(t, updated.PasswordResetTokenHash)
-	assert.Nil(t, updated.PasswordResetExpiresAt)
-	assert.Nil(t, updated.PasswordResetRequestedAt)
-	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(updated.Password), []byte(strongPasswordAlt)))
 }

@@ -33,6 +33,17 @@ type Sessions interface {
 type Accounts interface {
 	PasswordHash(ctx context.Context, actor domain.UserID) (string, error)
 	Account(ctx context.Context, actor domain.UserID) (domain.Account, error)
+	// ByEmail finds an account for a password reset; domain.ErrUserNotFound when there is none.
+	ByEmail(ctx context.Context, email string) (domain.ResetTarget, error)
+	StoreResetToken(ctx context.Context, actor domain.UserID, hash string, expires, requested time.Time) error
+	// ResetToken finds the token with this hash; domain.ErrResetTokenInvalid when there is none.
+	ResetToken(ctx context.Context, hash string) (domain.ResetToken, error)
+	// ClearResetToken removes the token with this hash; a newer token stays.
+	ClearResetToken(ctx context.Context, actor domain.UserID, hash string) error
+	// ResetPassword stores the hash and ends every session if the account still holds the
+	// token with tokenHash, which is what makes a token work once. Otherwise it returns
+	// domain.ErrResetTokenInvalid.
+	ResetPassword(ctx context.Context, actor domain.UserID, tokenHash, hash string, now time.Time) error
 	// ChangePassword stores the new hash, clears any pending password reset and ends every
 	// session, as one change.
 	ChangePassword(ctx context.Context, actor domain.UserID, hash string, now time.Time) error
@@ -64,6 +75,21 @@ type Passwords interface {
 	Matches(hash, password string) bool
 	// Hash returns domain.ErrPasswordTooLong for a password bcrypt cannot take.
 	Hash(password string) (string, error)
+	Strength(password string) domain.Strength
+}
+
+// ResetTokens makes password reset tokens. Only the hash is stored; the token goes to the
+// user in the mail.
+type ResetTokens interface {
+	New() (token, hash string, err error)
+	Hash(token string) string
+	Expiry(now time.Time) time.Time
+}
+
+// ResetMail sends the reset instructions; the mail is queued, so a down mail server does not
+// fail the request.
+type ResetMail interface {
+	Send(ctx context.Context, to domain.ResetTarget, token string) error
 }
 
 // Audit records security events; it never fails the use case.
@@ -80,6 +106,8 @@ const (
 	StageSessionRevoke Stage = "session-revoke"
 	StageHash          Stage = "hash"
 	StageSetup         Stage = "setup"
+	StageToken         Stage = "token"
+	StageMail          Stage = "mail"
 	StageEnable        Stage = "enable"
 	StageFactor        Stage = "factor"
 )
@@ -103,12 +131,14 @@ type UseCases struct {
 	audit     Audit
 	factor    SecondFactor
 	lockout   Lockout
+	tokens    ResetTokens
+	mail      ResetMail
 }
 
-func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout) *UseCases {
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail) *UseCases {
 	return &UseCases{
 		prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords,
-		audit: audit, factor: factor, lockout: lockout,
+		audit: audit, factor: factor, lockout: lockout, tokens: tokens, mail: mail,
 	}
 }
 

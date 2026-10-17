@@ -18,12 +18,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Register(a huma.API, group gin.IRoutes, uc *app.UseCases, cookie Cookie) {
+// Register adds the operations to a: the public ones (no login, strict rate limit) on public,
+// the rest on protected, the authenticated group.
+func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cookie Cookie) {
+	group := protected
 	h := &handlers{uc: uc, cookie: cookie}
 	tags := []string{"users"}
 	reg := func(id, method, path, summary string) huma.Operation {
 		return huma.Operation{OperationID: id, Method: method, Path: path, Summary: summary, Tags: tags}
 	}
+	registerPublic(a, public, h)
 	api.RegisterOn(a, group, reg("list-sessions", http.MethodGet, "/sessions", "The user's live login sessions, newest first"), h.sessions)
 	api.RegisterOn(a, group, reg("revoke-session", http.MethodDelete, "/sessions/{id}", "Sign one session out"), h.revoke)
 	api.RegisterOn(a, group, reg("sign-out-everywhere", http.MethodPost, "/sessions/revoke-all", "Sign out of every session"), h.signOutEverywhere)
@@ -233,6 +237,8 @@ func toAppError(err error, field string) *apperrors.AppError {
 		return apperrors.ErrInvalidInput("new_password", "New password must differ from current password")
 	case errors.Is(err, domain.ErrPasswordTooLong):
 		return apperrors.ErrValidation(err.Error())
+	case errors.Is(err, domain.ErrResetTokenInvalid):
+		return apperrors.ErrInvalidInput("token", "Password reset token is invalid or expired")
 	}
 	var f *app.Failure
 	if errors.As(err, &f) {
@@ -243,6 +249,10 @@ func toAppError(err error, field string) *apperrors.AppError {
 			return apperrors.ErrDatabase("query").WithError(f.Err)
 		case app.StageSessionRevoke:
 			return apperrors.ErrDatabase("update").WithError(f.Err)
+		case app.StageToken:
+			return apperrors.ErrInternal("Could not generate password reset token").WithError(f.Err)
+		case app.StageMail:
+			return apperrors.ErrExternal("email", "Failed to queue password reset email").WithError(f.Err)
 		case app.StageHash:
 			return apperrors.ErrInternal("Could not hash password").WithError(f.Err)
 		}

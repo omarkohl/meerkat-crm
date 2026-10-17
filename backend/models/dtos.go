@@ -93,17 +93,6 @@ type UserRegistrationInput struct {
 	Language string `json:"language" validate:"omitempty,oneof=en de it es fr"`
 }
 
-// PasswordResetRequestInput captures email for initiating password reset
-type PasswordResetRequestInput struct {
-	Email string `json:"email" validate:"required,email"`
-}
-
-// PasswordResetConfirmInput carries token and new password for reset flow
-type PasswordResetConfirmInput struct {
-	Token    string `json:"token" validate:"required,min=16"`
-	Password string `json:"password" validate:"required,min=8,strong_password"`
-}
-
 // Birthday represents a unified birthday entry for contacts and relationships
 type Birthday struct {
 	Type                  string `json:"type"`                              // "contact" or "relationship"

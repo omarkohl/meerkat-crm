@@ -8,7 +8,7 @@ export async function requestPasswordReset(email: string): Promise<string> {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email } satisfies components['schemas']['ResetRequestBody']),
   });
 
   const data = await handleResponse(response, 'Unable to request password reset.');
@@ -21,7 +21,7 @@ export async function confirmPasswordReset(token: string, password: string): Pro
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ token, password }),
+    body: JSON.stringify({ token, password } satisfies components['schemas']['ResetConfirmBody']),
   });
 
   const data = await handleResponse(response, 'Unable to reset password.');

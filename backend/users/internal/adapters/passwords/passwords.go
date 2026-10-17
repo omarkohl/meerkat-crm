@@ -4,6 +4,7 @@ package passwords
 import (
 	"errors"
 
+	"meerkat/middleware"
 	"meerkat/services"
 	"meerkat/users/internal/app"
 	"meerkat/users/internal/domain"
@@ -25,4 +26,12 @@ func (Bcrypt) Hash(password string) (string, error) {
 		return "", domain.ErrPasswordTooLong
 	}
 	return hash, err
+}
+
+func (Bcrypt) Strength(password string) domain.Strength {
+	s := middleware.EvaluatePasswordStrength(password)
+	return domain.Strength{
+		IsValid: s.IsValid, Entropy: s.Entropy, Score: s.Score, Feedback: s.Feedback,
+		MinEntropy: s.MinEntropy, CharSetSize: s.CharSetSize, Length: s.Length,
+	}
 }

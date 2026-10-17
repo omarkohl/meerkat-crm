@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g4 (register, login, logout, password reset, password strength, current user).
+13g4b (register, login with the second step, logout, GET /users/me).
 
 ## Stack
 
@@ -201,6 +201,15 @@
   gone; the end-to-end tests (real login, lockout, replay, encryption, admin reset) now mount the
   module, and 10 new module tests cover 401/403/429, single sign-on accounts and recovery codes.
   `make precommit` green.
+- Step 13g4a: the users module gets the public routes `POST /check-password-strength`,
+  `POST /password-reset/request` and `POST /password-reset/confirm`, each registered on the public
+  group with `AuthRateLimitMiddleware` (module `Register` now takes the public and the protected
+  group; `routes.Groups` has `Public`). Use cases `PasswordStrength`, `RequestPasswordReset`,
+  `ConfirmPasswordReset`; ports `ResetTokens`, `ResetMail` plus more on `Accounts`; adapters over
+  the existing services (token hashing, mail queue). Old handlers and the two reset DTOs removed;
+  the controller tests of the reset flow moved into 12 module tests (enumeration-safe answer, hashed
+  token, expiry, single use, sessions ended, audit, demo mode, rate limit per route, 401-free
+  access). `make precommit` green.
 
 ## Decisions
 
@@ -365,6 +374,27 @@
   error ("update") instead of a silent wrong code. The `/admin/users/{id}/2fa/reset` handler and the
   login's second step stay in `controllers` until 13g4 and 13l and share
   `middleware.SecondFactorKey`.
+- Step 13g4 is split again: **13g4a** password strength and password reset (done), **13g4b**
+  register, login with its second step, logout and `GET /users/me` (cookies, lockouts, OIDC users).
+- 13g4a, behaviour kept and tested: a reset request for an unknown email answers 200 with the same
+  words as a known one and stores and mails nothing; the email is lowercased; only the SHA-256 of
+  the token is stored, valid one hour from the request time (the request clock); the token is
+  mailed, never returned; a down mail channel does not fail the request (queued); confirm answers
+  400 INVALID_INPUT "Password reset token is invalid or expired" for an unknown and an expired token
+  (an expired one is also cleared) and leaves a valid token alone when the new password is rejected;
+  a confirmed reset writes the password, clears the token and ends every session with the token
+  version raised in one transaction (hashing happens before it), and audits `password_reset`;
+  `DEMO_MODE` answers 403 first; the strength check answers `MISSING_FIELD` for no or an empty
+  password. Rate limit tested on all three routes.
+- 13g4a review: confirming a reset is now atomic: the password write is
+  `WHERE id AND password_reset_token_hash = <hash of the token>` and a missing row (used, replaced
+  by a newer token, or the user gone) is the same "invalid or expired" answer; clearing an expired
+  token removes only that token. The spec lists the 429 (rate limit, `{error, message}`) of the
+  three routes and the demo-mode 403 of the two reset routes.
+- 13g4a, deviations: users are found by the lower-cased email and the reset columns are written as
+  three columns instead of saving the whole user; a body that is not JSON now gets the generic
+  request error (400) instead of `MISSING_FIELD` on the strength check; an unknown email is still
+  faster to answer than a known one (no token, no write, no mail), as before.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.
@@ -418,6 +448,10 @@
   `YARN: yarn`, `make fuzz` env vars.
 
 ## Questions
+
+- `services/password_reset_service.go` logs the user's email address when a reset mail is queued or
+  cannot be sent ("email" field of the log lines). Addresses are personal data in logs; not part of
+  step 13g4a.
 
 - `PUT`/`DELETE /contacts/{id}/relationships/{rid}` look up only `rid`; the contact in the URL is
   not compared with the relationship's contact (unchanged by step 13d). Tightening it would answer

@@ -39,8 +39,7 @@ func newSessionEnv(t *testing.T) *sessionEnv {
 	r.POST("/login", func(c *gin.Context) { LoginUser(c, cfg) })
 	r.POST("/logout", func(c *gin.Context) { LogoutUser(c, cfg) })
 	p := r.Group("/", middleware.AuthMiddleware(cfg))
-	users.New(users.Deps{DB: db, Config: cfg}).Register(api.New(r.Group(""), r), p)
-	r.POST("/password-reset/confirm", middleware.ValidateJSONMiddleware(&models.PasswordResetConfirmInput{}), ConfirmPasswordReset)
+	users.New(users.Deps{DB: db, Config: cfg}).Register(api.New(r.Group(""), r), r, p)
 	p.GET("/me", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
 	_ = router
 	return &sessionEnv{db: db, r: r, cfg: cfg}
