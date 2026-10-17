@@ -1653,6 +1653,23 @@
         ],
         "type": "object"
       },
+      "PhotoUploadedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "photo": {
+            "description": "The stored name of the new photo, empty when the contact has none",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "photo"
+        ],
+        "type": "object"
+      },
       "RandomOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -3058,6 +3075,74 @@
         "summary": "Add a note about a contact",
         "tags": [
           "notes"
+        ]
+      }
+    },
+    "/contacts/{id}/profile_picture": {
+      "post": {
+        "operationId": "upload-profile-picture",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "photo": {
+                  "contentType": "application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "photo": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "The image; leaving it out changes nothing",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoUploadedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Replace a contact's profile picture with an uploaded JPEG, PNG or HEIC image",
+        "tags": [
+          "photos"
         ]
       }
     },

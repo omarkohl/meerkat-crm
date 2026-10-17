@@ -2,7 +2,7 @@
 
 ## Next step
 
-13e (photos and thumbnails, same pattern).
+13f (trash, same pattern).
 
 ## Stack
 
@@ -155,6 +155,17 @@
   The contacts module's embedded relationship type is now `ContactRelationship` (schema name clash).
   Frontend `Relationship`, `IncomingRelationship`, form data, graph types derive from the generated
   types; dead hand-written relationship types removed. `make precommit` green.
+- Step 13e: `backend/photos` (domain: safe-name rules and legacy-thumbnail decoding; use cases
+  `OpenPhoto`, `OpenThumbnail`, `UploadPhoto`; ports `Contacts`/`Store`/`Files`; persistence, files
+  and http adapters). The upload is a huma multipart operation; the two image downloads are plain
+  Gin handlers inside the module's http adapter (they send bytes with ETag/Range support). Image
+  processing moved to `adapters/files` with its tests (sizes, private modes, HEIC), module tests on
+  real SQLite for scoping, traversal, legacy thumbnails, trashed contacts, replacing files and 401.
+  The `thumbnailURL` copy in the contacts http adapter is gone: contacts persistence puts the URL
+  into the domain contact (`models.ThumbnailURL` remains for trash and birthdays). depguard rules
+  `photos-*` (shown to fail). There were no photo-specific arch exemptions to remove. `ProxyImage`
+  moved to `controllers/image_proxy_controller.go` (not a photos concern, stays Gin).
+  `make precommit` green.
 
 ## Decisions
 
@@ -239,6 +250,19 @@
   the zero-valued contact object is gone); an update failure now surfaces ("Failed to update
   relationship"; `db.Save`'s error was ignored). JSON strings no longer escape `&` as `\u0026` (the
   huma encoder), so the thumbnail test compares `&`; the data is the same.
+- 13e, API: the upload answers `{"message", "photo"}` instead of the whole contact (the frontend
+  ignores the body; the contact is read from `GET /contacts/{id}`); an upload request without a
+  `photo` file changes nothing (it used to re-save the contact, touching `updated_at`); an upload
+  over the 10 MB body limit answers 400 "... request body too large" (the multipart form cannot be
+  read); before, the failed read made the handler skip the file and answer 200 with nothing changed.
+  The separate 10 MB file-size check was unreachable and is gone; `DEMO_MODE` is still read from the
+  environment per request in the http adapter. Thumbnail and photo errors keep their wording per
+  stage. Downloads use `http.ServeContent` (Range and Last-Modified for the full photo, as `c.File`
+  did). Review item: whether the downloads should become huma stream responses once step 14 lists
+  exceptions.
+- 13e review: `UploadPhoto` processes the image outside the transaction (SQLite's write lock is not
+  held while pictures are decoded and written) and removes the new files whenever the transaction
+  fails.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.

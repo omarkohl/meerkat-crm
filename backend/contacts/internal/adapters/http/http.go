@@ -6,9 +6,7 @@ package httpadapter
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -211,17 +209,9 @@ func (h *handlers) birthdays(ctx context.Context, _ *struct{}) (*BirthdaysOutput
 func listItems(contacts []domain.Contact) []ContactListItem {
 	items := make([]ContactListItem, len(contacts))
 	for i, c := range contacts {
-		items[i] = ContactListItem{ContactResponse: NewContactResponse(c), PhotoThumbnail: thumbnailURL(c)}
+		items[i] = ContactListItem{ContactResponse: NewContactResponse(c), PhotoThumbnail: c.PhotoThumbnail}
 	}
 	return items
-}
-
-func thumbnailURL(c domain.Contact) string {
-	if c.PhotoThumbnailFile == "" {
-		return ""
-	}
-	version := strings.TrimSuffix(c.PhotoThumbnailFile, "_thumb.jpg")
-	return fmt.Sprintf("/api/v1/contacts/%d/profile_picture?thumbnail=true&v=%s", c.ID, url.QueryEscape(version))
 }
 
 func atoiOr0(s string) int {

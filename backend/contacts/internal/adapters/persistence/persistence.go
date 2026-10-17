@@ -330,7 +330,7 @@ func toDomain(m models.Contact) domain.Contact {
 		UpdatedAt: m.UpdatedAt,
 
 		Firstname: m.Firstname, Lastname: m.Lastname, Nickname: m.Nickname, Gender: m.Gender,
-		Email: m.Email, Phone: m.Phone, Birthday: m.Birthday, Photo: m.Photo, PhotoThumbnailFile: m.PhotoThumbnailFile,
+		Email: m.Email, Phone: m.Phone, Birthday: m.Birthday, Photo: m.Photo, PhotoThumbnailFile: m.PhotoThumbnailFile, PhotoThumbnail: models.ThumbnailURL(m.ID, m.PhotoThumbnailFile),
 
 		Address: m.Address, HowWeMet: m.HowWeMet, FoodPreference: m.FoodPreference,
 		WorkInformation: m.WorkInformation, ContactInformation: m.ContactInformation,

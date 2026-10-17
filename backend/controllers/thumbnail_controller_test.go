@@ -3,13 +3,9 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"image"
-	"image/png"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -40,8 +36,6 @@ func newThumbEnv(t *testing.T) *thumbEnv {
 	require.NoError(t, db.Create(&e.other).Error)
 	cfg := &config.Config{ProfilePhotoDir: e.dir}
 	mountContacts(r, db, cfg)
-	r.GET("/contacts/:id/picture", func(c *gin.Context) { GetProfilePicture(c, cfg) })
-	r.POST("/contacts/:id/picture", func(c *gin.Context) { AddPhotoToContact(c, cfg) })
 	mountRelationships(r, db, cfg)
 	return e
 }
@@ -54,57 +48,6 @@ func (e *thumbEnv) get(path string, headers ...string) *httptest.ResponseRecorde
 	w := httptest.NewRecorder()
 	e.r.ServeHTTP(w, req)
 	return w
-}
-
-func TestThumbnailIsServedFromItsFileWithETagAndCache(t *testing.T) {
-	e := newThumbEnv(t)
-	require.NoError(t, os.WriteFile(filepath.Join(e.dir, "abc_thumb.jpg"), []byte("jpegbytes"), 0o600))
-	mine := models.Contact{UserID: e.me.ID, Firstname: "A", PhotoThumbnailFile: "abc_thumb.jpg"}
-	theirs := models.Contact{UserID: e.other.ID, Firstname: "B", PhotoThumbnailFile: "abc_thumb.jpg"}
-	none := models.Contact{UserID: e.me.ID, Firstname: "C"}
-	require.NoError(t, e.db.Create(&[]*models.Contact{&mine, &theirs, &none}).Error)
-	path := func(id uint) string { return "/contacts/" + strconv.Itoa(int(id)) + "/picture?thumbnail=true" }
-
-	w := e.get(path(mine.ID))
-	require.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "jpegbytes", w.Body.String())
-	assert.Equal(t, "image/jpeg", w.Header().Get("Content-Type"))
-	assert.Contains(t, w.Header().Get("Cache-Control"), "max-age=31536000")
-	assert.Contains(t, w.Header().Get("Cache-Control"), "private")
-	etag := w.Header().Get("ETag")
-	require.NotEmpty(t, etag)
-
-	w = e.get(path(mine.ID), "If-None-Match", etag)
-	assert.Equal(t, http.StatusNotModified, w.Code)
-	assert.Empty(t, w.Body.String())
-	w = e.get(path(mine.ID), "If-None-Match", `"other"`)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	assert.Equal(t, http.StatusNotFound, e.get(path(theirs.ID)).Code, "another user's thumbnail")
-	assert.Equal(t, http.StatusNotFound, e.get(path(none.ID)).Code)
-}
-
-func TestThumbnailFileNameCannotEscapeTheDirectory(t *testing.T) {
-	e := newThumbEnv(t)
-	secret := filepath.Join(filepath.Dir(e.dir), "secret.txt")
-	require.NoError(t, os.WriteFile(secret, []byte("secret"), 0o600))
-	t.Cleanup(func() { os.Remove(secret) })
-	for _, name := range []string{"../secret.txt", secret, "sub/x.jpg", `..\secret.txt`} {
-		c := models.Contact{UserID: e.me.ID, Firstname: "X", PhotoThumbnailFile: name}
-		require.NoError(t, e.db.Create(&c).Error)
-		w := e.get("/contacts/" + strconv.Itoa(int(c.ID)) + "/picture?thumbnail=true")
-		assert.NotEqual(t, http.StatusOK, w.Code, name)
-		assert.NotContains(t, w.Body.String(), "secret", name)
-	}
-}
-
-func TestThumbnailFallsBackToTheLegacyDatabaseCopy(t *testing.T) {
-	e := newThumbEnv(t)
-	c := models.Contact{UserID: e.me.ID, Firstname: "Old", LegacyThumbnail: "data:image/jpeg;base64,anBlZ2J5dGVz"}
-	require.NoError(t, e.db.Create(&c).Error)
-	w := e.get("/contacts/" + strconv.Itoa(int(c.ID)) + "/picture?thumbnail=true")
-	require.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "jpegbytes", w.Body.String())
 }
 
 func TestListsCarryAThumbnailURLNotTheImage(t *testing.T) {
@@ -140,39 +83,6 @@ func TestListsCarryAThumbnailURLNotTheImage(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `profile_picture?thumbnail=true&v=11111111`)
 }
 
-func TestUploadWritesAThumbnailFileAndReplacingRemovesTheOldOnes(t *testing.T) {
-	e := newThumbEnv(t)
-	c := models.Contact{UserID: e.me.ID, Firstname: "A", LegacyThumbnail: legacyForUpload}
-	require.NoError(t, e.db.Create(&c).Error)
-	var img bytes.Buffer
-	require.NoError(t, png.Encode(&img, image.NewRGBA(image.Rect(0, 0, 60, 60))))
-	upload := func() *httptest.ResponseRecorder {
-		var body bytes.Buffer
-		contentType := newMultipart(&body, img.Bytes())
-		req := httptest.NewRequest("POST", "/contacts/"+strconv.Itoa(int(c.ID))+"/picture", &body)
-		req.Header.Set("Content-Type", contentType)
-		w := httptest.NewRecorder()
-		e.r.ServeHTTP(w, req)
-		return w
-	}
-	require.Equal(t, http.StatusOK, upload().Code)
-	var first models.Contact
-	require.NoError(t, e.db.First(&first, c.ID).Error)
-	assert.True(t, strings.HasSuffix(first.PhotoThumbnailFile, "_thumb.jpg"))
-	assert.Empty(t, first.LegacyThumbnail, "the old picture's database copy is dropped")
-	entries, _ := os.ReadDir(e.dir)
-	assert.Len(t, entries, 2)
-
-	require.Equal(t, http.StatusOK, upload().Code)
-	var second models.Contact
-	require.NoError(t, e.db.First(&second, c.ID).Error)
-	assert.NotEqual(t, first.PhotoThumbnailFile, second.PhotoThumbnailFile)
-	entries, _ = os.ReadDir(e.dir)
-	assert.Len(t, entries, 2, "old photo and thumbnail are gone")
-	_, err := os.Stat(filepath.Join(e.dir, first.PhotoThumbnailFile))
-	assert.True(t, os.IsNotExist(err))
-}
-
 const legacyForUpload = "data:image/jpeg;base64,anBlZw=="
 
 // newMultipart writes a one-file "photo" form into body and returns its content type.
@@ -182,22 +92,6 @@ func newMultipart(body *bytes.Buffer, data []byte) string {
 	part.Write(data)
 	mw.Close()
 	return mw.FormDataContentType()
-}
-
-func TestTrashedContactsThumbnailIsServedToItsOwnerOnly(t *testing.T) {
-	e := newThumbEnv(t)
-	require.NoError(t, os.WriteFile(filepath.Join(e.dir, "abc_thumb.jpg"), []byte("jpegbytes"), 0o600))
-	mine := models.Contact{UserID: e.me.ID, Firstname: "A", PhotoThumbnailFile: "abc_thumb.jpg"}
-	theirs := models.Contact{UserID: e.other.ID, Firstname: "B", PhotoThumbnailFile: "abc_thumb.jpg"}
-	require.NoError(t, e.db.Create(&[]*models.Contact{&mine, &theirs}).Error)
-	require.NoError(t, e.db.Delete(&mine).Error)
-	require.NoError(t, e.db.Delete(&theirs).Error)
-	path := func(id uint) string { return "/contacts/" + strconv.Itoa(int(id)) + "/picture?thumbnail=true" }
-
-	w := e.get(path(mine.ID))
-	require.Equal(t, http.StatusOK, w.Code, "the trash shows avatars")
-	assert.Equal(t, "jpegbytes", w.Body.String())
-	assert.Equal(t, http.StatusNotFound, e.get(path(theirs.ID)).Code, "another user's trashed contact")
 }
 
 func TestListWithThumbnailFieldButNoIDStillGetsWorkingURLs(t *testing.T) {

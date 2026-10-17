@@ -31,6 +31,7 @@ backend/
   notes/               # hexagonal module for notes, same layout
   activities/          # hexagonal module for activities, same layout
   relationships/       # hexagonal module for relationships and the network graph, same layout
+  photos/              # hexagonal module for profile pictures and thumbnails (image downloads are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout (the e-mail job is still in services)
   models/              # GORM models and input DTOs
   services/            # Business logic (reminders, import, birthdays, password reset)

@@ -126,8 +126,10 @@ type Contact struct {
 	Phone     string
 	Birthday  string
 	Photo     string
-	// PhotoThumbnailFile names the thumbnail file; "" means none.
+	// PhotoThumbnailFile names the thumbnail file; "" means none. PhotoThumbnail is the URL
+	// it is served from.
 	PhotoThumbnailFile string
+	PhotoThumbnail     string
 
 	Address            string
 	HowWeMet           string
@@ -190,7 +192,7 @@ func (c *Contact) SyncPrimary() {
 // state and relationships stay.
 func (c *Contact) Replace(in Contact) {
 	in.ID, in.UserID, in.CreatedAt, in.UpdatedAt, in.DeletedAt = c.ID, c.UserID, c.CreatedAt, c.UpdatedAt, c.DeletedAt
-	in.Photo, in.PhotoThumbnailFile, in.Archived, in.Relationships = c.Photo, c.PhotoThumbnailFile, c.Archived, c.Relationships
+	in.Photo, in.PhotoThumbnailFile, in.PhotoThumbnail, in.Archived, in.Relationships = c.Photo, c.PhotoThumbnailFile, c.PhotoThumbnail, c.Archived, c.Relationships
 	in.Notes, in.Activities, in.Reminders = c.Notes, c.Activities, c.Reminders
 	*c = in
 	c.SyncPrimary()

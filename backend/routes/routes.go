@@ -11,6 +11,7 @@ import (
 	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/notes"
+	"meerkat/photos"
 	"meerkat/relationships"
 	"meerkat/reminders"
 	"meerkat/services"
@@ -27,6 +28,7 @@ type Modules struct {
 	Activities    *activities.Module
 	Reminders     *reminders.Module
 	Relationships *relationships.Module
+	Photos        *photos.Module
 }
 
 // NewModules builds every converted module on db. db may be nil when only the operations'
@@ -38,6 +40,7 @@ func NewModules(db *gorm.DB, cfg *config.Config) Modules {
 		Activities:    activities.New(activities.Deps{DB: db, Config: cfg}),
 		Reminders:     reminders.New(reminders.Deps{DB: db, Config: cfg}),
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
+		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 	}
 }
 
@@ -60,6 +63,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Activities.Register(a, g.Protected)
 	m.Reminders.Register(a, g.Protected)
 	m.Relationships.Register(a, g.Protected)
+	m.Photos.Register(a, g.Protected)
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider, modules Modules) {
@@ -163,14 +167,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 				controllers.ConfirmMonicaImport(c, cfg)
 			})
 			protected.DELETE("/contacts/import/monica/session", controllers.CancelMonicaImport)
-
-			// Profile picture routes
-			protected.POST("/contacts/:id/profile_picture", func(c *gin.Context) {
-				controllers.AddPhotoToContact(c, cfg)
-			})
-			protected.GET("/contacts/:id/profile_picture", func(c *gin.Context) {
-				controllers.GetProfilePicture(c, cfg)
-			})
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)

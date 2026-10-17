@@ -215,6 +215,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/{id}/profile_picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace a contact's profile picture with an uploaded JPEG, PNG or HEIC image */
+        post: operations["upload-profile-picture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/{id}/relationships": {
         parameters: {
             query?: never;
@@ -859,6 +876,11 @@ export interface components {
         PhoneInput: {
             type?: string;
             value: string;
+        };
+        PhotoUploadedOutputBody: {
+            message: string;
+            /** @description The stored name of the new photo, empty when the contact has none */
+            photo: string;
         };
         RandomOutputBody: {
             contacts: components["schemas"]["ContactListItem"][] | null;
@@ -1615,6 +1637,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteSavedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "upload-profile-picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description The image; leaving it out changes nothing
+                     */
+                    photo?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoUploadedOutputBody"];
                 };
             };
             /** @description Error */
