@@ -20,7 +20,7 @@ import (
 
 // Register adds the operations to a: the public ones (no login, strict rate limit) on public,
 // the rest on protected, the authenticated group.
-func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cookie Cookie) {
+func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cookie Cookie, oidc OIDCSettings) {
 	group := protected
 	h := &handlers{uc: uc, cookie: cookie}
 	tags := []string{"users"}
@@ -29,6 +29,7 @@ func Register(a huma.API, public, protected gin.IRoutes, uc *app.UseCases, cooki
 	}
 	registerPublic(a, public, h)
 	registerLogin(a, public, h)
+	registerOIDC(a, public, h, oidc)
 	api.RegisterOn(a, group, reg("current-user", http.MethodGet, "/users/me", "The signed-in user with their preferences"), h.currentUser)
 	api.RegisterOn(a, group, reg("list-sessions", http.MethodGet, "/sessions", "The user's live login sessions, newest first"), h.sessions)
 	api.RegisterOn(a, group, reg("revoke-session", http.MethodDelete, "/sessions/{id}", "Sign one session out"), h.revoke)

@@ -64,9 +64,12 @@ func (s *Sessions) Start(ctx context.Context, actor domain.UserID, client domain
 	return services.IssueSession(db, user, s.cfg, client.IP, client.UserAgent, now)
 }
 
-type Accounts struct{ db *gorm.DB }
+type Accounts struct {
+	db  *gorm.DB
+	cfg *config.Config
+}
 
-func NewAccounts(db *gorm.DB) *Accounts { return &Accounts{db: db} }
+func NewAccounts(db *gorm.DB, cfg *config.Config) *Accounts { return &Accounts{db: db, cfg: cfg} }
 
 var _ app.Accounts = (*Accounts)(nil)
 
@@ -147,6 +150,22 @@ func (a *Accounts) Register(ctx context.Context, user domain.NewUser) error {
 	})
 }
 
+// ProvisionOIDC uses the services' account rules; cfg says whether accounts may be created and
+// whether the provider's email is trusted without verification.
+func (a *Accounts) ProvisionOIDC(ctx context.Context, claims domain.OIDCClaims) (domain.UserID, error) {
+	user, err := services.FindOrProvisionUser(a.db.WithContext(ctx), &services.OIDCClaims{
+		Subject: claims.Subject, Email: claims.Email, EmailVerified: claims.EmailVerified,
+		Name: claims.Name, PreferredUsername: claims.PreferredUsername, Provider: claims.Provider,
+	}, a.cfg)
+	if errors.Is(err, services.ErrOIDCUserNotFound) {
+		return 0, domain.ErrOIDCNoAccount
+	}
+	if err != nil {
+		return 0, err
+	}
+	return domain.UserID(user.ID), nil
+}
+
 func (a *Accounts) ForLogin(ctx context.Context, identifier string, email bool) (domain.LoginAccount, error) {
 	column := "username"
 	if email {
@@ -217,9 +236,13 @@ func (a *Audit) LoginFailed(ctx context.Context, actor *domain.UserID, reason st
 }
 
 func (a *Audit) Record(ctx context.Context, actor domain.UserID, event string, client domain.Client) {
+	a.RecordWith(ctx, actor, event, "", client)
+}
+
+func (a *Audit) RecordWith(ctx context.Context, actor domain.UserID, event, detail string, client domain.Client) {
 	db := a.db.WithContext(ctx)
 	id := uint(actor)
-	entry := models.AuditLog{UserID: &id, Event: event, IP: client.IP, UserAgent: client.UserAgent}
+	entry := models.AuditLog{UserID: &id, Event: event, IP: client.IP, UserAgent: client.UserAgent, Detail: detail}
 	var name string
 	if err := db.Model(&models.User{}).Where("id = ?", id).Limit(1).Pluck("username", &name).Error; err == nil {
 		entry.Username = name

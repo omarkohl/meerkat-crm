@@ -46,6 +46,10 @@ type Accounts interface {
 	// create it is reported as domain.ErrUserExists, as it always was.
 	Register(ctx context.Context, user domain.NewUser) error
 	Profile(ctx context.Context, actor domain.UserID) (domain.Profile, error)
+	// ProvisionOIDC finds the account of a single sign-on identity, links it to an account with
+	// the same trusted email, or creates one if that is allowed; domain.ErrOIDCNoAccount when
+	// none of that is possible.
+	ProvisionOIDC(ctx context.Context, claims domain.OIDCClaims) (domain.UserID, error)
 	// ForLogin finds the account a login names, by email when email is true, else by username.
 	ForLogin(ctx context.Context, identifier string, email bool) (domain.LoginAccount, error)
 	// ResetPassword stores the hash and ends every session if the account still holds the
@@ -70,6 +74,27 @@ type SecondFactor interface {
 	Check(ctx context.Context, actor domain.UserID, code, recovery string, at time.Time) (ok, usedRecovery bool, err error)
 	Disable(ctx context.Context, actor domain.UserID) error
 	NewRecoveryCodes(ctx context.Context, actor domain.UserID) ([]string, error)
+}
+
+// Identity is the single sign-on provider.
+type Identity interface {
+	NewToken() (string, error)
+	AuthURL(state, nonce string) string
+	// Exchange trades the code for tokens and verifies the ID token.
+	Exchange(ctx context.Context, code string) (Exchanged, error)
+}
+
+// ClaimsResult is the identity; EnrichErr says why the userinfo lookup failed, which does not
+// stop the login.
+type ClaimsResult struct {
+	Claims    domain.OIDCClaims
+	EnrichErr error
+}
+
+// Exchanged is a verified ID token.
+type Exchanged interface {
+	Nonce() string
+	Claims(ctx context.Context) (ClaimsResult, error)
 }
 
 // Attempts counts failed logins by the identifier that was typed.
@@ -115,6 +140,7 @@ type ResetMail interface {
 // Audit records security events; it never fails the use case.
 type Audit interface {
 	Record(ctx context.Context, actor domain.UserID, event string, client domain.Client)
+	RecordWith(ctx context.Context, actor domain.UserID, event, detail string, client domain.Client)
 	// LoginFailed records a refused login; actor is nil when the account is unknown, so that
 	// what was typed (which may be a password) is never stored.
 	LoginFailed(ctx context.Context, actor *domain.UserID, reason string, client domain.Client)
@@ -132,6 +158,8 @@ const (
 	StageToken         Stage = "token"
 	StageLogin         Stage = "login"
 	StageStart         Stage = "start"
+	StageState         Stage = "state"
+	StageNonce         Stage = "nonce"
 	StageMail          Stage = "mail"
 	StageEnable        Stage = "enable"
 	StageFactor        Stage = "factor"
@@ -159,16 +187,17 @@ type UseCases struct {
 	tokens    ResetTokens
 	mail      ResetMail
 	attempts  Attempts
+	identity  Identity
 	login     SessionTokens
 
 	registrationDisabled bool
 }
 
-func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail, attempts Attempts, login SessionTokens, registrationDisabled bool) *UseCases {
+func New(prefs Preferences, supportedLanguages []string, sessions Sessions, accounts Accounts, passwords Passwords, audit Audit, factor SecondFactor, lockout Lockout, tokens ResetTokens, mail ResetMail, attempts Attempts, login SessionTokens, identity Identity, registrationDisabled bool) *UseCases {
 	return &UseCases{
 		prefs: prefs, languages: supportedLanguages, sessions: sessions, accounts: accounts, passwords: passwords,
 		audit: audit, factor: factor, lockout: lockout, tokens: tokens, mail: mail,
-		attempts: attempts, login: login, registrationDisabled: registrationDisabled,
+		attempts: attempts, login: login, identity: identity, registrationDisabled: registrationDisabled,
 	}
 }
 

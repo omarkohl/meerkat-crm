@@ -2,7 +2,7 @@
 
 ## Next step
 
-13g5 (OIDC login and callback; stay Gin handlers inside the users module).
+13h (API tokens and ICS feeds).
 
 ## Stack
 
@@ -224,6 +224,16 @@
   (real login, lockout across identifiers, replay, recovery codes, sessions) still run and now mount
   the module. Test requests come from distinct client addresses so the process-wide rate limiter
   does not trip. `make precommit` green.
+- Step 13g5: single sign-on in the users module. `GET /auth/oidc/config` moved from `controllers`
+  into the module (same operation, same schema name); `GET /auth/oidc/login` and
+  `GET /auth/oidc/callback` are plain Gin handlers of its http adapter (they answer with redirects),
+  registered only when single sign-on is enabled and a provider was reached at start
+  (`routes.NewModules` now takes the provider; `RegisterRoutes` no longer does). Domain: the
+  callback check (`OIDCCallback.Check`, constant-time `SameSecret`) and the
+  failure/denied/no-account errors; use cases `StartOIDC` and `CompleteOIDC`; ports `Identity` (over
+  `services.OIDCProvider`) and `ProvisionOIDC` (over `services.FindOrProvisionUser`). The old
+  controller is gone; its tests with the fake provider moved into 10 module tests. **Step 13g is
+  done.** `make precommit` green.
 
 ## Decisions
 
@@ -445,6 +455,24 @@
   as a wrong code.
 - 13g4c, deviations: a body that is not JSON gets the generic request error (400) instead of the raw
   JSON decoder message; the lookup runs on the lower-cased identifier with one query.
+- 13g5, behaviour kept and tested: state and nonce are 32 random bytes in cookies named `oidc_state`
+  and `oidc_nonce` (HttpOnly, SameSite=Lax, configured domain and Secure, path
+  `/api/v1/auth/oidc/callback`, 10 minutes), fresh for every attempt; the callback checks, in this
+  order, a provider `error` (ends the attempt, cookies left alone), the two cookies, the state in
+  constant time, the code, then the token exchange and ID token verification (issuer, audience,
+  expiry, signature), the nonce in constant time, the claims, the userinfo fallback (a failure only
+  logs), and the account; the cookies are cleared on every callback except a provider error. Every
+  ending is a redirect to one of four fixed places (`/`, `/login?error=oidc_denied`,
+  `oidc_no_account`, `oidc_error`); nothing in the request chooses it (tested with a `redirect`
+  parameter). There is no PKCE, as before. Accounts: found by subject and provider, else linked by
+  email only when the provider says it is verified or `OIDC_TRUST_EMAIL` is set (an unverified email
+  of an existing account is not taken over), else created when `OIDC_AUTO_PROVISION` allows it, with
+  a derived unique username, an empty password and no administrator flag; such an account cannot log
+  in with a password. A session is started and `login` is audited with `method:oidc`; two-factor is
+  not asked. Logs hold fixed sentences and the underlying error, never a token or code. The two
+  routes have the auth rate limit (tested).
+- 13g5, deviations: the failure log of the session start no longer carries the user ID; the id-token
+  claims are read after the nonce check as before, but through one port call per step.
 - 12a keeps behaviour: `GET /contacts/circles` still answers `null` when there are no circles;
   non-numeric `{id}` now answers `400` (a Gin string param used to reach the database); a missing
   user answers `401`.
@@ -498,6 +526,10 @@
   `YARN: yarn`, `make fuzz` env vars.
 
 ## Questions
+
+- `GET /auth/oidc/login` answers a failure to make a state or nonce with `{"error": "..."}`, not the
+  AppError format (kept; it cannot realistically happen). Single sign-on skips the second factor of
+  an account with two-factor, by design and as before (documented in 13g5).
 
 - `frontend/src/auth.ts` `fetchAndCacheUserInfo` reads `data.ID` and `data.Username` from
   `GET /users/me`, which answers `id` and `username`, so the cached `user_id` and `username` are

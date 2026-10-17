@@ -6,8 +6,10 @@ package users
 import (
 	"meerkat/config"
 	"meerkat/i18n"
+	"meerkat/services"
 	httpadapter "meerkat/users/internal/adapters/http"
 	"meerkat/users/internal/adapters/lockout"
+	"meerkat/users/internal/adapters/oidc"
 	"meerkat/users/internal/adapters/passwords"
 	"meerkat/users/internal/adapters/persistence"
 	"meerkat/users/internal/adapters/resettokens"
@@ -24,11 +26,14 @@ import (
 type Deps struct {
 	DB     *gorm.DB
 	Config *config.Config
+	// OIDC is the single sign-on provider, nil when it is not configured.
+	OIDC *services.OIDCProvider
 }
 
 type Module struct {
-	uc  *app.UseCases
-	cfg config.Config
+	uc   *app.UseCases
+	cfg  config.Config
+	oidc bool
 }
 
 func New(d Deps) *Module {
@@ -36,15 +41,19 @@ func New(d Deps) *Module {
 	if d.Config != nil {
 		cfg = *d.Config
 	}
+	var identity app.Identity
+	if d.OIDC != nil {
+		identity = oidc.New(d.OIDC, &cfg)
+	}
 	uc := app.New(persistence.New(d.DB), i18n.SupportedLanguages,
-		persistence.NewSessions(d.DB, &cfg), persistence.NewAccounts(d.DB), passwords.Bcrypt{}, persistence.NewAudit(d.DB),
+		persistence.NewSessions(d.DB, &cfg), persistence.NewAccounts(d.DB, &cfg), passwords.Bcrypt{}, persistence.NewAudit(d.DB),
 		persistence.NewTwoFactor(d.DB, &cfg), lockout.Limiter{}, resettokens.Tokens{}, persistence.NewMail(d.DB, &cfg),
-		lockout.Identifiers{}, sessiontokens.New(&cfg), cfg.RegistrationDisabled)
-	return &Module{uc: uc, cfg: cfg}
+		lockout.Identifiers{}, sessiontokens.New(&cfg), identity, cfg.RegistrationDisabled)
+	return &Module{uc: uc, cfg: cfg, oidc: d.OIDC != nil}
 }
 
 func (m *Module) Register(a huma.API, public, protected gin.IRoutes) {
 	httpadapter.Register(a, public, protected, m.uc, httpadapter.Cookie{
 		Domain: m.cfg.CookieDomain, Secure: m.cfg.CookieSecure, MaxAge: m.cfg.JWTExpiryHours * 3600, Issuable: m.cfg.JWTSecretKey != "",
-	})
+	}, httpadapter.OIDCSettings{Enabled: m.cfg.OIDC.Enabled, ProviderURL: m.cfg.OIDC.ProviderURL, Routes: m.cfg.OIDC.Enabled && m.oidc})
 }

@@ -16,6 +16,7 @@ import (
 	"meerkat/config"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/services"
 	"meerkat/users"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,7 @@ var now = time.Date(2026, 3, 10, 15, 30, 0, 0, time.UTC)
 type env struct {
 	db   *gorm.DB
 	cfg  *config.Config
+	oidc *services.OIDCProvider
 	a, b models.User
 	asA  *gin.Engine
 	asB  *gin.Engine
@@ -73,7 +75,7 @@ func (e *env) engine(user *models.User, extras map[string]any) *gin.Engine {
 			c.Next()
 		})
 	}
-	users.New(users.Deps{DB: e.db, Config: e.cfg}).Register(api.New(r.Group(""), r), r.Group(""), authenticated)
+	users.New(users.Deps{DB: e.db, Config: e.cfg, OIDC: e.oidc}).Register(api.New(r.Group(""), r), r.Group(""), authenticated)
 	return r
 }
 
@@ -86,13 +88,17 @@ func (e *env) reload(t *testing.T, id uint) models.User {
 
 var nextClient atomic.Uint32
 
+func newClientAddress() string {
+	n := nextClient.Add(1)
+	return fmt.Sprintf("10.%d.%d.%d", (n>>16)&255, (n>>8)&255, n&255)
+}
+
 // send makes a request from a client address of its own: the public routes are rate limited
 // per address, by a limiter shared by the whole process.
 func send(r http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
-	n := nextClient.Add(1)
-	req.RemoteAddr = fmt.Sprintf("10.%d.%d.%d:4000", (n>>16)&255, (n>>8)&255, n&255)
+	req.RemoteAddr = newClientAddress() + ":4000"
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	return w

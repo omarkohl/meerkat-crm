@@ -69,7 +69,7 @@ func TestAPIReferenceMatchesRegisteredRoutes(t *testing.T) {
 	cfg := &config.Config{JWTSecretKey: "test-secret-key-32-chars-minimum!", CardDAVEnabled: true, MetricsEnabled: true}
 	cfg.OIDC.Enabled = true
 	r := gin.New()
-	RegisterRoutes(r, cfg, nil, &services.OIDCProvider{}, NewModules(nil, cfg))
+	RegisterRoutes(r, cfg, nil, NewModules(nil, cfg, &services.OIDCProvider{}))
 
 	registered := map[string]bool{}
 	for _, route := range r.Routes() {

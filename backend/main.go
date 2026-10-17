@@ -281,8 +281,8 @@ func main() {
 
 	// Register all routes from routes.go
 	// Composition root: the converted modules are built here from concrete adapters
-	modules := routes.NewModules(db, cfg)
-	routes.RegisterRoutes(r, cfg, db, oidcProvider, modules)
+	modules := routes.NewModules(db, cfg, oidcProvider)
+	routes.RegisterRoutes(r, cfg, db, modules)
 
 	// Create HTTP server with timeout configuration
 	srv := &http.Server{

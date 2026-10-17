@@ -46,10 +46,10 @@ backend/contacts/
   and the errors (`domain.ErrNotFound` becomes `apperrors.ErrNotFound`) to the exact responses the
   Gin handlers sent before. Other entry points (CardDAV, jobs, imports) will call the same use
   cases.
-- **Composition root.** `main.go` calls `routes.NewModules(db, cfg)`, which builds each module from
-  concrete values (`contacts.New(contacts.Deps{DB: db, Config: cfg})`) in one place; `routes`
-  registers the operations on the Gin groups. `cmd/openapi` and the route tests call it too, with no
-  database where only the spec is needed.
+- **Composition root.** `main.go` calls `routes.NewModules(db, cfg, oidcProvider)`, which builds
+  each module from concrete values (`contacts.New(contacts.Deps{DB: db, Config: cfg})`) in one
+  place; `routes` registers the operations on the Gin groups. `cmd/openapi` and the route tests call
+  it too, with no database where only the spec is needed.
 - **Entities versus tables.** The domain entity is the module's vocabulary; `models.Contact` stays
   the GORM model other, not yet converted code (CardDAV, sync, imports) still uses. Until those are
   converted the persistence adapter is the bridge, and `models` keeps the GORM hooks that maintain
@@ -89,6 +89,7 @@ moved:
 ## Consequences
 
 Business rules are testable with a real SQLite database through the use case, and through HTTP as
-before. A new module costs a directory and a few ports, not a rewrite. Contacts is fully converted.
-Until the other modules are, two styles coexist in the codebase; the route table in `routes` shows
-which is which.
+before. A new module costs a directory and a few ports, not a rewrite. Contacts, notes, activities,
+reminders, relationships, photos, trash and users are converted; a route that sends bytes or
+redirects stays a Gin handler in its module's HTTP adapter. Until the rest are, two styles coexist
+in the codebase; the route table in `routes` shows which is which.

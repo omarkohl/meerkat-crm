@@ -37,7 +37,7 @@ type Modules struct {
 
 // NewModules builds every converted module on db. db may be nil when only the operations'
 // descriptions are needed.
-func NewModules(db *gorm.DB, cfg *config.Config) Modules {
+func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProvider) Modules {
 	return Modules{
 		Contacts:      contacts.New(contacts.Deps{DB: db, Config: cfg}),
 		Notes:         notes.New(notes.Deps{DB: db, Config: cfg}),
@@ -46,7 +46,7 @@ func NewModules(db *gorm.DB, cfg *config.Config) Modules {
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
-		Users:         users.New(users.Deps{DB: db, Config: cfg}),
+		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
 
@@ -65,7 +65,6 @@ type Groups struct {
 // that can be switched off registers its operation anyway and the handler answers as the
 // disabled feature would. Do not register an operation inside an `if cfg.X`.
 func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
-	controllers.RegisterOIDCConfig(a, cfg)
 	m.Contacts.Register(a, g.Protected)
 	m.Notes.Register(a, g.Protected)
 	m.Activities.Register(a, g.Protected)
@@ -76,7 +75,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
-func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcProvider *services.OIDCProvider, modules Modules) {
+func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules Modules) {
 
 	// Health check endpoint (no versioning, standard practice)
 	router.GET("/health", controllers.HealthCheck)
@@ -94,12 +93,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, oidcPro
 		// exists, see RegisterAPI; the rest are plain Gin handlers until they are converted
 		// (docs/adr/0011-api-contract-with-huma.md).
 		humaAPI := api.New(v1, router)
-
-		// OIDC routes (config is a huma operation; login/callback only when OIDC is enabled)
-		if cfg.OIDC.Enabled && oidcProvider != nil {
-			v1.GET("/auth/oidc/login", middleware.AuthRateLimitMiddleware(), controllers.OIDCLoginHandler(oidcProvider, cfg))
-			v1.GET("/auth/oidc/callback", middleware.AuthRateLimitMiddleware(), controllers.OIDCCallbackHandler(oidcProvider, cfg))
-		}
 
 		// Calendar feed (ICS). Public on purpose: calendar apps cannot send cookies or
 		// headers, so the unguessable per-user token in the path is the only credential.

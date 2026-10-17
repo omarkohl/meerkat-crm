@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"meerkat/config"
 	"meerkat/models"
 	"meerkat/users/internal/adapters/persistence"
 	"meerkat/users/internal/domain"
@@ -27,7 +28,7 @@ func accountsWithToken(t *testing.T, hash string) (*persistence.Accounts, *gorm.
 	expires := now.Add(time.Hour)
 	user := models.User{Username: "a", Email: "a@example.com", Password: "old", PasswordResetTokenHash: &hash, PasswordResetExpiresAt: &expires, PasswordResetRequestedAt: &now}
 	require.NoError(t, db.Create(&user).Error)
-	return persistence.NewAccounts(db), db, user
+	return persistence.NewAccounts(db, &config.Config{}), db, user
 }
 
 func TestAResetTokenWorksForExactlyOneConfirmation(t *testing.T) {

@@ -41,7 +41,7 @@ func TestBackupRoutesRefuseAdminAPIToken(t *testing.T) {
 		c.Set("cfg", *cfg)
 		c.Next()
 	})
-	RegisterRoutes(r, cfg, db, nil, NewModules(db, cfg))
+	RegisterRoutes(r, cfg, db, NewModules(db, cfg, nil))
 
 	for _, tc := range []struct{ method, path string }{
 		{"GET", "/api/v1/admin/backups"},

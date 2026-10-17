@@ -3,6 +3,7 @@ package controllers
 import (
 	"meerkat/models"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -56,3 +57,13 @@ const (
 	strongPasswordAlt     = "TrulySecurePassphrase99#"
 	strongPasswordAnother = "UltraSafePassphrase88$"
 )
+
+func cookie(w *httptest.ResponseRecorder, name string) *http.Cookie {
+	var found *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == name {
+			found = c
+		}
+	}
+	return found
+}

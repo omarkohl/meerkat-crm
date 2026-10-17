@@ -16,7 +16,7 @@ func metricsStatus(t *testing.T, cfg *config.Config, auth string) int {
 	gin.SetMode(gin.ReleaseMode)
 	cfg.JWTSecretKey = "test-secret-key-32-chars-minimum!"
 	r := gin.New()
-	RegisterRoutes(r, cfg, nil, nil, NewModules(nil, cfg))
+	RegisterRoutes(r, cfg, nil, NewModules(nil, cfg, nil))
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
