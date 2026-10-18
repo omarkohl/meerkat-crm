@@ -59,7 +59,8 @@ Android does not include a native CardDAV client. You will need a third-party ap
   are synced back to Meerkat CRM. This also applies to profile pictures.
 - **Conflict detection**: Meerkat CRM uses ETags to detect conflicts. If a contact has been modified
   on both the server and the client since the last sync, the client will be notified and can resolve
-  the conflict.
+  the conflict. A client that saves with a stale ETag (`If-Match`), or creates a contact that
+  already exists (`If-None-Match: *`), gets `412 Precondition Failed` and nothing is overwritten.
 - **Supported fields**: Meerkat CRM syncs all fields though now all fields might be visible in your
   client. In case you add additional fields on your client (like a secondary address) the fields
   will be preserved in the Meerkat database but will not show in the Meerkat CRM frontend.

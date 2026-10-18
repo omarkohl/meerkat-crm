@@ -42,7 +42,7 @@ by upstream. Documentation of things specific to this fork is in [`docs/`](docs/
 ## Features
 
 - Contact management
-  - add and search contacts
+  - add contacts; search contacts, notes and activities from one box, with the match marked
   - deleted contacts go to a trash and can be restored
   - group contacts by circles (e.g. friends, family, work)
   - store relationships of contacts (e.g. spouses, children)

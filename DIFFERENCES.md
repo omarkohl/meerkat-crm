@@ -7,7 +7,7 @@ takes a change, its entry is deleted. For branches, versions and releases see [F
 
 Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 [`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk)
-(about 550 files; roughly 14k of the added lines are tests).
+(about 740 files; roughly 25k of the added lines are tests).
 
 ## Merge impact
 
@@ -103,7 +103,8 @@ the matching field named; it covers every text field of a contact (migration 34)
 **Import.** The preview can filter, sort and set a value on many rows at once, and the result lists
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and
 Apple labels work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported and
-synced as a contact note (migration 33).
+synced as a contact note (migration 33). Rows with errors are never imported, and an unreadable card
+no longer shifts the cards after it.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
 locale. One placeholder for empty values. The add-activity dialog preselects the contact. Header
@@ -159,8 +160,9 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   Optional `lefthook`.
 - **Tests:** coverage thresholds for Go and Vitest, race detector in CI, fuzzing of the vCard, CSV,
   Monica and ICS parsers, migration round-trip tests, upgrade tests on databases made by past
-  releases, CardDAV tests against Radicale, Playwright E2E that drive the UI by visible names,
-  invariant tests for auth and user isolation of every route and model, and a use-case catalogue
+  releases, CardDAV server and client tests through the HTTP handlers and against Radicale, SMTP and
+  OIDC tests against fake servers, Playwright E2E that drive the UI by visible names, invariant
+  tests for auth and user isolation of every route and model, and a use-case catalogue
   (`docs/use-cases.yml`, `make use-cases`) that tags the tests.
 - **CI hardening:** pinned actions and base images, image scan and attestation, Dependabot for all
   ecosystems, daily with a 7-day cooldown and one group each.
