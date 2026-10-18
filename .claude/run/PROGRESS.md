@@ -2,7 +2,7 @@
 
 ## Next step
 
-20 (dependency updates).
+21 (commit checks and changelog).
 
 ## Stack
 
@@ -406,6 +406,13 @@
   `make lint` and a lint workflow step. `make precommit` green. Not verified: the Jekyll build (no
   bundler in this environment), which is why I did not switch the links to `.md` with
   `jekyll-relative-links`.
+- Step 20: ADR 0015. `.github/dependabot.yml`: daily, `cooldown: {default-days: 7}`, one group per
+  ecosystem (all update types). The four `ignore` blocks keep their comments, now each with the
+  blocker, the check that unblocks it and the issue where one is known (only eslint has one, and it
+  is for eslint-plugin-react; none is known for jsx-a11y, typescript or MUI, none invented).
+  Dockerfile base images are pinned to full tags checked against Docker Hub:
+  `<image>:<x.y.z>-alpine` (Alpine floats with the tag), `alpine:<x.y.z>` for the runtime. Images
+  were not rebuilt here (CI builds them); `make precommit` green.
 
 ## Decisions
 
@@ -851,5 +858,10 @@
   handlers in `controllers`.
 - The `carddav_sync` table is orphaned: its model `CardDAVSync` was removed in step 15 (unused), but
   no migration drops the table. A drop migration is for the user to decide.
+- Step 20: open tracking issues for the ESLint 10 blocker (jsx-a11y), the TypeScript 6 blocker
+  (openapi-typescript, typescript-eslint) and the MUI 9 migration, then link them in
+  `.github/dependabot.yml`. `docker-compose.carddav-test.yml` uses `nextcloud:latest` (a manual test
+  stack, not seen by Dependabot's `docker` ecosystem): pin it, or add the `docker-compose`
+  ecosystem?
 
 ## Blocked

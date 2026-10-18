@@ -25,5 +25,6 @@ supersede it.
 | [0012](0012-module-layout.md)               | Module layout (hexagonal)                  | Accepted |
 | [0013](0013-vite.md)                        | Vite builds the frontend                   | Accepted |
 | [0014](0014-npm.md)                         | npm manages frontend dependencies          | Accepted |
+| [0015](0015-dependency-updates.md)          | Dependency updates                         | Accepted |
 
 New ADR: copy a recent one, take the next number, add a row here.

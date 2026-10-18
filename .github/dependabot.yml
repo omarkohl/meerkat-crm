@@ -1,9 +1,13 @@
+# Daily checks, a 7-day cooldown before a new release is proposed, one pull request per
+# ecosystem for all update types (docs/adr/0015-dependency-updates.md).
 version: 2
 updates:
   - package-ecosystem: "gomod"
     directory: "/backend"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       go:
         patterns: ["*"]
@@ -11,44 +15,55 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       npm:
         patterns: ["*"]
-    # Major-version pins. Re-evaluate each when its unblock condition holds, then delete the entry.
+    # Major-version pins. Every entry needs the reason and the condition that removes it; delete
+    # the entry when the condition holds.
     ignore:
-      # Unblock: eslint-plugin-jsx-a11y (and eslint-plugin-react, if added) list ESLint 10 in their
-      # peerDependencies. Check `npm view eslint-plugin-jsx-a11y peerDependencies.eslint`.
-      # https://github.com/jsx-eslint/eslint-plugin-react/issues/3977
+      # Blocked by: eslint-plugin-jsx-a11y does not list ESLint 10 in its peerDependencies. Check
+      # `npm view eslint-plugin-jsx-a11y peerDependencies.eslint`. The same blocker is tracked for
+      # eslint-plugin-react in https://github.com/jsx-eslint/eslint-plugin-react/issues/3977; no
+      # issue is known for jsx-a11y itself.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
-      # Unblock: openapi-typescript accepts TypeScript 6/7 (`npm view openapi-typescript
-      # peerDependencies.typescript`) and typescript-eslint supports it (currently <6.1).
+      # Blocked by: openapi-typescript's peer range is `^5.x`, so TypeScript 6 and 7 are refused
+      # (`npm view openapi-typescript peerDependencies.typescript`); typescript-eslint's is
+      # `>=4.8.4 <6.1.0`, which also refuses 7. No tracking issue is known.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
-      # Unblock: @mui/lab ships a stable release for the next MUI major (v9 only has betas), and the
-      # code is migrated: MUI 9 breaks Stack props, TextField InputProps and Snackbar onClose types.
+      # Blocked by: @mui/lab has no stable release for the next MUI major (v9 only has betas), and
+      # the code is not migrated: MUI 9 breaks Stack props, TextField InputProps and Snackbar
+      # onClose types. No tracking issue is known.
       - dependency-name: "@mui/*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
 
-  # Base images in the three Dockerfiles (root, backend, frontend).
+  # Base images in the three Dockerfiles (root, backend, frontend), pinned to a full version tag
+  # so Dependabot sees every change.
   - package-ecosystem: "docker"
     directories:
       - "/"
       - "/backend"
       - "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       docker:
         patterns: ["*"]
@@ -57,7 +72,9 @@ updates:
   - package-ecosystem: "bundler"
     directory: "/docs"
     schedule:
-      interval: "weekly"
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       bundler:
         patterns: ["*"]

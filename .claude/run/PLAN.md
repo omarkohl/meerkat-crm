@@ -179,7 +179,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       tests fail when `CI=true` and the service is not configured (no silent skip).
 - [x] 19. **Doc link check (§2)**: offline Markdown link check (repo-relative links and anchors) in
       `make lint` and CI.
-- [ ] 20. **Dependency updates (§6)**: ADR. Dependabot `daily`, `cooldown: {default-days: 7}`, one
+- [x] 20. **Dependency updates (§6)**: ADR. Dependabot `daily`, `cooldown: {default-days: 7}`, one
       group per ecosystem for all update types. Every `ignore` gets a comment with the blocking
       issue. Pin floating Dockerfile base-image tags so Dependabot sees them.
 - [ ] 21. **Commit checks and changelog (§7, §8)**: CI job checks PR commit subjects (conventional

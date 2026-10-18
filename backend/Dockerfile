@@ -1,5 +1,5 @@
 # Build stage
-FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -17,7 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 
 # Runtime stage
-FROM alpine:3.24 AS runtime
+FROM alpine:3.24.2 AS runtime
 
 # Runtime dependencies; apk upgrade picks up Alpine fixes newer than the base image (Trivy gate).
 RUN apk add --no-cache ca-certificates tzdata shadow su-exec libc6-compat && \

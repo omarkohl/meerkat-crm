@@ -155,7 +155,7 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   invariant tests for auth and user isolation of every route and model, and a use-case catalogue
   (`docs/use-cases.yml`, `make use-cases`) that tags the tests.
 - **CI hardening:** pinned actions and base images, image scan and attestation, Dependabot for all
-  ecosystems, grouped.
+  ecosystems, daily with a 7-day cooldown and one group each.
 - **Docs:** ADRs, `CONTRIBUTING.md` (replaces `README-developer.md`), an API reference checked
   against the router.
 

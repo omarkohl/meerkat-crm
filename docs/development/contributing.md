@@ -76,16 +76,17 @@ and SLSA provenance attestation attached
 (`docker buildx imagetools inspect <image> --format '{{ json .SBOM }}'`).
 
 **Pinning.** Every GitHub Action is pinned to a full commit SHA with the version in a trailing
-comment (`uses: actions/checkout@<sha> # v4.4.0`), and Docker base images to a version tag
-(`golang:1.27-alpine`, `node:26-alpine`, `alpine:3.22`, `nginx-unprivileged:1.30-alpine`). Do not
-use `@v4`-style or `latest` references. Dependabot updates the SHAs and tags (and the comment) in
-its weekly PRs. To pin a new action, look up the commit of its release tag, for a tag that is
-annotated the commit it points to:
-`git ls-remote https://github.com/<owner>/<repo> 'refs/tags/<tag>*'` and use the `^{}` line if there
-is one. Check workflows with [actionlint](https://github.com/rhysd/actionlint).
+comment (`uses: actions/checkout@<sha> # v4.4.0`), and Docker base images to a version tag (the full
+version of the program, `<image>:<x.y.z>-alpine`, so Dependabot sees every change). Do not use
+`@v4`-style or `latest` references. Dependabot updates the SHAs and tags (and the comment) in its
+PRs. To pin a new action, look up the commit of its release tag, for a tag that is annotated the
+commit it points to: `git ls-remote https://github.com/<owner>/<repo> 'refs/tags/<tag>*'` and use
+the `^{}` line if there is one. Check workflows with
+[actionlint](https://github.com/rhysd/actionlint).
 
-Dependabot (`.github/dependabot.yml`) opens weekly update PRs for Go modules, npm, GitHub Actions,
-Docker and the docs' Ruby gems, with minor and patch updates grouped.
+Dependabot (`.github/dependabot.yml`, [ADR 0015](../adr/0015-dependency-updates.md)) checks daily
+and opens one PR per ecosystem (Go modules, npm, GitHub Actions, Docker, the docs' Ruby gems) for
+releases that are at least seven days old. Every `ignore` entry carries a comment with the blocker.
 
 ## Releasing
 
