@@ -27,7 +27,7 @@ export function matchesFilter(row: ImportRowPreview, action: string, filter: Pre
     case 'errors':
       return row.validation_errors.length > 0;
     case 'warnings':
-      return (row.warnings?.length ?? 0) > 0;
+      return row.warnings.length > 0;
     default:
       return action === filter;
   }

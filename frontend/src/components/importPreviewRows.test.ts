@@ -6,6 +6,7 @@ const row = (row_index: number, firstname: string, extra: Partial<ImportRowPrevi
   row_index,
   parsed_contact: firstname ? { firstname } : {},
   validation_errors: [],
+  warnings: [],
   duplicate_match: null,
   suggested_action: 'add',
   ...extra,

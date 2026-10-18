@@ -361,6 +361,26 @@
         ],
         "type": "object"
       },
+      "ColumnMapping": {
+        "properties": {
+          "contact_field": {
+            "description": "Empty ignores the column",
+            "type": "string"
+          },
+          "csv_column": {
+            "type": "string"
+          },
+          "group": {
+            "description": "Multi-value entry index (0-based); ties a value to its label or parts",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "csv_column"
+        ],
+        "type": "object"
+      },
       "CompletionListOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -428,6 +448,27 @@
           "contact_id",
           "message",
           "completed_at"
+        ],
+        "type": "object"
+      },
+      "ConfirmBody": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/RowAction"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "actions"
         ],
         "type": "object"
       },
@@ -1618,6 +1659,46 @@
         ],
         "type": "object"
       },
+      "DuplicateMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "existing_contact_id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "existing_deleted": {
+            "description": "The matched contact is in the trash",
+            "type": "boolean"
+          },
+          "existing_email": {
+            "type": "string"
+          },
+          "existing_firstname": {
+            "type": "string"
+          },
+          "existing_lastname": {
+            "type": "string"
+          },
+          "existing_phone": {
+            "type": "string"
+          },
+          "match_reason": {
+            "description": "email, name, phone or vcard_uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "existing_contact_id",
+          "existing_firstname",
+          "existing_lastname",
+          "existing_email",
+          "existing_phone",
+          "match_reason",
+          "existing_deleted"
+        ],
+        "type": "object"
+      },
       "EmailInput": {
         "properties": {
           "type": {
@@ -1872,6 +1953,48 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "ImportResult": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped_rows": {
+            "items": {
+              "$ref": "#/components/schemas/SkippedRow"
+            },
+            "type": "array"
+          },
+          "total_processed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_processed",
+          "created",
+          "updated",
+          "skipped",
+          "errors",
+          "skipped_rows"
         ],
         "type": "object"
       },
@@ -2193,6 +2316,66 @@
         "required": [
           "message",
           "photo"
+        ],
+        "type": "object"
+      },
+      "PreviewBody": {
+        "properties": {
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnMapping"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "mappings"
+        ],
+        "type": "object"
+      },
+      "PreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RowPreview"
+            },
+            "type": "array"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "total_rows": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "valid_rows": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "rows",
+          "total_rows",
+          "valid_rows",
+          "duplicate_count",
+          "error_count"
         ],
         "type": "object"
       },
@@ -2683,6 +2866,71 @@
         ],
         "type": "object"
       },
+      "RowAction": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "row_index": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "RowPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate_match": {
+            "description": "The existing contact this row matches, null when none",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DuplicateMatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parsed_contact": {
+            "additionalProperties": {},
+            "type": "object"
+          },
+          "row_index": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "suggested_action": {
+            "description": "add, skip or update",
+            "type": "string"
+          },
+          "validation_errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "description": "Values dropped so the row can import",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "row_index",
+          "parsed_contact",
+          "validation_errors",
+          "warnings",
+          "duplicate_match",
+          "suggested_action"
+        ],
+        "type": "object"
+      },
       "SessionListOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2750,6 +2998,32 @@
           "expires_at",
           "created_at",
           "current"
+        ],
+        "type": "object"
+      },
+      "SkippedRow": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "description": "skipped (chosen in the preview), invalid or failed",
+            "type": "string"
+          },
+          "row": {
+            "description": "1-based, as the preview shows it",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "row",
+          "name",
+          "reason"
         ],
         "type": "object"
       },
@@ -2971,6 +3245,51 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "UploadResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "headers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "row_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sample_data": {
+            "description": "The first few rows",
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "type": "array"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "suggested_mappings": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnMapping"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "session_id",
+          "headers",
+          "suggested_mappings",
+          "row_count",
+          "sample_data"
         ],
         "type": "object"
       },
@@ -3958,6 +4277,237 @@
         "summary": "The distinct circle names of all contacts",
         "tags": [
           "contacts"
+        ]
+      }
+    },
+    "/contacts/import/confirm": {
+      "post": {
+        "operationId": "confirm-csv-import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Import the previewed CSV rows with the chosen action per row",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/contacts/import/preview": {
+      "post": {
+        "operationId": "preview-csv-import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Apply column mappings and preview the rows with duplicate detection",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/contacts/import/upload": {
+      "post": {
+        "operationId": "upload-csv-import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "The file; leaving it out is a 400",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload a CSV file; answers the columns and suggested mappings",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/contacts/import/vcf/confirm": {
+      "post": {
+        "operationId": "confirm-vcf-import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Import the previewed vCards with the chosen action per row, photos included",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/contacts/import/vcf/upload": {
+      "post": {
+        "operationId": "upload-vcf-import",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "The file; leaving it out is a 400",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload a VCF file; answers the preview directly",
+        "tags": [
+          "import"
         ]
       }
     },

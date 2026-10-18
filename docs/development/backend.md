@@ -120,14 +120,15 @@ generated types in the frontend instead of hand-written ones.
 ## Modules (hexagonal)
 
 Converted modules live in `backend/<module>/` (today contacts, notes, activities, reminders,
-relationships, photos, trash, users, tokens, webhooks and exports): a public entry package, and
-under `internal/` the `domain` (entities and rules, standard library only), `app` (use cases and the
-ports they need), and `adapters` (`persistence` is the only code that imports GORM; `http` registers
-the huma operations, and keeps the routes that send bytes or redirects as plain Gin handlers;
-`webhooks` implements the event port). `main.go` calls `routes.NewModules(db, cfg, oidcProvider)`,
-which builds the modules (`contacts.New(contacts.Deps{...})`), and `routes` registers them. To add
-behaviour to a converted module write the use case in `app` (it takes the actor and `now`, and does
-its writes in one `Store.InTx`), a port if it needs new persistence, and a thin HTTP handler. See
+relationships, photos, trash, users, tokens, webhooks, exports and imports): a public entry package,
+and under `internal/` the `domain` (entities and rules, standard library only), `app` (use cases and
+the ports they need), and `adapters` (`persistence` is the only code that imports GORM; `http`
+registers the huma operations, and keeps the routes that send bytes or redirects as plain Gin
+handlers; `webhooks` implements the event port). `main.go` calls
+`routes.NewModules(db, cfg, oidcProvider)`, which builds the modules
+(`contacts.New(contacts.Deps{...})`), and `routes` registers them. To add behaviour to a converted
+module write the use case in `app` (it takes the actor and `now`, and does its writes in one
+`Store.InTx`), a port if it needs new persistence, and a thin HTTP handler. See
 [ADR 0012](../adr/0012-module-layout.md); the rules are enforced by `make arch`.
 
 ## Layering

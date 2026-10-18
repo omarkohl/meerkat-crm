@@ -483,7 +483,7 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
 
     const { toCreate, toUpdate, toSkip } = getSummaryCounts();
     const errorCount = previewResponse.rows.filter((r) => r.validation_errors.length > 0).length;
-    const warningCount = previewResponse.rows.filter((r) => (r.warnings?.length ?? 0) > 0).length;
+    const warningCount = previewResponse.rows.filter((r) => r.warnings.length > 0).length;
     const shownRows = sortRows(
       filter ? previewResponse.rows.filter((r) => filter.rows.has(r.row_index)) : previewResponse.rows,
       rowActions,
@@ -646,7 +646,7 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
                           color="success"
                         />
                       )}
-                      {row.warnings && row.warnings.length > 0 && (
+                      {row.warnings.length > 0 && (
                         <Tooltip
                           title={t('contacts.import.preview.warnings', 'Not imported: {{list}}', {
                             list: row.warnings.join(', '),
@@ -696,7 +696,7 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
   // Render result step
   const renderResultStep = () => {
     if (!importResult) return null;
-    const skippedRows = importResult.skipped_rows ?? [];
+    const skippedRows = importResult.skipped_rows;
 
     return (
       <Box sx={{ py: 2 }}>
@@ -748,20 +748,6 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
               </TableBody>
             </Table>
           </TableContainer>
-        )}
-
-        {/* Older servers send only the error messages; the skipped rows include them. */}
-        {!importResult.skipped_rows && importResult.errors.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" color="error" gutterBottom>
-              {t('contacts.import.result.errors', 'Errors')}:
-            </Typography>
-            {importResult.errors.map((error, index) => (
-              <Typography key={index} variant="body2" color="error">
-                {error}
-              </Typography>
-            ))}
-          </Box>
         )}
       </Box>
     );

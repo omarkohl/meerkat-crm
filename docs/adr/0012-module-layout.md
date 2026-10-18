@@ -90,6 +90,6 @@ moved:
 
 Business rules are testable with a real SQLite database through the use case, and through HTTP as
 before. A new module costs a directory and a few ports, not a rewrite. Contacts, notes, activities,
-reminders, relationships, photos, trash, users, tokens, webhooks and exports are converted; a route
-that sends bytes or redirects stays a Gin handler in its module's HTTP adapter. Until the rest are,
-two styles coexist in the codebase; the route table in `routes` shows which is which.
+reminders, relationships, photos, trash, users, tokens, webhooks, exports and imports are converted;
+a route that sends bytes or redirects stays a Gin handler in its module's HTTP adapter. Until the
+rest are, two styles coexist in the codebase; the route table in `routes` shows which is which.

@@ -2,7 +2,7 @@
 
 ## Next step
 
-13j2 (CSV and VCF import).
+13j3 (Monica import).
 
 ## Stack
 
@@ -276,6 +276,16 @@
   tests on real SQLite (every section, custom field columns, VCF count, no other user's data in
   either file, audit with format, 401) plus domain tests. The audit write that three modules now
   need is `services.WriteUserAudit`, used by users, tokens and exports. `make precommit` green.
+- Step 13j2: `backend/imports` (domain: upload rules and the wizard's vocabulary; use cases
+  `UploadCSV`, `UploadVCF`, `Preview`, `ConfirmCSV`, `ConfirmVCF`; port `Wizard`; persistence and
+  http adapters) with huma operations for the five endpoints (two multipart uploads, three JSON).
+  The module owns its `ImportSessionManager`; `main.go` gives it the clock
+  (`modules.Imports.SetClock`), `controllers.SetImportClock` now only serves the Monica sessions.
+  depguard rules `imports-*` (shown to fail). Old controller and its tests removed; 12 module tests
+  on real SQLite (file rules, row limit, any-case extension, duplicate detection, skip/add, session
+  ownership, expiry with the fake clock, preview before confirm, VCF wizard, CSV session refused on
+  the VCF endpoint, validation, 401). Frontend import types derive from the generated types.
+  `make precommit` green.
 
 ## Decisions
 
@@ -598,6 +608,20 @@
   activities/notes/reminders", "Failed to generate export"); an unreadable contact is skipped in the
   vCard file; the audit entry is written after everything is loaded. The audit duplication noted in
   13h is gone (`services.WriteUserAudit`).
+- 13j2, scope: parsing, column mapping, duplicate detection, merging, the session manager and the
+  photo handling stay in `services` (`import_service.go`, `import_session.go`); the module's
+  persistence adapter calls them behind the `Wizard` port and maps their models to domain types.
+  Reason: they are written against `models.Contact` and shared with the Monica import (merge,
+  birthday and phone rules) and the fuzz tests, and the contacts module's own `Contact` is a
+  different shape. Moving the logic is for when imports go through the contacts module (with
+  13j3/13k). Same trade as trash (13f). The wizard's errors keep their own status
+  (`*apperrors.AppError` from services is passed on by the HTTP adapter).
+- 13j2, API: a request without a file field is a 400 "No file uploaded" as before; a request that is
+  not multipart at all is answered by huma (a 4xx, not a 5xx). Validation of preview and confirm
+  bodies runs through `api.ValidateBody` with JSON field names in the details. `suggested_mappings`,
+  `headers`, `sample_data`, `rows`, `errors`, `skipped_rows`, `validation_errors` and `warnings` are
+  never null; `warnings` used to be missing when empty (now `[]`), which the frontend already
+  treated as none.
 
 ## For review
 

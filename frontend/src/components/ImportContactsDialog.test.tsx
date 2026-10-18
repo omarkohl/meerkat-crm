@@ -11,10 +11,15 @@ vi.mock('../api/import', async (importOriginal) => ({
   confirmVCFImport: vi.fn(),
 }));
 
-const row = (row_index: number, firstname: string, extra: Partial<importApi.ImportRowPreview> = {}) => ({
+const row = (
+  row_index: number,
+  firstname: string,
+  extra: Partial<importApi.ImportRowPreview> = {},
+): importApi.ImportRowPreview => ({
   row_index,
   parsed_contact: { firstname },
   validation_errors: [],
+  warnings: [],
   duplicate_match: null,
   suggested_action: 'add' as const,
   ...extra,

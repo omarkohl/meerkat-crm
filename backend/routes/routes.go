@@ -8,6 +8,7 @@ import (
 	"meerkat/contacts"
 	"meerkat/controllers"
 	"meerkat/exports"
+	"meerkat/imports"
 	"meerkat/metrics"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -38,6 +39,7 @@ type Modules struct {
 	Tokens        *tokens.Module
 	Webhooks      *webhooks.Module
 	Exports       *exports.Module
+	Imports       *imports.Module
 	Users         *users.Module
 }
 
@@ -55,6 +57,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Tokens:        tokens.New(tokens.Deps{DB: db}),
 		Webhooks:      webhooks.New(webhooks.Deps{DB: db, Config: cfg}),
 		Exports:       exports.New(exports.Deps{DB: db, Config: cfg}),
+		Imports:       imports.New(imports.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -84,6 +87,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Tokens.Register(a, g.Public, g.Protected)
 	m.Webhooks.Register(a, g.Protected)
 	m.Exports.Register(g.Protected)
+	m.Imports.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -114,19 +118,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 
 			// Contact routes
 			RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected})
-
-			// Contact import routes (CSV)
-			protected.POST("/contacts/import/upload", controllers.UploadCSVForImport)
-			protected.POST("/contacts/import/preview", middleware.ValidateJSONMiddleware(&models.ImportPreviewRequest{}), controllers.PreviewImport)
-			protected.POST("/contacts/import/confirm", middleware.ValidateJSONMiddleware(&models.ImportConfirmRequest{}), controllers.ConfirmImport)
-
-			// Contact import routes (VCF)
-			protected.POST("/contacts/import/vcf/upload", func(c *gin.Context) {
-				controllers.UploadVCFForImport(c, cfg)
-			})
-			protected.POST("/contacts/import/vcf/confirm", middleware.ValidateJSONMiddleware(&models.ImportConfirmRequest{}), func(c *gin.Context) {
-				controllers.ConfirmVCFImport(c, cfg)
-			})
 
 			// Contact import routes (Monica CRM, via its REST API)
 			protected.POST("/contacts/import/monica/connect", middleware.ValidateJSONMiddleware(&models.MonicaConnectRequest{}), func(c *gin.Context) {

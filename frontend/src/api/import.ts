@@ -1,77 +1,40 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
+import type { components } from '../types/generated/api';
 
-// Column mapping between CSV column and contact field
-export interface ColumnMapping {
-  csv_column: string;
-  contact_field: string;
-  // Multi-value entry index (0-based). Ties a value column to its label/parts within the
-  // same logical entry (e.g. "E-mail 1 - Value" + "E-mail 1 - Label")
-  group: number;
-}
+type Schemas = components['schemas'];
 
-// Response from CSV upload
-export interface ImportUploadResponse {
-  session_id: string;
-  headers: string[];
+export type ColumnMapping = Required<Schemas['ColumnMapping']>;
+export interface ImportUploadResponse extends Omit<Schemas['UploadResponse'], 'suggested_mappings'> {
   suggested_mappings: ColumnMapping[];
-  row_count: number;
-  sample_data: string[][];
 }
 
-// Match info for duplicate detection
-export interface DuplicateMatch {
-  existing_contact_id: number;
-  existing_firstname: string;
-  existing_lastname: string;
-  existing_email: string;
-  existing_phone: string;
+export interface DuplicateMatch extends Omit<Schemas['DuplicateMatch'], 'match_reason'> {
   match_reason: 'name' | 'email' | 'phone' | 'vcard_uid';
-  existing_deleted: boolean;
 }
 
-// Preview row with parsed contact and status
-export interface ImportRowPreview {
-  row_index: number;
+export interface ImportRowPreview extends Omit<
+  Schemas['RowPreview'],
+  'parsed_contact' | 'duplicate_match' | 'suggested_action'
+> {
   parsed_contact: Record<string, string>;
-  validation_errors: string[];
-  // Values dropped so the row can import (VCF only)
-  warnings?: string[];
   duplicate_match: DuplicateMatch | null;
   suggested_action: 'add' | 'skip' | 'update';
 }
 
-// Response from preview request
-export interface ImportPreviewResponse {
-  session_id: string;
+export interface ImportPreviewResponse extends Omit<Schemas['PreviewResponse'], 'rows'> {
   rows: ImportRowPreview[];
-  total_rows: number;
-  valid_rows: number;
-  duplicate_count: number;
-  error_count: number;
 }
 
-// Action for a specific row
-export interface RowImportAction {
-  row_index: number;
+export interface RowImportAction extends Omit<Schemas['RowAction'], 'action'> {
   action: 'skip' | 'add' | 'update';
 }
 
-// Final import result
-export interface ImportResult {
-  total_processed: number;
-  created: number;
-  updated: number;
-  skipped: number;
-  errors: string[];
-  // One entry per skipped row (absent from older servers)
-  skipped_rows?: SkippedRow[];
+export interface SkippedRow extends Omit<Schemas['SkippedRow'], 'reason'> {
+  reason: 'skipped' | 'invalid' | 'failed';
 }
 
-export interface SkippedRow {
-  row: number; // 1-based, as the preview shows it
-  name: string;
-  reason: 'skipped' | 'invalid' | 'failed';
-  detail?: string;
+export interface ImportResult extends Omit<Schemas['ImportResult'], 'skipped_rows'> {
+  skipped_rows: SkippedRow[];
 }
 
 // Contact fields that can be imported (mirrors backend models.ImportableContactFields)

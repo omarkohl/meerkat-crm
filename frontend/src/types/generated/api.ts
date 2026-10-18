@@ -162,6 +162,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/import/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the previewed CSV rows with the chosen action per row */
+        post: operations["confirm-csv-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply column mappings and preview the rows with duplicate detection */
+        post: operations["preview-csv-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a CSV file; answers the columns and suggested mappings */
+        post: operations["upload-csv-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/vcf/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the previewed vCards with the chosen action per row, photos included */
+        post: operations["confirm-vcf-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/vcf/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a VCF file; answers the preview directly */
+        post: operations["upload-vcf-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/random": {
         parameters: {
             query?: never;
@@ -1081,6 +1166,16 @@ export interface components {
             current_password: string;
             new_password: string;
         };
+        ColumnMapping: {
+            /** @description Empty ignores the column */
+            contact_field?: string;
+            csv_column: string;
+            /**
+             * Format: int64
+             * @description Multi-value entry index (0-based); ties a value to its label or parts
+             */
+            group?: number;
+        };
         CompletionListOutputBody: {
             completions: components["schemas"]["CompletionResponse"][] | null;
         };
@@ -1100,6 +1195,10 @@ export interface components {
             message: string;
             /** Format: int64 */
             reminder_id?: number;
+        };
+        ConfirmBody: {
+            actions: components["schemas"]["RowAction"][] | null;
+            session_id: string;
         };
         ConfirmTwoFactorBody: {
             code?: string;
@@ -1383,6 +1482,18 @@ export interface components {
             /** Format: int64 */
             webhook_id: number;
         };
+        DuplicateMatch: {
+            /** Format: int64 */
+            existing_contact_id: number;
+            /** @description The matched contact is in the trash */
+            existing_deleted: boolean;
+            existing_email: string;
+            existing_firstname: string;
+            existing_lastname: string;
+            existing_phone: string;
+            /** @description email, name, phone or vcard_uid */
+            match_reason: string;
+        };
         EmailInput: {
             type?: string;
             value: string;
@@ -1453,6 +1564,18 @@ export interface components {
         IMPPInput: {
             type?: string;
             value: string;
+        };
+        ImportResult: {
+            /** Format: int64 */
+            created: number;
+            errors: string[];
+            /** Format: int64 */
+            skipped: number;
+            skipped_rows: components["schemas"]["SkippedRow"][];
+            /** Format: int64 */
+            total_processed: number;
+            /** Format: int64 */
+            updated: number;
         };
         LanguageBody: {
             language?: string;
@@ -1558,6 +1681,22 @@ export interface components {
             message: string;
             /** @description The stored name of the new photo, empty when the contact has none */
             photo: string;
+        };
+        PreviewBody: {
+            mappings: components["schemas"]["ColumnMapping"][] | null;
+            session_id: string;
+        };
+        PreviewResponse: {
+            /** Format: int64 */
+            duplicate_count: number;
+            /** Format: int64 */
+            error_count: number;
+            rows: components["schemas"]["RowPreview"][];
+            session_id: string;
+            /** Format: int64 */
+            total_rows: number;
+            /** Format: int64 */
+            valid_rows: number;
         };
         RandomOutputBody: {
             contacts: components["schemas"]["ContactListItem"][] | null;
@@ -1688,6 +1827,25 @@ export interface components {
         ResetRequestBody: {
             email: string;
         };
+        RowAction: {
+            action: string;
+            /** Format: int64 */
+            row_index?: number;
+        };
+        RowPreview: {
+            /** @description The existing contact this row matches, null when none */
+            duplicate_match: components["schemas"]["DuplicateMatch"] | null;
+            parsed_contact: {
+                [key: string]: unknown;
+            };
+            /** Format: int64 */
+            row_index: number;
+            /** @description add, skip or update */
+            suggested_action: string;
+            validation_errors: string[];
+            /** @description Values dropped so the row can import */
+            warnings: string[];
+        };
         SessionListOutputBody: {
             sessions: components["schemas"]["SessionResponse"][] | null;
         };
@@ -1706,6 +1864,17 @@ export interface components {
             /** Format: date-time */
             last_seen_at: string;
             user_agent: string;
+        };
+        SkippedRow: {
+            detail?: string;
+            name: string;
+            /** @description skipped (chosen in the preview), invalid or failed */
+            reason: string;
+            /**
+             * Format: int64
+             * @description 1-based, as the preview shows it
+             */
+            row: number;
         };
         SourceContactResponse: {
             /** Format: int64 */
@@ -1769,6 +1938,15 @@ export interface components {
         URLInput: {
             type?: string;
             value: string;
+        };
+        UploadResponse: {
+            headers: string[];
+            /** Format: int64 */
+            row_count: number;
+            /** @description The first few rows */
+            sample_data: (string[] | null)[];
+            session_id: string;
+            suggested_mappings: components["schemas"]["ColumnMapping"][];
         };
         UserCustomFieldsOutputBody: {
             custom_field_names: string[] | null;
@@ -2309,6 +2487,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": string[] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "confirm-csv-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "preview-csv-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "upload-csv-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description The file; leaving it out is a 400
+                     */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "confirm-vcf-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "upload-vcf-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description The file; leaving it out is a 400
+                     */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
                 };
             };
             /** @description Error */
