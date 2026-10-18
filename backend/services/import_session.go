@@ -223,7 +223,7 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 	txErr := db.Transaction(func(tx *gorm.DB) error {
 		for _, preview := range sessionData.session.PreviewRows {
 			action := actionMap[preview.RowIndex]
-			if action == "" {
+			if action == "" || len(preview.ValidationErrors) > 0 {
 				action = "skip"
 			}
 
@@ -356,7 +356,7 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 	txErr := db.Transaction(func(tx *gorm.DB) error {
 		for _, preview := range sessionData.session.PreviewRows {
 			action := actionMap[preview.RowIndex]
-			if action == "" {
+			if action == "" || len(preview.ValidationErrors) > 0 {
 				action = "skip"
 			}
 

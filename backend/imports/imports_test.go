@@ -2,8 +2,11 @@ package imports_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -294,4 +297,160 @@ func TestAVCFImportSessionBelongsToItsUploader(t *testing.T) {
 	e.db.Model(&models.Contact{}).Count(&n)
 	assert.Zero(t, n, "nothing was imported for the other user")
 	assert.Equal(t, http.StatusOK, post(e.asA, "/contacts/import/vcf/confirm", confirm).Code, "the uploader's session is still there")
+}
+
+type confirmResp struct {
+	Created, Updated, Skipped int
+	Errors                    []string
+	SkippedRows               []struct{ Name, Reason string } `json:"skipped_rows"`
+}
+
+func previewCSV(t *testing.T, e *env, csv string, columns ...string) previewResp {
+	t.Helper()
+	up := uploadCSV(t, e.asA, csv)
+	var mappings []map[string]any
+	for _, col := range columns {
+		field := map[string]string{"First Name": "firstname", "Last Name": "lastname", "Email": "email"}[col]
+		mappings = append(mappings, map[string]any{"csv_column": col, "contact_field": field, "group": 0})
+	}
+	w := post(e.asA, "/contacts/import/preview", map[string]any{"session_id": up.SessionID, "mappings": mappings})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var pv previewResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+	return pv
+}
+
+func confirm(t *testing.T, e *env, path, session string, actions ...map[string]any) confirmResp {
+	t.Helper()
+	w := post(e.asA, path, map[string]any{"session_id": session, "actions": actions})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var res confirmResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &res))
+	return res
+}
+
+func action(row int, name string) map[string]any {
+	return map[string]any{"row_index": row, "action": name}
+}
+
+// @015-US1
+func TestCSVImportUpdatesADuplicateAndLeavesANoteOfTheChange(t *testing.T) {
+	e := newEnv(t)
+	existing := models.Contact{UserID: e.a.ID, Firstname: "Ada", Lastname: "Lovelace"}
+	require.NoError(t, e.db.Create(&existing).Error)
+	pv := previewCSV(t, e, "First Name,Last Name,Email\nAda,Lovelace,ada@example.com\n", "First Name", "Last Name", "Email")
+	require.NotNil(t, pv.Rows[0].DuplicateMatch)
+
+	res := confirm(t, e, "/contacts/import/confirm", pv.SessionID, action(0, "update"))
+
+	assert.Equal(t, 1, res.Updated)
+	assert.Zero(t, res.Created)
+	var contacts []models.Contact
+	require.NoError(t, e.db.Where("user_id = ?", e.a.ID).Find(&contacts).Error)
+	require.Len(t, contacts, 1, "the duplicate was merged, not added")
+	assert.Equal(t, "ada@example.com", contacts[0].Email)
+	var notes []models.Note
+	require.NoError(t, e.db.Where("contact_id = ?", existing.ID).Find(&notes).Error)
+	require.Len(t, notes, 1, "a note records what the import changed")
+	assert.Contains(t, notes[0].Content, "ada@example.com")
+}
+
+// @015-US1
+func TestCSVRowsWithoutAFirstNameAreInvalidAndNotImported(t *testing.T) {
+	e := newEnv(t)
+	pv := previewCSV(t, e, "First Name,Last Name\nGrace,Hopper\n,Nameless\n", "First Name", "Last Name")
+	assert.Equal(t, 1, pv.ValidRows)
+	assert.Equal(t, 2, pv.TotalRows)
+
+	res := confirm(t, e, "/contacts/import/confirm", pv.SessionID, action(0, "add"), action(1, "add"))
+
+	var names []string
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("user_id = ?", e.a.ID).Pluck("lastname", &names).Error)
+	assert.Equal(t, []string{"Hopper"}, names, "the invalid row did not become a contact")
+	assert.Equal(t, 1, res.Created)
+	require.Len(t, res.SkippedRows, 1)
+	assert.Equal(t, "invalid", res.SkippedRows[0].Reason)
+}
+
+// @015-US1
+func TestUpdatingWithoutADuplicateIsReportedAsAnErrorNotImported(t *testing.T) {
+	e := newEnv(t)
+	pv := previewCSV(t, e, "First Name\nGrace\n", "First Name")
+
+	res := confirm(t, e, "/contacts/import/confirm", pv.SessionID, action(0, "update"))
+
+	assert.Zero(t, res.Created+res.Updated)
+	require.NotEmpty(t, res.Errors)
+	assert.Contains(t, res.Errors[0], "no existing contact")
+	var n int64
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("user_id = ?", e.a.ID).Count(&n).Error)
+	assert.Zero(t, n)
+}
+
+// @015-US1
+func TestVCFImportKeepsTheEmbeddedPhotoAndMergesADuplicate(t *testing.T) {
+	e := newEnv(t)
+	var buf bytes.Buffer
+	require.NoError(t, png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 60, 60))))
+	card := "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:ada-1\r\nFN:Ada Lovelace\r\nN:Lovelace;Ada;;;\r\nPHOTO;ENCODING=b;TYPE=PNG:" +
+		base64.StdEncoding.EncodeToString(buf.Bytes()) + "\r\nEND:VCARD\r\n"
+
+	w := upload(e.asA, "/contacts/import/vcf/upload", "ada.vcf", card)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var pv previewResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+	res := confirm(t, e, "/contacts/import/vcf/confirm", pv.SessionID, action(0, "add"))
+	assert.Equal(t, 1, res.Created)
+	var ada models.Contact
+	require.NoError(t, e.db.Where("user_id = ? AND firstname = ?", e.a.ID, "Ada").First(&ada).Error)
+	assert.NotEmpty(t, ada.Photo, "the card's picture is the contact's profile picture")
+
+	w = upload(e.asA, "/contacts/import/vcf/upload", "ada.vcf", card)
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+	require.NotNil(t, pv.Rows[0].DuplicateMatch, "importing the same card again is flagged")
+	res = confirm(t, e, "/contacts/import/vcf/confirm", pv.SessionID, action(0, "update"))
+	assert.Equal(t, 1, res.Updated)
+	var n int64
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("user_id = ?", e.a.ID).Count(&n).Error)
+	assert.EqualValues(t, 1, n)
+}
+
+// @015-US1
+func TestVCFCardsThatCannotBeReadAreInvalidAndNotImported(t *testing.T) {
+	e := newEnv(t)
+	cards := ada + "BEGIN:VCARD\r\nthis line is not a property\r\nEND:VCARD\r\n"
+	w := upload(e.asA, "/contacts/import/vcf/upload", "c.vcf", cards)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var pv previewResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+	require.Equal(t, 2, pv.TotalRows)
+
+	res := confirm(t, e, "/contacts/import/vcf/confirm", pv.SessionID, action(0, "add"), action(1, "add"))
+
+	assert.Equal(t, 1, res.Created)
+	var n int64
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("user_id = ?", e.a.ID).Count(&n).Error)
+	assert.EqualValues(t, 1, n)
+}
+
+// @015-US1
+func TestVCFDecodeErrorBetweenCardsDoesNotShiftTheOthers(t *testing.T) {
+	e := newEnv(t)
+	grace := "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Grace Hopper\r\nN:Hopper;Grace;;;\r\nEND:VCARD\r\n"
+	cards := "END:VCARD\r\n" + ada + grace
+	w := upload(e.asA, "/contacts/import/vcf/upload", "c.vcf", cards)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var pv previewResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+	var actions []map[string]any
+	for _, r := range pv.Rows {
+		actions = append(actions, action(r.RowIndex, "add"))
+	}
+
+	res := confirm(t, e, "/contacts/import/vcf/confirm", pv.SessionID, actions...)
+
+	var names []string
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("user_id = ?", e.a.ID).Order("firstname").Pluck("firstname", &names).Error)
+	assert.Equal(t, []string{"Ada", "Grace"}, names, "each card became its own contact")
+	assert.Equal(t, 2, res.Created)
 }

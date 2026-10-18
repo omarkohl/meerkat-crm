@@ -605,7 +605,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 			preview := &previews[rowIdx]
 			contactData := mapped[rowIdx]
 			action := actionMap[preview.RowIndex]
-			if action == "" {
+			if action == "" || len(preview.ValidationErrors) > 0 {
 				action = "skip"
 			}
 			result.TotalProcessed++

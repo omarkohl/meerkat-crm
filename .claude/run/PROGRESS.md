@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 6: import and export tests (#107).
+Step 7: reminders, birthdays, notifications tests (#107).
 
 ## Stack
 
@@ -45,6 +45,14 @@ Local run: no branches, no PRs.
   stops at the first error). The in-process remote now has a photo directory. No bug found. Go
   coverage 82.9%, `GO_COVERAGE_MIN` stays 82. `fetchNeededCards` (multiget, Radicale only,
   `make test-carddav`) stays open. `make precommit` green.
+- Step 6: new tests in `imports_test.go` (CSV update of a duplicate with its merge note, update
+  without a duplicate reported as an error, vCard with an embedded photo and a re-import merged,
+  unreadable vCards) and `monicaimport_test.go` (avatars saved and failed ones counted, a remote
+  failing mid-fetch shows a safe error and imports nothing; it takes about 6 s because of client
+  retries). Bug found and fixed: confirming "add" on a row with validation errors (CSV row without
+  first name, unreadable vCard) imported it; such rows are now skipped. Export already has content,
+  isolation and audit tests; the `RenderCSV` gap is write-error branches only, so no export test was
+  added. Go coverage 83.7%, `GO_COVERAGE_MIN` 82 to 83. `make precommit` green.
 
 ## Decisions
 
@@ -92,7 +100,8 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
     with a photo sets the contact photo, a broken photo URL does not fail the sync. Pointers:
     `Discover` 36%, `probeAddressBook` 33%, `fetchNeededCards` 33%, `applyPhoto` 27%,
     `SyncAllContactConnections` 0%.
-- [ ] **Import and export (vCard, CSV, Monica, ICS)** - workflows without a test (step 6):
+- [x] **Import and export (vCard, CSV, Monica, ICS)** (done in step 6) - workflows without a test
+      (step 6):
   - CSV confirm with a skipped duplicate row, an "update" row that merges into the existing contact
     (and adds the merge note), an "update" on a trashed contact that restores it, an "add" row that
     fails validation and appears under errors. Pointers: `Confirm` 44%, `MergeImportedContact` 74%.

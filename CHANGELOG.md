@@ -13,6 +13,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Fixed
 
+- **Imports skip invalid rows and survive broken vCards** (#107): rows without a first name were
+  still added, and one unreadable vCard in a file shifted every later card or crashed the import.
 - **CardDAV clients no longer overwrite newer changes** (#107): a quick second save could replace
   newer changes, "create only" saves replaced existing contacts, and missing contacts gave an error.
 - **Asking CardDAV for another user's address book answers "not found"**: it answered with a server

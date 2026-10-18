@@ -80,7 +80,8 @@ func ParseVCF(reader io.Reader, db *gorm.DB, userID uint) (contacts []VCFContact
 			break
 		}
 		if decodeErr != nil {
-			// Skip malformed vCards but continue parsing
+			// Skip malformed vCards but continue parsing; the placeholder keeps contacts indexed by row
+			contacts = append(contacts, VCFContactData{})
 			previews = append(previews, models.ImportRowPreview{
 				RowIndex:         rowIdx,
 				ParsedContact:    make(map[string]interface{}),

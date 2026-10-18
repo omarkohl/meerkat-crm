@@ -2,11 +2,15 @@ package monicaimport_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -433,4 +437,133 @@ func TestMonicaImportNeedsAUser(t *testing.T) {
 		w := send(e.anon, c[0], prefix+c[1], map[string]any{"base_url": "http://x", "api_token": "t", "session_id": "x", "actions": []any{}})
 		assert.Equal(t, http.StatusUnauthorized, w.Code, c[0]+" "+c[1])
 	}
+}
+
+// avatarMonica serves two contacts whose avatar is a Monica-hosted photo: the
+// first has a photo record, the second has none. While broken is set, the
+// notes endpoint fails.
+func avatarMonica(t *testing.T, broken *atomic.Bool) *httptest.Server {
+	t.Helper()
+	var buf bytes.Buffer
+	require.NoError(t, png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 60, 60))))
+	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+	contact := func(id int, first string) map[string]any {
+		return map[string]any{
+			"id": id, "first_name": first, "last_name": "Photo", "is_partial": false,
+			"information": map[string]any{"avatar": map[string]any{"url": "https://monica.example/store/avatars/p.png", "source": "photo"}},
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer good-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		paged := func(items []map[string]any) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": items, "meta": map[string]int{"current_page": 1, "last_page": 1, "total": len(items)}})
+		}
+		switch {
+		case r.URL.Path == "/api/notes" && broken.Load():
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+		case r.URL.Path == "/api/contacts":
+			paged([]map[string]any{contact(201, "Ana"), contact(202, "Ben"), {"id": 203, "first_name": "", "last_name": "", "is_partial": false, "information": map[string]any{}}})
+		case r.URL.Path == "/api/contacts/201/photos":
+			paged([]map[string]any{{"id": 1, "new_filename": "avatars/p.png", "mime_type": "image/png", "dataUrl": dataURL}})
+		default:
+			paged(nil)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+type monicaStatus struct {
+	Phase, Error string
+	Result       struct {
+		Created     int `json:"created"`
+		PhotosSaved int `json:"photos_saved"`
+		PhotosFail  int `json:"photos_failed"`
+	}
+}
+
+func waitForPhase(t *testing.T, r http.Handler, session string, phases ...string) monicaStatus {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		w := send(r, "GET", prefix+"/status?session_id="+session, nil)
+		require.Equal(t, http.StatusOK, w.Code)
+		var st monicaStatus
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &st))
+		for _, p := range phases {
+			if st.Phase == p {
+				return st
+			}
+		}
+		require.True(t, time.Now().Before(deadline), "stuck in phase %s", st.Phase)
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func startMonicaFetch(t *testing.T, r http.Handler, url string, beforeFetch func()) string {
+	t.Helper()
+	w := send(r, "POST", prefix+"/connect", map[string]any{"base_url": url, "api_token": "good-token"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var resp struct {
+		SessionID string `json:"session_id"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	beforeFetch()
+	w = send(r, "POST", prefix+"/fetch", map[string]any{"session_id": resp.SessionID})
+	require.Equal(t, http.StatusAccepted, w.Code, w.Body.String())
+	return resp.SessionID
+}
+
+// @015-US2
+func TestMonicaImportSavesAvatarsAndCountsTheOnesItCouldNotGet(t *testing.T) {
+	var broken atomic.Bool
+	server := avatarMonica(t, &broken)
+	e := newEnv(t)
+	session := startMonicaFetch(t, e.asA, server.URL, func() {})
+	waitForPhase(t, e.asA, session, "ready")
+
+	w := send(e.asA, "GET", prefix+"/preview?session_id="+session, nil)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var p preview
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &p))
+	var actions []map[string]any
+	for _, r := range p.Rows {
+		actions = append(actions, map[string]any{"row_index": r.RowIndex, "action": "add"})
+	}
+	w = send(e.asA, "POST", prefix+"/confirm", map[string]any{"session_id": session, "actions": actions})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	st := waitForPhase(t, e.asA, session, "done")
+	assert.Equal(t, 2, st.Result.Created)
+	assert.Equal(t, 1, st.Result.PhotosSaved, "the contact with a photo record got its picture")
+	assert.Equal(t, 1, st.Result.PhotosFail, "the other is counted, not hidden")
+	var withPhoto, without models.Contact
+	require.NoError(t, e.db.Where("firstname = ?", "Ana").First(&withPhoto).Error)
+	require.NoError(t, e.db.Where("firstname = ?", "Ben").First(&without).Error)
+	assert.NotEmpty(t, withPhoto.Photo)
+	assert.Empty(t, without.Photo, "the contact is imported all the same")
+	var total int64
+	require.NoError(t, e.db.Model(&models.Contact{}).Count(&total).Error)
+	assert.EqualValues(t, 2, total, "the contact without a first name was not imported")
+}
+
+// @015-US2
+func TestMonicaImportShowsASafeErrorWhenTheRemoteFailsDuringTheFetch(t *testing.T) {
+	var broken atomic.Bool
+	server := avatarMonica(t, &broken)
+	e := newEnv(t)
+
+	session := startMonicaFetch(t, e.asA, server.URL, func() { broken.Store(true) })
+	st := waitForPhase(t, e.asA, session, "failed", "ready")
+
+	assert.Equal(t, "failed", st.Phase)
+	assert.Equal(t, "The Monica instance could not be reached", st.Error)
+	assert.NotContains(t, st.Error, "good-token")
+	var n int64
+	require.NoError(t, e.db.Model(&models.Contact{}).Count(&n).Error)
+	assert.Zero(t, n, "nothing was imported")
 }

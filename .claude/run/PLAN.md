@@ -94,7 +94,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 5. **Tests: CardDAV client sync (#107)**: discovery (well-known, probe, errors the user sees),
       remote create/update/delete reaching Meerkat and back, conflicts, photos. Use the existing
       fake-server harness of `services` (it also runs against Radicale with `MEERKAT_CARDDAV_IT=1`).
-- [ ] 6. **Tests: import and export (#107)**: vCard and CSV import through preview and confirm
+- [x] 6. **Tests: import and export (#107)**: vCard and CSV import through preview and confirm
       (duplicates, invalid rows), Monica import incl. avatars and a failing remote, contact export
       (vCard, CSV) and its content.
 - [ ] 7. **Tests: reminders, birthdays, notifications (#107)**: triggered scheduler runs (injected
