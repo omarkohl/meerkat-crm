@@ -166,7 +166,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       fails if a mutating route has no auth middleware or no entry in the isolation test table. A
       test enumerates every model with `user_id` and fails if `isolation.spec.ts` or a Go isolation
       test does not cover it.
-- [ ] 16. **E2E quality (§4)**: replace ``page.goto(`/contacts/${id}`)`` (8x) and CSS/test-id
+- [x] 16. **E2E quality (§4)**: replace ``page.goto(`/contacts/${id}`)`` (8x) and CSS/test-id
       locators (7x) with user navigation and role/label locators. Add `eslint-plugin-playwright`
       plus a rule that bans template-literal `goto`. Move specs that change global settings into a
       serial project after the parallel one.

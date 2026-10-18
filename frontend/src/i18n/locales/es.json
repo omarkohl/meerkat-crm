@@ -300,6 +300,7 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "confirmDelete": "¿Estás seguro de que quieres eliminar este elemento?",
+    "editName": "Editar {{name}}",
     "editNote": "Editar Nota",
     "editActivity": "Editar Actividad",
     "circles": "Círculos",

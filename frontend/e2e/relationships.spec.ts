@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { createTestContact, deleteTestContact } from './fixtures';
+import { createTestContact, deleteTestContact, openContact } from './fixtures';
 
 // Relationships live on a tab inside the contact information card. Each test
 // uses a throwaway contact and cleans it up afterwards.
@@ -9,7 +9,7 @@ test.describe('Relationships', () => {
     const relName = `E2E Rel ${Date.now()}`;
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
+      await openContact(page, contact);
 
       // Switch to the Relationships tab and open the add dialog.
       await page.getByRole('tab', { name: /relationships/i }).click();

@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { createTestContact, deleteTestContact } from './fixtures';
+import { createTestContact, deleteTestContact, openContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // Notes and activities both render in the contact's Timeline tab. Each test
@@ -10,7 +10,7 @@ test.describe('Timeline', () => {
     const noteContent = `E2E note ${Date.now()}`;
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
+      await openContact(page, contact);
 
       // Timeline is the default tab.
       await page.getByRole('button', { name: /add note/i }).click();
@@ -32,7 +32,7 @@ test.describe('Timeline', () => {
     const activityTitle = `E2E activity ${Date.now()}`;
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
+      await openContact(page, contact);
 
       await page.getByRole('button', { name: /add activity/i }).click();
       const dialog = page.getByRole('dialog');
@@ -53,9 +53,10 @@ test.describe('Timeline', () => {
     const contact = await createTestContact(page.request);
 
     try {
+      await openContact(page, contact);
       const archived = await page.request.post(`${API_BASE_URL}/contacts/${contact.ID}/archive`);
       expect(archived.ok()).toBeTruthy();
-      await page.goto(`/contacts/${contact.ID}`);
+      await page.reload();
 
       await page.getByRole('button', { name: /add activity/i }).click();
       const dialog = page.getByRole('dialog');

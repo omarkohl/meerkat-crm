@@ -57,7 +57,11 @@ export async function logoutUser(page: Page): Promise<void> {
  * Waits for any MUI loading spinners to disappear.
  */
 export async function waitForLoading(page: Page): Promise<void> {
-  await page.waitForSelector('[role="progressbar"]', { state: 'hidden', timeout: 10000 }).catch(() => {});
+  await page
+    .getByRole('progressbar')
+    .first()
+    .waitFor({ state: 'hidden', timeout: 10000 })
+    .catch(() => {});
 }
 
 /**
@@ -65,7 +69,7 @@ export async function waitForLoading(page: Page): Promise<void> {
  * Replaces the previous fill + fixed-sleep pattern with an auto-waiting assertion.
  */
 export async function searchContact(page: Page, query: string): Promise<void> {
-  const searchInput = page.locator('input[placeholder*="earch"]').first();
+  const searchInput = page.getByPlaceholder(/search/i).first();
   await searchInput.fill(query);
   await searchInput.press('Enter');
 }
@@ -103,4 +107,15 @@ export async function createTestContact(
  */
 export async function deleteTestContact(request: APIRequestContext, id: number | string): Promise<void> {
   await request.delete(`${API_BASE_URL}/contacts/${id}`).catch(() => {});
+}
+
+/**
+ * Opens a contact the way a user does: find it in the contacts list by its name and click it.
+ */
+export async function openContact(page: Page, contact: { firstname: string; lastname: string }): Promise<void> {
+  const fullName = `${contact.firstname} ${contact.lastname}`;
+  await page.goto('/contacts');
+  await searchContact(page, contact.firstname);
+  await page.getByRole('link', { name: fullName }).first().click();
+  await expect(page.getByRole('heading', { name: fullName })).toBeVisible();
 }

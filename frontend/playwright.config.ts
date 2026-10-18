@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
  * Run with UI:    npx playwright test --ui
  * Run specific:   npx playwright test auth.spec.ts
  */
+const SERIAL_SPECS = ['backups', 'users-banner'];
+const SERIAL_SPEC = /.*\.serial\.spec\.ts/;
+
 export default defineConfig({
   testDir: './e2e',
 
@@ -53,8 +56,16 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
-      testIgnore: /.*\.setup\.ts/,
+      testIgnore: [/.*\.setup\.ts/, SERIAL_SPEC],
     },
+    // Specs that change instance-wide state (the backup folder, the number of accounts) run
+    // after the parallel project, one file at a time: each project depends on the one before.
+    ...SERIAL_SPECS.map((name, i) => ({
+      name: `serial-${name}`,
+      testMatch: new RegExp(`${name}\\.serial\\.spec\\.ts`),
+      use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json' },
+      dependencies: [i === 0 ? 'chromium' : `serial-${SERIAL_SPECS[i - 1]}`],
+    })),
   ],
 
   // Global setup for test data seeding

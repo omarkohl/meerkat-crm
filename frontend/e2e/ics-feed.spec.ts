@@ -41,8 +41,9 @@ test.describe('Calendar feed (ICS)', () => {
       // Regenerate: the old URL stops working, the new one works.
       await page.getByRole('button', { name: 'Regenerate URL' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Regenerate', exact: true }).click();
-      const secondUrl = await page.getByRole('dialog').getByRole('textbox', { name: 'Feed URL' }).inputValue();
-      expect(secondUrl).not.toBe(firstUrl);
+      const feedUrl = page.getByRole('dialog').getByRole('textbox', { name: 'Feed URL' });
+      await expect(feedUrl).not.toHaveValue(firstUrl);
+      const secondUrl = await feedUrl.inputValue();
       expect((await anonymous.get(firstUrl)).status()).toBe(404);
       expect((await anonymous.get(secondUrl)).status()).toBe(200);
       await page.getByRole('dialog').getByRole('button', { name: /done/i }).click();

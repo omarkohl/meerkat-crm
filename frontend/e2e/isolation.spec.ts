@@ -85,6 +85,7 @@ test.describe('Multi-user isolation', () => {
       await page.request.delete(`${API_BASE_URL}/contacts/${contactA.ID}`).catch(() => {});
     }
   });
+
   test("a user cannot list, restore or purge another user's trash", async ({ page }) => {
     const created = await page.request.post(`${API_BASE_URL}/contacts`, {
       data: { firstname: 'E2E-TrashIsolationA', lastname: 'Owner' },
@@ -115,6 +116,7 @@ test.describe('Multi-user isolation', () => {
       await page.request.delete(`${API_BASE_URL}/trash/contacts/${contactA.ID}`).catch(() => {});
     }
   });
+
   test('a normal user cannot list, create, download or delete backups', async ({ page }) => {
     // The seeded user is the first account and therefore an admin.
     const created = await page.request.post(`${API_BASE_URL}/admin/backups`);

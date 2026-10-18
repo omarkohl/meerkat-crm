@@ -32,8 +32,12 @@ test.describe('Contact thumbnails', () => {
       await page.goto('/contacts');
       await waitForLoading(page);
       await searchContact(page, 'Thumbed');
-      const avatar = page.locator('img[src*="thumbnail=true"]').first();
+      const avatar = page
+        .getByRole('link', { name: /Thumbed/ })
+        .first()
+        .getByRole('img');
       await expect(avatar).toBeVisible();
+      await expect(avatar).toHaveAttribute('src', /thumbnail=true/);
       await expect.poll(() => avatar.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
     } finally {
       await deleteTestContact(request, created.ID);

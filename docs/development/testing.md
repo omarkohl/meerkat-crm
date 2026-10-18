@@ -48,8 +48,13 @@ E2E tests:
 
 - Act like a user: click visible elements, follow links, type into labelled fields. Use role, label
   and visible text locators, not CSS or test IDs.
-- Never construct URLs with internal IDs (`/contacts/${id}`) and never replay raw API payloads.
-- Tests that change global settings run separately (serial, after the parallel bulk).
+- Never construct URLs with internal IDs (`/contacts/${id}`) and never replay raw API payloads. Open
+  a contact with `openContact(page, contact)` from `fixtures.ts` (search the list, click the name).
+  ESLint (`eslint-plugin-playwright`, `make lint-frontend`) fails on a template-literal `goto` and
+  on `page.locator(...)`.
+- Specs that change instance-wide state are named `*.serial.spec.ts`: they run after the parallel
+  project, one file at a time (see `playwright.config.ts`). To run just one of them use
+  `make test-e2e ARGS='--no-deps e2e/backups.serial.spec.ts'`; the project it depends on is skipped.
 
 ### Quality guardrails
 

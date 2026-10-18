@@ -3,6 +3,7 @@
 import js from '@eslint/js';
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import playwright from 'eslint-plugin-playwright';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -62,5 +63,28 @@ export default tseslint.config(
     // Tests may read the clock
     files: ['src/**/*.test.{ts,tsx}'],
     rules: { 'no-restricted-syntax': 'off' },
+  },
+  {
+    // E2E tests walk the app as a user does: no URLs built from internal IDs, no CSS locators.
+    files: ['e2e/**/*.ts'],
+    extends: [playwright.configs['flat/recommended']],
+    languageOptions: { parser: tseslint.parser },
+    rules: {
+      'playwright/no-raw-locators': 'error',
+      'playwright/no-wait-for-selector': 'error',
+      'playwright/no-element-handle': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='goto'][arguments.0.type!='Literal']",
+          message:
+            'goto takes a fixed path. Do not build a URL from an ID: open the page the way a user does (open the contact from the list by its name, see openContact in e2e/fixtures.ts).',
+        },
+        {
+          selector: "CallExpression[callee.property.name='getByTestId']",
+          message: 'Find elements the way a user does: by role, label or visible text.',
+        },
+      ],
+    },
   },
 );

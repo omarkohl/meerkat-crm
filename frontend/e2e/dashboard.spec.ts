@@ -21,8 +21,7 @@ test.describe('Dashboard', () => {
     await page.goto('/');
     await waitForLoading(page);
 
-    const stayInTouchSection = page.getByText('Stay in Touch').locator('..');
-    await expect(stayInTouchSection).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Stay in Touch' })).toBeVisible();
   });
 });
 
@@ -43,8 +42,8 @@ test.describe('Navigation', () => {
   test('should navigate to settings from sidebar', async ({ page }) => {
     await page.goto('/');
     // Settings is a collapsible submenu — expand it, then open Profile.
-    await page.locator('.MuiDrawer-root').getByText('Settings').click();
-    await page.locator('.MuiDrawer-root').getByText('Profile').click();
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByRole('link', { name: 'Profile' }).click();
     await expect(page).toHaveURL(/\/settings/);
   });
 });

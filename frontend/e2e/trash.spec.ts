@@ -1,4 +1,4 @@
-import { test, expect, createTestContact, deleteTestContact } from './fixtures';
+import { test, expect, createTestContact, deleteTestContact, openContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // Every test uses its own uniquely named contact and never empties the whole trash,
@@ -10,10 +10,9 @@ test.describe('Trash', () => {
 
     try {
       // Delete through the UI (confirmed via a native confirm() dialog).
-      await page.goto(`/contacts/${contact.ID}`);
-      await expect(page.getByRole('heading', { name: fullName })).toBeVisible();
+      await openContact(page, contact);
       page.once('dialog', (dialog) => dialog.accept());
-      await page.locator('.edit-icon').first().click();
+      await page.getByRole('button', { name: `Edit ${fullName}` }).click();
       await page.getByRole('button', { name: /delete contact/i }).click();
       await expect(page).toHaveURL(/\/contacts$/);
       expect((await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`)).status()).toBe(404);
@@ -28,8 +27,7 @@ test.describe('Trash', () => {
       await page.getByRole('button', { name: `Restore ${fullName}` }).click();
       await expect(page.getByText(fullName)).toBeHidden();
 
-      await page.goto(`/contacts/${contact.ID}`);
-      await expect(page.getByRole('heading', { name: fullName })).toBeVisible();
+      await openContact(page, contact);
       expect((await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`)).status()).toBe(200);
     } finally {
       await deleteTestContact(page.request, contact.ID);

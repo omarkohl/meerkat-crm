@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { waitForLoading, searchContact, createTestContact, deleteTestContact } from './fixtures';
+import { waitForLoading, searchContact, createTestContact, deleteTestContact, openContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // Authenticated via the shared storageState (see playwright.config.ts) — no
@@ -28,7 +28,7 @@ test.describe('Contacts', () => {
   test('header search text is discarded on navigation and on Escape', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
-    const searchInput = page.locator('header input[placeholder*="earch"]');
+    const searchInput = page.getByRole('banner').getByPlaceholder(/search/i);
 
     await searchInput.fill('Ali');
     await page.getByRole('link', { name: 'Activities', exact: true }).first().click();
@@ -97,27 +97,22 @@ test.describe('Contacts', () => {
 
     // Clean up so runs stay idempotent.
     const contactId = page.url().match(/\/contacts\/(\d+)/)?.[1];
-    if (contactId) {
-      await deleteTestContact(page.request, contactId);
-    }
+    expect(contactId, 'the new contact has an ID in its URL').toBeTruthy();
+    await deleteTestContact(page.request, String(contactId));
   });
 
   test('should edit a contact name', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'Before' });
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
-      await expect(page.getByRole('heading', { name: `${contact.firstname} Before` })).toBeVisible();
+      await openContact(page, contact);
 
-      // Enter profile edit mode via the (hover-revealed) pencil next to the
-      // name. Use the .edit-icon class — MUI strips icon data-testids from
-      // production builds, but className survives. The name pencil is first.
-      await page.locator('.edit-icon').first().click();
+      // Enter profile edit mode via the (hover-revealed) pencil next to the name.
+      await page.getByRole('button', { name: `Edit ${contact.firstname} Before` }).click();
 
       const lastName = page.getByLabel('Last Name', { exact: true });
       await lastName.fill('After');
-      // Save is the only primary-coloured icon button in the header card.
-      await page.locator('.MuiCard-root').first().locator('.MuiIconButton-colorPrimary').click();
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
 
       await expect(page.getByRole('heading', { name: `${contact.firstname} After` })).toBeVisible();
     } finally {
@@ -128,15 +123,14 @@ test.describe('Contacts', () => {
   test('should delete a contact from the detail page', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'ToDelete' });
 
-    await page.goto(`/contacts/${contact.ID}`);
-    await expect(page.getByRole('heading', { name: `${contact.firstname} ToDelete` })).toBeVisible();
+    await openContact(page, contact);
 
     // Deletion is confirmed via a native confirm() dialog.
     page.once('dialog', (dialog) => dialog.accept());
 
     // The delete button only appears inside profile edit mode (entered via the
     // name pencil). The delete button itself has a title, so it's role-addressable.
-    await page.locator('.edit-icon').first().click();
+    await page.getByRole('button', { name: `Edit ${contact.firstname} ToDelete` }).click();
     await page.getByRole('button', { name: /delete contact/i }).click();
 
     // Redirects back to the list, and the contact is gone.

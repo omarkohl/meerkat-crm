@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { createTestContact, deleteTestContact } from './fixtures';
+import { createTestContact, deleteTestContact, openContact } from './fixtures';
 
 // Authenticated via the shared storageState (see playwright.config.ts).
 // Each test runs against its own throwaway contact
@@ -8,7 +8,7 @@ test.describe('Reminders', () => {
     const contact = await createTestContact(page.request);
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
+      await openContact(page, contact);
 
       // Switch from the Timeline tab to the Reminders tab.
       await page.getByRole('tab', { name: /reminders/i }).click();
@@ -31,7 +31,7 @@ test.describe('Reminders', () => {
     const contact = await createTestContact(page.request);
 
     try {
-      await page.goto(`/contacts/${contact.ID}`);
+      await openContact(page, contact);
       await page.getByRole('tab', { name: /reminders/i }).click();
 
       await page.getByRole('button', { name: /add.*reminder/i }).click();

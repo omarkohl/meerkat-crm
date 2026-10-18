@@ -238,10 +238,15 @@ export default function ContactHeader({
                     <DeleteIcon />
                   </IconButton>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <IconButton size="small" color="primary" onClick={onSaveProfile}>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      aria-label={t('contactDetail.save')}
+                      onClick={onSaveProfile}
+                    >
                       <SaveIcon />
                     </IconButton>
-                    <IconButton size="small" onClick={onCancelEditProfile}>
+                    <IconButton size="small" aria-label={t('contactDetail.cancel')} onClick={onCancelEditProfile}>
                       <CloseIcon />
                     </IconButton>
                   </Box>
@@ -272,11 +277,13 @@ export default function ContactHeader({
                     <IconButton
                       className="edit-icon"
                       size="small"
+                      aria-label={t('contactDetail.editName', { name: displayName })}
                       onClick={onStartEditProfile}
                       sx={{
                         ml: 1,
                         opacity: 0,
                         transition: 'opacity 0.2s',
+                        '&:focus-visible': { opacity: 1 },
                       }}
                     >
                       <EditIcon fontSize="small" />

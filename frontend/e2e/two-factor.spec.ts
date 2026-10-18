@@ -81,21 +81,20 @@ test.describe('Two-factor authentication', () => {
       // A recovery code works once
       await page.getByRole('button', { name: /logout/i }).click();
       await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible({ timeout: 10000 });
-      for (const attempt of [1, 2]) {
+      const submitRecoveryCode = async () => {
         await page.getByLabel(/username or email/i).fill(user.username);
         await page.getByLabel(/^password/i).fill(user.password);
         await page.getByRole('button', { name: 'Login' }).click();
         await page.getByRole('button', { name: 'Use a recovery code' }).click();
         await page.getByLabel(/Recovery code/).fill(codes[0] ?? '');
         await page.getByRole('button', { name: 'Verify' }).click();
-        if (attempt === 1) {
-          await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 });
-          await page.getByRole('button', { name: /logout/i }).click();
-          await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible({ timeout: 10000 });
-        } else {
-          await expect(page.getByText(/That code is not valid/)).toBeVisible();
-        }
-      }
+      };
+      await submitRecoveryCode();
+      await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 });
+      await page.getByRole('button', { name: /logout/i }).click();
+      await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible({ timeout: 10000 });
+      await submitRecoveryCode();
+      await expect(page.getByText(/That code is not valid/)).toBeVisible();
     });
   });
 

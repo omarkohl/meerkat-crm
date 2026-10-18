@@ -2,7 +2,7 @@
 
 ## Next step
 
-16 (E2E quality).
+17 (use-case catalogue).
 
 ## Stack
 
@@ -364,6 +364,16 @@
   change-password and two-factor; `EmailOutbox` is an explicit `noAPI` exemption. Per-user
   singletons (preferences, CardDAV connection) cite the existing tests that use two users.
   Documented in testing.md. `make precommit` green.
+- Step 16: no more ``page.goto(`/contacts/${id}`)`` (11 uses): `openContact` in `fixtures.ts`
+  searches the list and clicks the contact's name. All CSS locators are role, label or placeholder
+  locators (the name pencil and the save and cancel icons of the contact header got `aria-label`s
+  from `contactDetail.save/cancel` and a new `contactDetail.editName` in all five locales; the
+  pencil also shows on keyboard focus). `eslint-plugin-playwright` (recommended + `no-raw-locators`)
+  and a `no-restricted-syntax` rule against template-literal `goto` lint `e2e/` in
+  `make lint-frontend` (shown red first: 11 findings). Findings fixed: a conditional loop in the
+  two-factor spec, `inputValue` assertions, a conditional clean-up. `backups` and `users-banner`
+  (instance-wide state) are `*.serial.spec.ts`, each its own project chained after `chromium`.
+  `make precommit` green.
 
 ## Decisions
 
