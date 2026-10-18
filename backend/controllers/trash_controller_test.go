@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"meerkat/config"
-	"meerkat/middleware"
 	"meerkat/models"
 
 	"github.com/gin-gonic/gin"
@@ -131,10 +130,6 @@ func TestRestoreFromTrashMakesContactVisibleAgain(t *testing.T) {
 	assert.Empty(t, e.trashed(t, e.routerA).Contacts)
 	// A second restore finds nothing in the trash.
 	assert.Equal(t, http.StatusNotFound, doReq(e.routerA, "POST", idPath("/trash/contacts/", c.ID, "/restore")).Code)
-}
-
-func TestWebhookInputAcceptsContactRestored(t *testing.T) {
-	assert.Empty(t, middleware.ValidateStruct(models.WebhookInput{Name: "n", URL: "https://example.com", Events: []string{"contact.restored"}}))
 }
 
 func TestPurgeSingleContact(t *testing.T) {

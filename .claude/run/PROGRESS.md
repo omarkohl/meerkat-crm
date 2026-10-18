@@ -2,7 +2,7 @@
 
 ## Next step
 
-13i (webhooks and email outbox).
+13i2 (email outbox and the daily reminder e-mail job).
 
 ## Stack
 
@@ -245,6 +245,15 @@
   isolation, 401, throttled fetch recording with the fake clock, the unique-conflict retry and a
   failed build. Frontend `ApiToken*` and `IcsFeed*` derive from the generated types. The auth
   middleware keeps verifying API tokens itself (step 14+). `make precommit` green.
+- Step 13i1: `backend/webhooks` (domain `Input`/`Delivery`, secret generation, the 20 webhook limit;
+  use cases; ports `Webhooks`/`Sender`; persistence and http adapters) with huma operations for the
+  seven webhook endpoints. Delivery, signing, retries and the purge job stay in `services` (every
+  module's event adapter and the scheduler use them); the module's `SendTest` calls
+  `services.TestWebhookDelivery`. `routes.NewModules` extended; depguard rules `webhooks-*` (shown
+  to fail). Old controller, its tests and the `Webhook*` DTOs removed; the "contact.restored is
+  accepted" test became a module test for all twelve events. 12 module tests on real SQLite (secret
+  shown once, validation, limit, isolation incl. test and deliveries of foreign webhooks, 401).
+  Frontend `Webhook*` types derive from the generated types. `make precommit` green.
 
 ## Decisions
 
@@ -531,6 +540,13 @@
   users module's audit adapter (username lookup + `services.WriteAudit`); extract one when a third
   module needs it. Failure wording per stage is kept ("query", "insert", "update", "delete", "build
   calendar feed", "token generation failed").
+- Step 13i is split: **13i1** (done) the webhook management endpoints; **13i2** the email outbox and
+  the daily reminder e-mail job. The outbox has no HTTP endpoints, so 13i2 is about the delivery
+  engine and the job (`services.SendReminders`, `ProcessEmailOutbox`), which touch users, birthdays
+  and templates.
+- 13i1: update, delete and deliveries look the webhook up once, in the repository (404 before any
+  write); a failing lookup during update or delete is reported as "update"/"delete" instead of
+  "query". The `events` list and the two list bodies are never null in the schema.
 
 ## For review
 

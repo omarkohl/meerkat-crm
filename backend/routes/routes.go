@@ -18,6 +18,7 @@ import (
 	"meerkat/tokens"
 	"meerkat/trash"
 	"meerkat/users"
+	"meerkat/webhooks"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ type Modules struct {
 	Photos        *photos.Module
 	Trash         *trash.Module
 	Tokens        *tokens.Module
+	Webhooks      *webhooks.Module
 	Users         *users.Module
 }
 
@@ -49,6 +51,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
 		Tokens:        tokens.New(tokens.Deps{DB: db}),
+		Webhooks:      webhooks.New(webhooks.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -76,6 +79,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Photos.Register(a, g.Protected)
 	m.Trash.Register(a, g.Protected)
 	m.Tokens.Register(a, g.Public, g.Protected)
+	m.Webhooks.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -140,15 +144,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 			protected.GET("/export/vcf", func(c *gin.Context) {
 				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
 			})
-
-			// Webhook routes
-			protected.GET("/webhooks", controllers.ListWebhooks)
-			protected.POST("/webhooks", middleware.ValidateJSONMiddleware(&models.WebhookInput{}), controllers.CreateWebhook)
-			protected.GET("/webhooks/:id", controllers.GetWebhook)
-			protected.PUT("/webhooks/:id", middleware.ValidateJSONMiddleware(&models.WebhookInput{}), controllers.UpdateWebhook)
-			protected.DELETE("/webhooks/:id", controllers.DeleteWebhook)
-			protected.POST("/webhooks/:id/test", controllers.TestWebhook)
-			protected.GET("/webhooks/:id/deliveries", controllers.GetWebhookDeliveries)
 
 			// Calendar subscription routes (CalDAV/iCS activity import)
 			protected.GET("/calendars", controllers.ListCalendarSubscriptions)

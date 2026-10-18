@@ -12,6 +12,7 @@ vi.mock('../api/webhooks', async (importOriginal) => {
 
 const delivery = (over: Partial<api.WebhookDelivery>): api.WebhookDelivery => ({
   id: 1,
+  webhook_id: 1,
   event_type: 'contact.created',
   status_code: 204,
   error: null,

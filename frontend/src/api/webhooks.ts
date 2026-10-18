@@ -1,29 +1,14 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
-export interface Webhook {
-  id: number;
-  name: string;
-  url: string;
-  events: string[];
-  is_active: boolean;
-  created_at: string;
-}
+export type Webhook = components['schemas']['WebhookResponse'];
+export type WebhookCreateResponse = components['schemas']['WebhookCreatedResponse'];
+export type WebhookInput = components['schemas']['WebhookBody'];
 
-export interface WebhookCreateResponse extends Webhook {
-  secret: string;
-}
-
-export interface WebhookDelivery {
-  id: number;
-  event_type: string;
-  status_code: number | null;
-  error: string | null;
-  attempts: number;
+export interface WebhookDelivery extends Omit<components['schemas']['DeliveryResponse'], 'status'> {
   /** pending: waiting for a (re)try; delivered; dead: gave up after the last try. */
   status: 'pending' | 'delivered' | 'dead';
-  next_retry_at: string | null;
-  created_at: string;
 }
 
 export async function getWebhooks(): Promise<Webhook[]> {
@@ -35,12 +20,7 @@ export async function getWebhooks(): Promise<Webhook[]> {
   return data?.['webhooks'] || [];
 }
 
-export async function createWebhook(input: {
-  name: string;
-  url: string;
-  events: string[];
-  is_active: boolean;
-}): Promise<WebhookCreateResponse> {
+export async function createWebhook(input: WebhookInput): Promise<WebhookCreateResponse> {
   const response = await apiFetch(`${API_BASE_URL}/webhooks`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -49,10 +29,7 @@ export async function createWebhook(input: {
   return handleResponse(response, 'Unable to create webhook.') as Promise<WebhookCreateResponse>;
 }
 
-export async function updateWebhook(
-  id: number,
-  input: { name: string; url: string; events: string[]; is_active: boolean },
-): Promise<Webhook> {
+export async function updateWebhook(id: number, input: WebhookInput): Promise<Webhook> {
   const response = await apiFetch(`${API_BASE_URL}/webhooks/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),

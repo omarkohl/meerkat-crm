@@ -145,7 +145,9 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       - [x] 13g4c. login with the second step and logout
     - [x] 13g5. OIDC login and callback (redirects; stay Gin handlers in the module)
   - [x] 13h. API tokens and ICS feeds
-  - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job)
+  - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job; split, see PROGRESS):
+    - [x] 13i1. webhook management endpoints (list, create, get, update, delete, test, deliveries)
+    - [ ] 13i2. email outbox and the daily reminder e-mail job (delivery engines of both)
   - [ ] 13j. import (CSV, VCF, Monica) and export
   - [ ] 13k. CardDAV sync settings and contact/calendar sync (the CardDAV protocol endpoints stay
         plain Gin: they are not JSON)

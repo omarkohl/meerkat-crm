@@ -126,48 +126,6 @@ type AdminUsersListResponse struct {
 	TotalPages int                 `json:"total_pages"`
 }
 
-// WebhookInput is the DTO for creating/updating a webhook
-type WebhookInput struct {
-	Name     string   `json:"name" validate:"required,min=1,max=200"`
-	URL      string   `json:"url" validate:"required,http_url"`
-	Events   []string `json:"events" validate:"required,min=1,dive,oneof=contact.created contact.updated contact.deleted contact.restored note.created note.updated note.deleted activity.created activity.updated activity.deleted reminder.triggered birthday.occurred"`
-	IsActive bool     `json:"is_active"`
-}
-
-// WebhookResponse is the DTO returned for a webhook (no secret)
-type WebhookResponse struct {
-	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
-	URL       string    `json:"url"`
-	Events    []string  `json:"events"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-// WebhookCreateResponse is the DTO returned once after creation — includes the plaintext secret
-type WebhookCreateResponse struct {
-	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
-	URL       string    `json:"url"`
-	Events    []string  `json:"events"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
-	Secret    string    `json:"secret"`
-}
-
-// WebhookDeliveryResponse is the DTO returned for a webhook delivery record
-type WebhookDeliveryResponse struct {
-	ID          uint       `json:"id"`
-	WebhookID   uint       `json:"webhook_id"`
-	EventType   string     `json:"event_type"`
-	StatusCode  *int       `json:"status_code"`
-	Error       *string    `json:"error"`
-	Attempts    int        `json:"attempts"`
-	Status      string     `json:"status"` // pending, delivered or dead
-	NextRetryAt *time.Time `json:"next_retry_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-}
-
 // BackupResponse describes one stored backup.
 type BackupResponse struct {
 	Name      string    `json:"name"`
