@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 10: E2E main workflows (#107).
+Step 11: global search, quick results (#118).
 
 ## Stack
 
@@ -47,12 +47,16 @@ Local run: no branches, no PRs.
   `make test-carddav`) stays open. `make precommit` green.
 - Step 6: new tests in `imports_test.go` (CSV update of a duplicate with its merge note, update
   without a duplicate reported as an error, vCard with an embedded photo and a re-import merged,
-  unreadable vCards) and `monicaimport_test.go` (avatars saved and failed ones counted, a remote
-  failing mid-fetch shows a safe error and imports nothing; it takes about 6 s because of client
-  retries). Bug found and fixed: confirming "add" on a row with validation errors (CSV row without
-  first name, unreadable vCard) imported it; such rows are now skipped. Export already has content,
-  isolation and audit tests; the `RenderCSV` gap is write-error branches only, so no export test was
-  added. Go coverage 83.7%, `GO_COVERAGE_MIN` 82 to 83. `make precommit` green.
+  rows and cards that cannot be imported, a decode error between cards) and `monicaimport_test.go`
+  (avatars saved and failed ones counted, a remote failing mid-fetch with 429 and `Retry-After: 0`
+  shows a safe error and imports nothing). Bugs found and fixed: confirming "add" on a row with
+  validation errors (CSV row without first name, unreadable vCard, Monica contact without a name)
+  imported it, and a vCard decode error shifted every later card by one row (the last confirm
+  panicked); invalid rows are now skipped and the parser keeps rows aligned. Already covered, not
+  repeated: re-import of a trashed contact restores it
+  (`TestVCFReimport_AfterDelete_RestoresContact`), ICS errors and unchanged feeds
+  (`calendar_sync_service_test.go`), export content (`exports_test.go`). Go coverage 83.7%,
+  `GO_COVERAGE_MIN` 82 to 83. `make precommit` green.
 - Step 7: the digest tests (`reminders/digest_test.go`) already cover reminder and birthday mails
   with an injected clock for reminders (a birthday mail is not limited to once a day, see
   Questions), mail failures, no channel and webhooks, and `email_outbox_test.go` the retry and batch
@@ -84,6 +88,11 @@ Local run: no branches, no PRs.
   thresholds raised to 30/28/25/31 (margins 1.1, 0.4, 0.8, 0.8 points). IMPROVEMENTS item 2.4
   removed. `make precommit` green.
 
+- Step 10: `e2e/import-export.spec.ts`: import a vCard file and a CSV file through the dialog (file
+  chooser, review, import, contact found in the list by its name) and export all contacts as vCard
+  and CSV from Settings > Data (download content checked). Ran `make test-e2e` three times. No bug
+  found. This closes #107; the final audit below is meant for the issue. `make precommit` green.
+
 ## Decisions
 
 - Step 1: the E2E test cannot reproduce the 100-contact cap (few seeded contacts); the Vitest test
@@ -91,96 +100,60 @@ Local run: no branches, no PRs.
 
 ## Coverage audit (#107)
 
-Percentages only point at code; each gap below is a user workflow that no test would catch. Go
-function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is left out.
+Final state after steps 3-10. Go total coverage 81.9% to 84.2% (`GO_COVERAGE_MIN` 71 to 83), Vitest
+lines 26.9% to 31.8% (thresholds 25/23/19/25 to 30/28/25/31). Numbers only point at gaps; the tests
+check user-visible results. Bugs the new tests found and fixed: CardDAV ETags (second granularity),
+ignored `If-None-Match`, `If-Match` on a missing contact, 500 instead of 404 (address book, missing
+contact), import "add" on invalid rows (CSV, vCard, Monica), a vCard decode error shifting every
+later card (panic on confirm).
 
-- [x] **Audit coverage per area** - done by this section. Low spots confirmed: `services` (contact
-      sync discovery, imports, mailer), `carddav` (server discovery and auth), `httputil`
-      (`FetchImageFromURL` 18%), `monica` (`FetchContactPhoto` 0%). Frontend: 28 test files for 35
-      components, 14 pages and 15 API modules.
-- [x] **REST API incl. `user_id` isolation** - no new commit, with proof. `invariants_test.go`
-      checks per route for every mutating route (`isolation` map, line ~30) and per model for GET
-      routes (`covered` map). I checked every ID-taking GET route by hand against the module tests;
-      each has a test where user B reads user A's id and gets 404: `/activities/:id`,
-      `/contacts/:id/activities` (activities_test.go); `/notes/:id`, `/contacts/:id/notes`
-      (notes_test.go); `/reminders/:id`, `/contacts/:id/reminders`,
-      `/contacts/:id/reminder-completions` (reminders_test.go); `/contacts/:id/relationships`,
-      `/contacts/:id/incoming-relationships` (relationships_test.go); `/contacts/:id`
-      (contacts_test.go); `/contacts/:id/profile_picture` (photos_test.go); `/webhooks/:id`,
-      `/webhooks/:id/deliveries` (webhooks_test.go); `/admin/users/:id`, `/admin/backups/:name` (a
-      plain user is refused, admin tests); `/ics/:file` (tokens_test.go, token is the credential);
-      `/carddav/*` (backend_test.go). List GETs without an id are scoped in the module suites
-      (contacts, relationships graph, reminders upcoming, trash, sessions). Gap: nothing enforces
-      the GET-per-route rule; `invariants_test.go` could list ID-taking GET routes the way it does
-      mutating ones. Not a regression risk today; recorded under Questions. Low `toAppError` mappers
-      (exports 0%, trash 25%, activities 27%, webhooks 27%, notes 41%, contacts 13%) are
-      error-to-status mapping of rare errors; the steps that touch those modules cover the
-      user-visible ones (4, 6, 7).
-- [ ] **CardDAV sync** - workflows without a test:
-  - Server (steps 3 and 4): a phone or desktop client follows `/.well-known/carddav` to the
-    principal, the address-book home set and the list of address books; Basic auth with the account
-    password, with an API token, and with a wrong password; one user asking for the address book of
-    another; creating a contact with PUT and updating it with a matching `If-Match`; a stale
-    `If-Match` or an existing UID with `If-None-Match` answers 412; a vCard with a photo arrives as
-    the contact's photo.
-  - Client (step 5): the user enters a server URL and the app finds the address book via well-known,
-    via the probe, or shows the error for a wrong password, a missing address book and a non-CardDAV
-    URL; a card created, changed or deleted remotely reaches Meerkat on the next sync and the
-    reverse; a contact changed on both sides is resolved by the settled conflict rule; a remote card
-    with a photo sets the contact photo, a broken photo URL does not fail the sync. Pointers:
-    `Discover` 36%, `probeAddressBook` 33%, `fetchNeededCards` 33%, `applyPhoto` 27%,
-    `SyncAllContactConnections` 0%.
-- [x] **Import and export (vCard, CSV, Monica, ICS)** (done in step 6) - workflows without a test
-      (step 6):
-  - CSV confirm with a skipped duplicate row, an "update" row that merges into the existing contact
-    (and adds the merge note), an "update" on a trashed contact that restores it, an "add" row that
-    fails validation and appears under errors. Pointers: `Confirm` 44%, `MergeImportedContact` 74%.
-  - vCard import with duplicates and a vCard with a photo. Pointer: `ConfirmVCF` 62%.
-  - Monica import: contacts arrive with their avatar; a failing avatar download leaves the contact
-    and reports a warning; a failing Monica server shows the user-safe error and ends the session.
-    Pointers: `processAvatars` 0%, `fail` 0%, `FetchContactPhoto` 0%, `userSafeMonicaError` 50%.
-  - Export: the CSV and vCard download contain the user's data (CSV `RenderCSV` 72%: the uncovered
-    rows are listed in step 6). The E2E download comes in step 10.
-  - ICS: a calendar subscription that returns an error or an unchanged feed shows the error / keeps
-    its events (step 6). The ICS birthday feed has an E2E test; no further step.
-- [x] **Reminders, birthdays, notifications** (done in step 7) - covered: reminder mails once per
-      due date with an injected clock, mail failures, no channel, webhooks
-      (`reminders/digest_test.go`, e.g. `TestDigestDoesNotMailTheSameReminderTwice`,
-      `TestDigestLeavesAUserWhoseMailFailedUnmarkedAndStillMailsTheOthers`); the job lock
-      (`TestSendRemindersWithRateLimit_RateLimited`, `_AllowsAfterInterval`); outbox retry, backoff,
-      claim and expiry (`email_outbox_test.go`). New in step 7: SMTP delivery and its failures
-      against a fake server, Resend through a swapped transport, and an e-mail that expires after
-      its claim (`expireEmail`). Open, see Questions: the birthday mail is not once per day.
-- [x] **Auth (password, OIDC, API tokens)** (done in step 8) - the audit listed workflows that were
-      already tested by name: OIDC new user, link by verified e-mail, bad state or nonce, provider
-      error, no account without auto-provisioning (`users/oidc_test.go`:
-      `TestASuccessfulCallbackProvisionsTheAccountStartsASessionAndRedirectsHome`,
-      `TestAVerifiedEmailLinksTheIdentity...`,
-      `TestACallbackThatCannotBeTrustedEndsInTheLoginPage...`, `TestTheNonceAndTheTokenAreChecked`,
-      `TestWithoutAutoProvisioningAStrangerIsToldThereIsNoAccount`); password and second-factor
-      lockout (`users/login_test.go`); login with a recovery code that works once and new recovery
-      codes that invalidate the old (`TestAnAccountWithTwoFactorAsksFor...`,
-      `TestDisablingWorksWithACodeOrAOneTimeRecoveryCode`); API token checks in the middleware
-      (`middleware/auth_apitoken_test.go`). New: `routes/api_token_flow_test.go` runs the whole path
-      through the real router and migrations: register, log in, create a token, use it for data, see
-      it refused for password change, 2FA setup, sessions and admin routes, revoke it, and see it
-      refused. No E2E for tokens (Go covers it). Open: the `oidcLogin` error branches (state or
-      nonce generation failing, answered 500) are reachable only through the `app.Identity` port
-      (`NewToken` failing), which `users.New` builds itself, so a test needs a fake `Identity` in an
-      `app`-level test; not added. Password reset mail with a failing SMTP server: the reset mail
-      goes through the outbox (`TestQueueEmailWritesRowBeforeSending`,
-      `TestProcessEmailOutboxBackoffThenDead`, `TestExpiredEmailIsNeverSentAndLosesItsBody`) and
-      SMTP failures through `smtp_delivery_test.go`; no test joins the two.
-- [ ] **E2E: main user workflows** - existing: auth, contacts, timeline, activities, reminders,
+- [x] **Audit coverage per area** - this section. Low spots found: `carddav`, `services` (contact
+      sync discovery, imports, mailer), `monica`, frontend dialogs, `httputil`. `httputil`:
+      `SameServer` is fully covered; `FetchImageFromURL` has one test, which checks that internal
+      targets are refused (17.6% of the function); its success path needs a loopback server, which
+      the SSRF guard it tests blocks, so it stays open.
+- [x] **REST API incl. `user_id` isolation** - no new commit. `routes/invariants_test.go` checks
+      every mutating route (per route) and every model with a `user_id` (per model). Every ID-taking
+      GET route has a module test where user B gets 404 on user A's id (checked by hand in the
+      audit). Open: nothing enforces that rule per GET route (Questions).
+- [x] **CardDAV sync** - steps 3 and 4 (server): discovery via well-known, principal, home set,
+      Basic auth (password, lockout, a token as password is refused), another user's address book
+      (404), PUT create and update, `If-Match` and `If-None-Match` conflicts (412), DELETE to the
+      trash, photos (`carddav/server_test.go`). Step 5 (client): discovery from a server or
+      address-book address, the errors the user sees, no password sent to another host, photos,
+      scheduled sync over several connections (`services/contact_sync_discovery_test.go`); create,
+      update, delete and conflicts were covered. Open: `fetchNeededCards` (multiget) only runs
+      against Radicale (`make test-carddav`).
+- [x] **Import and export (vCard, CSV, Monica, ICS)** - step 6: CSV update of a duplicate with a
+      merge note, update without a duplicate, vCard photo and re-import, unreadable vCards, invalid
+      rows, Monica avatars and a failing remote (`imports_test.go`, `monicaimport_test.go`). Already
+      covered: restoring a trashed contact on re-import
+      (`TestVCFReimport_AfterDelete_RestoresContact`), ICS errors and unchanged feeds
+      (`calendar_sync_service_test.go`), export content, isolation and audit (`exports_test.go`).
+      Step 10: E2E import of a vCard and a CSV, E2E export as vCard and CSV.
+- [x] **Reminders, birthdays, notifications** - step 7: SMTP delivery and its failures against a
+      fake server (`smtp_delivery_test.go`), Resend through a swapped transport, an e-mail that
+      expires between claim and send. Already covered: reminder and birthday digest, job lock,
+      outbox retry and expiry (`reminders/digest_test.go`, `email_outbox_test.go`). Open: the
+      birthday mail has no sent mark and goes out again on every digest run that day (Questions).
+- [x] **Auth (password, OIDC, API tokens)** - step 8: an API token through the real router (use,
+      refused for password change, 2FA, sessions, admin, revoked). Already covered: OIDC (new user,
+      link, bad state or nonce, provider error, no account), password and second-factor lockout,
+      recovery codes, token middleware. Open: the `oidcLogin` 500 branches need a fake `Identity`.
+- [x] **E2E: main user workflows** - step 10 adds `e2e/import-export.spec.ts` (import vCard, import
+      CSV, export vCard and CSV). Existing: auth, contacts, timeline, activities, reminders,
       relationships, trash, 2FA, sessions, backups, ICS feed, isolation, dashboard, thumbnails,
-      security headers, users banner. Missing: import vCard/CSV, export contacts (step 10);
-      register, CardDAV/calendar settings, network graph, notes page stay out with a reason:
-      settings pages are thin over API calls the Go tests cover, the graph is visual.
-- [x] **Frontend: components with logic** (done in step 9) - Vitest lines went from 26.9% to 31.8%.
-      Tested now: `AddContactDialog`, `ReminderDialog`, `ReminderList`, `MultiValueField`,
-      `EditableField`, `useDebouncedValue` (see the Log). Not tested, with reasons under Questions:
-      `useReminderManagement` and the other 0% components; the 0% API modules are covered by E2E,
-      not unit tests.
+      security headers, users banner. No E2E, with a reason: registration, CardDAV and calendar
+      settings, API tokens (Go tests cover the API paths; the pages are thin), network graph
+      (visual), notes page (the same timeline and note dialogs as the contact page, which has E2E
+      tests).
+- [x] **Frontend: components with logic** - step 9: `AddContactDialog`, `ReminderDialog`,
+      `ReminderList`, `MultiValueField`, `EditableField`, `useDebouncedValue`, and
+      `EditTimelineItemDialog` (step 1). Not tested, with reasons under Questions:
+      `useReminderManagement`, `AddNoteDialog`, `AddRelationshipDialog`,
+      `ProfilePictureUploadDialog`, `ContactHeader`, `ContactTimeline`, the settings components, and
+      the large pages (`ContactDetailPage`, `ContactsPage`, `NotesPage`, `ActivitiesPage`), which
+      E2E drives.
 
 ## For review
 
@@ -224,5 +197,7 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
 - `AddContactDialog.tsx` (~line 159) sends the first name untrimmed (the check uses the trimmed
   value). Not fixed.
 - The Vitest thresholds are rounded down with a small margin; the lines margin is 0.8 points.
+- `ImportContactsDialog.tsx` (~line 341): the drop zone is a clickable `Box` with no role or
+  `tabIndex`, so keyboard users cannot open the file chooser.
 
 ## Blocked
