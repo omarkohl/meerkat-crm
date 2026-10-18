@@ -101,6 +101,8 @@ rename `[Unreleased]` to the version and date and add the compare link at the bo
 - Issue footer: `fixes #N` when the commit resolves the issue, `issue #N` when it is part of it.
 - Review your own diff before you ask for review.
 - Never push without explicit permission, each time.
+- Unless told otherwise, use the fork `omarkohl/meerkat-crm` for all GitHub actions (issues, PRs,
+  `gh` commands), not upstream `fbuchner/meerkat-crm`. Pass `--repo omarkohl/meerkat-crm`.
 - With jj, always pass the message and never open an editor: `jj commit -m "msg"`, `jj squash` (add
   `-m "msg"` to avoid the editor when both messages exist), `jj describe -m "msg"`. For diffs use
   `jj diff --git`. Never use `jj split`, `jj resolve` or other interactive commands without
