@@ -189,9 +189,15 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
 - [ ] 22. **Docs**: README, `docs/development/*`, `AGENTS.md` reflect the new targets and layout.
       Full `make precommit`.
 - [ ] 23. **Finish**: check each row of the destination table: the content is in its destination.
-      Summary and "For review" list in PROGRESS.md. Then delete `.claude/run/` and
+      Summary and "For review" list in PROGRESS.md. Then purge `.claude/run/` and delete
       `.claude/plans/engineering-principles*.md` in their own commit.
 
 ## Next steps
 
-After this run, pick further work from `IMPROVEMENTS.md` (open items only).
+After this run, proceed with (in order):
+
+- https://github.com/omarkohl/meerkat-crm/issues/107
+- https://github.com/omarkohl/meerkat-crm/issues/140
+- https://github.com/omarkohl/meerkat-crm/issues/118
+- https://github.com/omarkohl/meerkat-crm/issues/109
+- pick further work from `IMPROVEMENTS.md` (open items only).
