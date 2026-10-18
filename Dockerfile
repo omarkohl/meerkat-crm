@@ -52,7 +52,8 @@ RUN npm run build
 # =============================================================================
 FROM alpine:3.24
 
-# Runtime dependencies. shadow provides usermod/groupmod for PUID/PGID remap.
+# Runtime dependencies; apk upgrade picks up Alpine fixes newer than the base image (Trivy gate).
+# shadow provides usermod/groupmod for PUID/PGID remap.
 # No sqlite package needed - the backend uses a pure-Go SQLite driver.
 RUN apk add --no-cache \
     ca-certificates \
@@ -60,7 +61,8 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     shadow \
-    libc6-compat
+    libc6-compat && \
+    apk upgrade --no-cache
 
 WORKDIR /app
 
