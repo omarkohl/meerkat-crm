@@ -67,3 +67,9 @@ func TestTheSixProjectValidatorsRunOnHumaBodies(t *testing.T) {
 		})
 	}
 }
+
+func TestCirclesThatDifferOnlyInWhitespaceAreDuplicates(t *testing.T) {
+	h := validatedAPI()
+	assert.Equal(t, http.StatusBadRequest, do(h, http.MethodPost, "/api/v1/validated", `{"circles":["family"," family ","work"]}`).Code)
+	assert.Equal(t, http.StatusNoContent, do(h, http.MethodPost, "/api/v1/validated", `{"circles":[" family ","work","friends "]}`).Code)
+}

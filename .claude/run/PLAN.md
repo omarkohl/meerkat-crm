@@ -159,7 +159,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
     - [x] 13k1. calendar subscriptions (list, create, update, delete, sync now)
     - [x] 13k2. CardDAV connection settings (get, save, delete, discover, sync now)
   - [x] 13l. backups, audit log, system status
-- [ ] 14. **Contract complete (§2)**: a test fails if a JSON route under `/api/v1` is not a huma
+- [x] 14. **Contract complete (§2)**: a test fails if a JSON route under `/api/v1` is not a huma
       operation. Delete the remaining hand-written API types and `ValidateJSONMiddleware`.
       `docs/api-reference.md` links to the spec.
 - [ ] 15. **Invariant tests (§3, §4)**: a Go test enumerates every route from the Gin engine and

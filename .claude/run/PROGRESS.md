@@ -2,7 +2,7 @@
 
 ## Next step
 
-14 (contract complete).
+15 (invariant tests).
 
 ## Stack
 
@@ -335,6 +335,21 @@
   traversal, audit entries, write timeout lifted, audit filters and paging, status warning matrix).
   Frontend backup, system-status and audit-log types derive from the generated types. **Step 13 is
   done.** `make precommit` green.
+- Step 14: the admin user endpoints (list, get, update, delete, two-factor reset) and
+  `trigger-reminders` are huma operations in the `admin` module (domain `User`/`UserChanges`, use
+  cases `ListUsers`/`GetUser`/`UpdateUser`/`DeleteUser`/`ResetTwoFactor`/`SendReminders`, ports
+  `Users`/`Reminders`; `admin.Deps.SendReminders` gets the reminders module's digest job). New
+  `routes/contract_test.go`: every route under `/api/v1` must be a spec operation (and the reverse),
+  except eight listed ones that send files, images, a calendar or redirects. `controllers` now holds
+  only the health check and the image proxy; `ValidateJSONMiddleware`, `GetValidated`, the
+  `AdminUser*` DTOs, `audit.go` and `helpers.go` are gone. Tests of the removed controllers moved
+  into `admin/users_test.go` (delete clean-up, OIDC release, audit detail, sessions, two-factor
+  reset, reminders); the two-factor, session and foreign-key tests in `controllers` mount the
+  module. `docs/api-reference.md` links to the spec; backend.md, ADRs 0007/0011 and
+  AUTONOMOUS-RUNS.md name `api.ValidateBody`. Frontend admin user types derive from the generated
+  types. **Leftovers**: `models.Birthday`, `models.DiscoveredAddressBook` and the import/Monica
+  structs in `models/` are internal service types, not wire types, and stay; the CardDAV server,
+  `/health` and `/metrics` are outside `/api/v1` and stay Gin. `make precommit` green.
 
 ## Decisions
 
@@ -702,6 +717,9 @@
   in `controllers`; step 14 must cover them. `auditValue` (the `;` escape) is not applied to backup
   names any more: a name that passes the backup name pattern cannot contain one. A backup download
   that fails the name or file check answers 404 before it is audited, as before.
+- 14: the "last admin" guards in update and delete stay as they were, but the acting admin is always
+  an admin, so the guard can only fire for a race; no HTTP test reaches it. Resetting two-factor for
+  an unknown user reports a failed lookup as "get user" (was "query user").
 
 ## For review
 

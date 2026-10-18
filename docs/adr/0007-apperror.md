@@ -17,7 +17,8 @@ The frontend needs stable error codes and the API needs one error format.
 
 Controllers return `*apperrors.AppError` with an HTTP status, a stable code and a message. The error
 handler middleware at the top of the stack writes the structured JSON response and also catches
-panics. Request bodies are validated with `middleware.ValidateJSONMiddleware`.
+panics. Request bodies are validated with `api.ValidateBody` in the input's `Resolve` method
+([ADR 0011](0011-api-contract-with-huma.md)).
 
 ## Consequences
 

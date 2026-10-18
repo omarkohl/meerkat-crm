@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"meerkat/admin"
+	"meerkat/api"
 	"meerkat/middleware"
 	"meerkat/models"
 	"meerkat/services"
@@ -21,9 +23,8 @@ import (
 func newTOTPEnv(t *testing.T) *sessionEnv {
 	t.Helper()
 	e := newSessionEnv(t)
-	admin := e.r.Group("/admin", middleware.AuthMiddleware(e.cfg), middleware.AdminMiddleware())
-	admin.POST("/users/:id/2fa/reset", ResetUserTOTP)
-	admin.GET("/users", ListUsers)
+	group := e.r.Group("", middleware.AuthMiddleware(e.cfg), middleware.AdminMiddleware())
+	admin.New(admin.Deps{DB: e.db, Config: e.cfg}).Register(api.New(group, e.r), group)
 	return e
 }
 
@@ -156,7 +157,7 @@ func TestWrongCodesLockTheAccountAcrossIdentifiersAndPasswordOnlyRequestsDoNotRe
 	t.Cleanup(func() {
 		lim.RecordSuccessfulLogin("totp_lock")
 		lim.RecordSuccessfulLogin("totp_lock@example.com")
-		lim.RecordSuccessfulLogin(totpLimiterKey(lockUser.ID))
+		lim.RecordSuccessfulLogin(middleware.SecondFactorKey(lockUser.ID))
 	})
 
 	for i := 0; i < middleware.MaxLoginAttempts-1; i++ {

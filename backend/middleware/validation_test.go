@@ -4,49 +4,6 @@ import (
 	"testing"
 )
 
-func TestSanitizeString(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "normal string",
-			input:    "Hello World",
-			expected: "Hello World",
-		},
-		{
-			name:     "string with null bytes",
-			input:    "Hello\x00World",
-			expected: "HelloWorld",
-		},
-		{
-			name:     "string with control characters",
-			input:    "Hello\x01\x02World",
-			expected: "HelloWorld",
-		},
-		{
-			name:     "string with allowed whitespace",
-			input:    "Hello\nWorld\t!",
-			expected: "Hello\nWorld\t!",
-		},
-		{
-			name:     "string with carriage return",
-			input:    "Hello\rWorld",
-			expected: "Hello\rWorld",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := SanitizeString(tt.input)
-			if result != tt.expected {
-				t.Errorf("SanitizeString(%q) = %q, want %q", tt.input, result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestValidateEmail(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -95,7 +52,7 @@ func TestValidateEmail(t *testing.T) {
 	}
 }
 
-// TestValidateStruct_Phone tests phone validation through ValidateStruct
+// TestValidateStruct_Phone tests phone validation through ValidateStructJSON
 func TestValidateStruct_Phone(t *testing.T) {
 	type TestStruct struct {
 		Phone string `validate:"phone"`
@@ -141,16 +98,16 @@ func TestValidateStruct_Phone(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := TestStruct{Phone: tt.phone}
-			errors := ValidateStruct(obj)
+			errors := ValidateStructJSON(obj)
 			hasErrors := len(errors) > 0
 			if hasErrors == tt.isValid {
-				t.Errorf("ValidateStruct with phone %q: hasErrors=%v, want isValid=%v", tt.phone, hasErrors, tt.isValid)
+				t.Errorf("ValidateStructJSON with phone %q: hasErrors=%v, want isValid=%v", tt.phone, hasErrors, tt.isValid)
 			}
 		})
 	}
 }
 
-// TestValidateStruct_SafeURL tests the safeurl validator through ValidateStruct
+// TestValidateStruct_SafeURL tests the safeurl validator through ValidateStructJSON
 func TestValidateStruct_SafeURL(t *testing.T) {
 	type TestStruct struct {
 		URL string `validate:"safeurl"`
@@ -178,16 +135,16 @@ func TestValidateStruct_SafeURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			errors := ValidateStruct(TestStruct{URL: tt.url})
+			errors := ValidateStructJSON(TestStruct{URL: tt.url})
 			hasErrors := len(errors) > 0
 			if hasErrors == tt.isValid {
-				t.Errorf("ValidateStruct with url %q: hasErrors=%v, want isValid=%v", tt.url, hasErrors, tt.isValid)
+				t.Errorf("ValidateStructJSON with url %q: hasErrors=%v, want isValid=%v", tt.url, hasErrors, tt.isValid)
 			}
 		})
 	}
 }
 
-// TestValidateStruct_Birthday tests birthday validation through ValidateStruct
+// TestValidateStruct_Birthday tests birthday validation through ValidateStructJSON
 func TestValidateStruct_Birthday(t *testing.T) {
 	type TestStruct struct {
 		Birthday string `validate:"birthday"`
@@ -238,10 +195,10 @@ func TestValidateStruct_Birthday(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := TestStruct{Birthday: tt.date}
-			errors := ValidateStruct(obj)
+			errors := ValidateStructJSON(obj)
 			hasErrors := len(errors) > 0
 			if hasErrors == tt.isValid {
-				t.Errorf("ValidateStruct with birthday %q: hasErrors=%v, want isValid=%v", tt.date, hasErrors, tt.isValid)
+				t.Errorf("ValidateStructJSON with birthday %q: hasErrors=%v, want isValid=%v", tt.date, hasErrors, tt.isValid)
 			}
 		})
 	}
@@ -303,10 +260,10 @@ func TestValidateStruct_NoAtSign(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := TestStruct{Username: tt.input}
-			errors := ValidateStruct(obj)
+			errors := ValidateStructJSON(obj)
 			hasErrors := len(errors) > 0
 			if hasErrors == tt.isValid {
-				t.Errorf("ValidateStruct with username %q: hasErrors=%v, want isValid=%v", tt.input, hasErrors, tt.isValid)
+				t.Errorf("ValidateStructJSON with username %q: hasErrors=%v, want isValid=%v", tt.input, hasErrors, tt.isValid)
 			}
 		})
 	}

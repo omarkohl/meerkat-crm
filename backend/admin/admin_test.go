@@ -36,6 +36,8 @@ type env struct {
 	photos string
 	admin  models.User
 	plain  models.User
+	// reminders stands in for the daily reminder job.
+	reminders func(clock.Clock) error
 }
 
 func newEnv(t *testing.T) *env {
@@ -45,8 +47,10 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.AuditLog{}, &models.Session{}))
-	e := &env{db: db, dir: filepath.Join(t.TempDir(), "backups"), photos: t.TempDir()}
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.AuditLog{}, &models.Session{}, &models.Activity{}, &models.Note{},
+		&models.Relationship{}, &models.Reminder{}, &models.ApiToken{}, &models.IcsFeed{}, &models.CardDAVConnection{}, &models.CardDAVContactLink{},
+		&models.CalendarSubscription{}, &models.CalendarEventLink{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.EmailOutbox{}, &models.RecoveryCode{}))
+	e := &env{reminders: func(clock.Clock) error { return nil }, db: db, dir: filepath.Join(t.TempDir(), "backups"), photos: t.TempDir()}
 	e.admin = models.User{Username: "root", Email: "root@example.com", Password: "x", IsAdmin: true}
 	e.plain = models.User{Username: "plain", Email: "plain@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.admin).Error)
@@ -73,7 +77,7 @@ func (e *env) as(userID uint, cfg config.Config, wrap ...gin.HandlerFunc) *gin.E
 		}
 		c.Next()
 	}, middleware.AdminMiddleware())
-	admin.New(admin.Deps{DB: e.db, Config: &cfg}).Register(api.New(group, r), group)
+	admin.New(admin.Deps{DB: e.db, Config: &cfg, SendReminders: e.reminders}).Register(api.New(group, r), group)
 	return r
 }
 
@@ -328,7 +332,7 @@ func TestTheSpecDescribesTheOperationsAtTheirFullPaths(t *testing.T) {
 	r := gin.New()
 	a := api.New(r.Group(""), r)
 	admin.New(admin.Deps{DB: e.db}).Register(a, r.Group(""))
-	for _, path := range []string{"/admin/system-status", "/admin/audit-log", "/admin/backups", "/admin/backups/{name}"} {
+	for _, path := range []string{"/admin/system-status", "/admin/audit-log", "/admin/backups", "/admin/backups/{name}", "/admin/users", "/admin/users/{id}", "/admin/users/{id}/2fa/reset", "/admin/trigger-reminders"} {
 		assert.Contains(t, a.OpenAPI().Paths, path)
 	}
 }

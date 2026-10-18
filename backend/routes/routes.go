@@ -14,7 +14,6 @@ import (
 	"meerkat/imports"
 	"meerkat/metrics"
 	"meerkat/middleware"
-	"meerkat/models"
 	"meerkat/monicaimport"
 	"meerkat/notes"
 	"meerkat/photos"
@@ -54,12 +53,13 @@ type Modules struct {
 // NewModules builds every converted module on db. db may be nil when only the operations'
 // descriptions are needed.
 func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProvider) Modules {
+	reminderModule := reminders.New(reminders.Deps{DB: db, Config: cfg})
 	return Modules{
-		Admin:         admin.New(admin.Deps{DB: db, Config: cfg}),
+		Admin:         admin.New(admin.Deps{DB: db, Config: cfg, SendReminders: reminderModule.SendDailyDigest}),
 		Contacts:      contacts.New(contacts.Deps{DB: db, Config: cfg}),
 		Notes:         notes.New(notes.Deps{DB: db, Config: cfg}),
 		Activities:    activities.New(activities.Deps{DB: db, Config: cfg}),
-		Reminders:     reminders.New(reminders.Deps{DB: db, Config: cfg}),
+		Reminders:     reminderModule,
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
@@ -123,9 +123,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
-		// Operations served by huma (the API contract) are registered where their group
-		// exists, see RegisterAPI; the rest are plain Gin handlers until they are converted
-		// (docs/adr/0011-api-contract-with-huma.md).
 		humaAPI := api.New(v1, router)
 
 		// Protected routes (authentication required, general rate limiting)
@@ -141,15 +138,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 		adminGroup.Use(middleware.AdminMiddleware())
 
 		RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected, Admin: adminGroup})
-
-		adminGroup.GET("/admin/users", controllers.ListUsers)
-		adminGroup.GET("/admin/users/:id", controllers.GetUser)
-		adminGroup.PATCH("/admin/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), controllers.UpdateUser)
-		adminGroup.DELETE("/admin/users/:id", controllers.DeleteUser)
-		adminGroup.POST("/admin/users/:id/2fa/reset", controllers.ResetUserTOTP)
-		adminGroup.POST("/admin/trigger-reminders", func(c *gin.Context) {
-			controllers.TriggerReminders(c, modules.Reminders.SendDailyDigest)
-		})
 	}
 
 	// CardDAV routes (optional, enabled via CARDDAV_ENABLED)

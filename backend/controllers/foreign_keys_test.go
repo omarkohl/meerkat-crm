@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	adminmod "meerkat/admin"
+	"meerkat/api"
 	"meerkat/config"
 	"meerkat/database"
 	"meerkat/models"
@@ -54,7 +56,8 @@ func TestDeletePathsWithForeignKeysEnforced(t *testing.T) {
 		c.Set("userID", admin.ID)
 		c.Next()
 	})
-	adminRouter.DELETE("/users/:id", DeleteUser)
+	group := adminRouter.Group("")
+	adminmod.New(adminmod.Deps{DB: db, Config: &config.Config{}}).Register(api.New(group, adminRouter), group)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("DELETE", "/contacts/"+strconv.Itoa(int(c1.ID)), nil)
@@ -62,7 +65,7 @@ func TestDeletePathsWithForeignKeysEnforced(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
 
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("DELETE", "/users/"+strconv.Itoa(int(victim.ID)), nil)
+	req, _ = http.NewRequest("DELETE", "/admin/users/"+strconv.Itoa(int(victim.ID)), nil)
 	adminRouter.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
 }

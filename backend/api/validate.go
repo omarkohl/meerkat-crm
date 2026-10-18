@@ -14,9 +14,6 @@ import (
 //	func (i *In) Resolve(_ huma.Context, prefix *huma.PathBuffer) []error {
 //		return api.ValidateBody(prefix, &i.Body)
 //	}
-//
-// One implementation serves both the old ValidateJSONMiddleware and huma operations, so
-// the rules cannot drift while endpoints are converted one by one.
 func ValidateBody(prefix *huma.PathBuffer, v any) []error {
 	base := prefix.With("body")
 	var errs []error

@@ -51,8 +51,8 @@ Run from the repository root. All must pass before a commit:
   `frontend/e2e/isolation.spec.ts` or a Go test for new resources.
 - **Migrations**: new numbered pair in `backend/database/migrations` (`up` and a working `down`).
   Never edit an existing migration.
-- **Validation**: request bodies via `middleware.ValidateJSONMiddleware`; controllers read the
-  `validated` value from the context. Errors as `*apperrors.AppError`.
+- **Validation**: request bodies via `api.ValidateBody` in the input's `Resolve` method. Errors as
+  `*apperrors.AppError`.
 - **Transactions** for multi-entity writes; deletes clean up dependants.
 - **i18n**: every new UI string in all five locales (`frontend/src/i18n/locales/`, and
   `backend/i18n/locales/` for backend strings): en, de, it, es, fr.

@@ -31,8 +31,8 @@ and output structs are the contract). The package `backend/api` does the wiring:
   is `400 INVALID_INPUT`. Handlers return `apperrors.ErrNotFound(...)` and friends as before.
 - **The six custom validators work unchanged.** `api.ValidateBody` runs the existing go-playground
   validator (`phone`, `birthday`, `strong_password`, `unique_circles`, `no_at_sign`, `safeurl`) from
-  the input struct's `Resolve` method, so the old `ValidateJSONMiddleware` and huma operations share
-  one implementation. The Go field name is used as the detail key, as before.
+  the input struct's `Resolve` method. The old `ValidateJSONMiddleware` is gone; the detail key is
+  the JSON field name.
 - **Spec and types are generated and committed.** `make openapi` writes `docs/openapi.json` (OpenAPI
   3.1, by `backend/cmd/openapi`, which needs no database) and `frontend/src/types/generated/api.ts`
   (by `openapi-typescript`). `make openapi-check` regenerates both into a temporary directory and
@@ -81,7 +81,7 @@ Things to know when converting an endpoint:
 
 ## Consequences
 
-`docs/openapi.json` replaces the hand-written route tables step by step (step 14 makes the
-conversion complete and removes `ValidateJSONMiddleware`). Hand-written frontend types for converted
-endpoints are deleted in favour of the generated ones. A change to an operation needs `make openapi`
-in the same commit.
+`docs/openapi.json` replaces the hand-written route tables step by step (every JSON route is an
+operation; `routes/contract_test.go` fails otherwise, and lists the routes that send files or
+redirect). Hand-written frontend types for converted endpoints are deleted in favour of the
+generated ones. A change to an operation needs `make openapi` in the same commit.

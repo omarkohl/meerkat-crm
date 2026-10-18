@@ -126,7 +126,7 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   `activities`, `reminders`, `relationships`, `photos`, `trash`, `users` (preferences, sessions,
   two-factor, login, registration, password reset, single sign-on), `tokens`, `webhooks`, `exports`,
   `imports`, `monicaimport`, `calendars`, `contactsync` (CardDAV connection settings) and `admin`
-  (backups, audit log, system status) has `domain`, `app` (use cases and ports),
+  (user management, backups, audit log, system status) has `domain`, `app` (use cases and ports),
   `adapters/persistence` and `adapters/http`. Only the persistence adapter imports GORM. Routes that
   send bytes or redirect stay Gin handlers inside the module. Sync engines, webhook delivery, the
   e-mail outbox and the import parsers stay in `services/`. The CardDAV server is not converted yet.

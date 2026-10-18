@@ -110,6 +110,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/trigger-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the daily reminder e-mails now */
+        post: operations["trigger-reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every account, oldest first */
+        get: operations["list-users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One account */
+        get: operations["get-user"];
+        put?: never;
+        post?: never;
+        /** Delete an account and everything it owns */
+        delete: operations["delete-user"];
+        options?: never;
+        head?: never;
+        /** Change an account's username, email, password or admin flag; a new password ends its sessions */
+        patch: operations["update-user"];
+        trace?: never;
+    };
+    "/admin/users/{id}/2fa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switch off an account's two-factor and end its sessions */
+        post: operations["reset-user-two-factor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api-tokens": {
         parameters: {
             query?: never;
@@ -1430,6 +1500,21 @@ export interface components {
             street?: string;
             type?: string;
         };
+        AdminUserResponse: {
+            /** Format: date-time */
+            created_at: string;
+            date_format: string;
+            email: string;
+            /** Format: int64 */
+            id: number;
+            is_admin: boolean;
+            language: string;
+            /** @description Whether a reset is needed; never the secret */
+            two_factor_enabled: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            username: string;
+        };
         AuditEntryResponse: {
             /** Format: date-time */
             created_at: string;
@@ -2583,6 +2668,23 @@ export interface components {
             language: string;
             message: string;
         };
+        UserUpdateBody: {
+            email?: string | null;
+            is_admin?: boolean | null;
+            password?: string | null;
+            username?: string | null;
+        };
+        UsersOutputBody: {
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            total_pages: number;
+            users: components["schemas"]["AdminUserResponse"][] | null;
+        };
         WebhookBody: {
             events: string[];
             is_active?: boolean;
@@ -2948,6 +3050,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemStatusOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "trigger-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-users": {
+        parameters: {
+            query?: {
+                /** @description Page number, from 1 */
+                page?: string;
+                /** @description Page size, 1 to 100, default 25 */
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsersOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "delete-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "reset-user-two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The account's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
                 };
             };
             /** @description Error */

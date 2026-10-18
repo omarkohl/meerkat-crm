@@ -25,7 +25,7 @@ backend/
   config/              # Environment variable loading and validation
   routes/routes.go     # All route registrations
   middleware/          # Auth, rate limiting, validation, logging, request ID
-  controllers/         # HTTP handlers — thin, delegate to services or query DB directly
+  controllers/         # the health check and the image proxy; everything else is in the modules
   api/                 # huma wiring: operations on Gin groups, AppError format (ADR 0011)
   contacts/            # first hexagonal module (all contact endpoints): domain, app, adapters (ADR 0012)
   notes/               # hexagonal module for notes, same layout
@@ -39,7 +39,7 @@ backend/
   imports/             # hexagonal module for the CSV and vCard import wizard (the parsing, mapping and merging stay in services, shared with the Monica import)
   monicaimport/        # hexagonal module for the import from Monica (the fetch, mapping and applying stay in services)
   calendars/           # hexagonal module for calendar subscriptions (the sync engine and its job stay in services)
-  admin/               # hexagonal module for backups, the audit log and the system status (the backup engine stays in services; the download is a plain Gin handler)
+  admin/               # hexagonal module for the admin endpoints: user management, backups, the audit log, the system status, the reminder trigger (the backup engine stays in services; the download is a plain Gin handler)
   contactsync/         # hexagonal module for the CardDAV connection settings (the sync engine and the protocol endpoints are elsewhere)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout, plus the daily reminder e-mail job (`SendDailyDigest`; the lock around it and the e-mail outbox are in services)

@@ -5,7 +5,9 @@ package persistence
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"meerkat/admin/internal/app"
@@ -126,6 +128,25 @@ func NewAudit(db *gorm.DB) *Audit { return &Audit{db: db} }
 
 var _ app.Audit = (*Audit)(nil)
 
+// RecordUser words the detail as the admin page expects it: ;-separated key:value segments,
+// with a ; in the username replaced so it cannot break the format.
+func (a *Audit) RecordUser(ctx context.Context, actor domain.UserID, action domain.UserAction, u domain.User, changed []string, client domain.Client) {
+	event := map[domain.UserAction]string{
+		domain.UserUpdated:      models.AuditAdminUserUpdated,
+		domain.UserDeleted:      models.AuditAdminUserDeleted,
+		domain.UserTwoFactorOff: models.AuditTOTPAdminReset,
+	}[action]
+	detail := fmt.Sprintf("user:%s#%d", strings.ReplaceAll(u.Username, ";", ","), u.ID)
+	if len(changed) > 0 {
+		detail += ";changed:" + strings.Join(changed, ",")
+	}
+	services.WriteUserAudit(a.db.WithContext(ctx), uint(actor), event, detail, client.IP, client.UserAgent)
+}
+
+func (a *Audit) RecordReminderRun(ctx context.Context, actor domain.UserID, client domain.Client) {
+	services.WriteUserAudit(a.db.WithContext(ctx), uint(actor), models.AuditAdminReminders, "", client.IP, client.UserAgent)
+}
+
 func (a *Audit) RecordBackup(ctx context.Context, actor domain.UserID, action domain.BackupAction, name string, client domain.Client) {
 	event := map[domain.BackupAction]string{
 		domain.BackupCreated:    models.AuditBackupCreated,
@@ -141,8 +162,156 @@ func NewUsers(db *gorm.DB) *Users { return &Users{db: db} }
 
 var _ app.Users = (*Users)(nil)
 
+func user(u models.User) domain.User {
+	return domain.User{ID: domain.UserID(u.ID), Username: u.Username, Email: u.Email, Language: u.Language, DateFormat: u.DateFormat,
+		IsAdmin: u.IsAdmin, CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt, TwoFactor: u.TOTPEnabled}
+}
+
 func (r *Users) Count(ctx context.Context) (int64, error) {
 	var n int64
 	err := r.db.WithContext(ctx).Model(&models.User{}).Count(&n).Error
 	return n, err
+}
+
+func (r *Users) CountAdmins(ctx context.Context) (int64, error) {
+	var n int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Where("is_admin = ?", true).Count(&n).Error
+	return n, err
+}
+
+func (r *Users) Page(ctx context.Context, offset, limit int) ([]domain.User, int64, error) {
+	total, err := r.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var rows []models.User
+	if err := r.db.WithContext(ctx).Order("id ASC").Offset(offset).Limit(limit).Find(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	out := make([]domain.User, len(rows))
+	for i, u := range rows {
+		out[i] = user(u)
+	}
+	return out, total, nil
+}
+
+func (r *Users) Get(ctx context.Context, id domain.UserID) (domain.User, error) {
+	var u models.User
+	if err := r.db.WithContext(ctx).First(&u, uint(id)).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.User{}, domain.ErrUserNotFound
+		}
+		return domain.User{}, err
+	}
+	return user(u), nil
+}
+
+func (r *Users) Save(ctx context.Context, d domain.User, password string, now time.Time) (domain.User, error) {
+	var hash string
+	if password != "" {
+		var err error
+		if hash, err = services.HashPassword(password); err != nil {
+			if errors.Is(err, services.ErrPasswordTooLong) {
+				return domain.User{}, domain.ErrPasswordTooLong
+			}
+			return domain.User{}, fmt.Errorf("%w: %w", domain.ErrCannotHash, err)
+		}
+	}
+	var saved models.User
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.First(&saved, uint(d.ID)).Error; err != nil {
+			return err
+		}
+		saved.Username, saved.Email, saved.IsAdmin = d.Username, d.Email, d.IsAdmin
+		if hash != "" {
+			saved.Password = hash
+		}
+		if err := tx.Save(&saved).Error; err != nil {
+			return err
+		}
+		if hash != "" {
+			return services.RevokeAllSessions(tx, saved.ID, now)
+		}
+		return nil
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return domain.User{}, domain.ErrAlreadyExists
+		}
+		return domain.User{}, err
+	}
+	return user(saved), nil
+}
+
+func (r *Users) ResetTwoFactor(ctx context.Context, id domain.UserID, now time.Time) error {
+	db := r.db.WithContext(ctx)
+	if err := services.DisableTOTP(db, uint(id)); err != nil {
+		return err
+	}
+	if err := services.RevokeAllSessions(db, uint(id), now); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Users) Delete(ctx context.Context, d domain.User) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		userID := uint(d.ID)
+		for _, step := range []func() error{
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Reminder{}).Error },
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Note{}).Error },
+			func() error {
+				return tx.Exec("DELETE FROM activity_contacts WHERE activity_id IN (SELECT id FROM activities WHERE user_id = ?)", userID).Error
+			},
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Activity{}).Error },
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Relationship{}).Error },
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Contact{}).Error },
+			// The user is soft-deleted, so the foreign key cascades do not run: sessions, the
+			// calendar feed and API tokens would otherwise stay valid.
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.Session{}).Error },
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.IcsFeed{}).Error },
+			func() error { return tx.Unscoped().Where("user_id = ?", userID).Delete(&models.ApiToken{}).Error },
+			// Stored credentials and background syncs: nothing of the user may remain. Links go
+			// first (they reference the connection or subscription).
+			func() error {
+				return tx.Unscoped().Where("connection_id IN (?)", tx.Model(&models.CardDAVConnection{}).Unscoped().Select("id").Where("user_id = ?", userID)).Delete(&models.CardDAVContactLink{}).Error
+			},
+			func() error {
+				return tx.Unscoped().Where("user_id = ?", userID).Delete(&models.CardDAVConnection{}).Error
+			},
+			func() error {
+				return tx.Unscoped().Where("subscription_id IN (?)", tx.Model(&models.CalendarSubscription{}).Unscoped().Select("id").Where("user_id = ?", userID)).Delete(&models.CalendarEventLink{}).Error
+			},
+			func() error {
+				return tx.Unscoped().Where("user_id = ?", userID).Delete(&models.CalendarSubscription{}).Error
+			},
+			func() error {
+				return tx.Unscoped().Where("webhook_id IN (?)", tx.Model(&models.Webhook{}).Unscoped().Select("id").Where("user_id = ?", userID)).Delete(&models.WebhookDelivery{}).Error
+			},
+			func() error { return tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Webhook{}).Error },
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.EmailOutbox{}).Error },
+			// The row stays (soft delete), so release what is unique on it: the person must be
+			// able to register or log in again (OIDC) as a new account.
+			func() error {
+				return tx.Unscoped().Model(&models.User{}).Where("id = ?", userID).Updates(map[string]any{
+					"email":         fmt.Sprintf("deleted+%d@deleted.invalid", userID),
+					"username":      fmt.Sprintf("deleted-%d", userID),
+					"oidc_subject":  nil,
+					"oidc_provider": nil,
+				}).Error
+			},
+			// Two-factor: the secret and the recovery codes go with the account.
+			func() error { return tx.Where("user_id = ?", userID).Delete(&models.RecoveryCode{}).Error },
+			func() error {
+				return tx.Unscoped().Model(&models.User{}).Where("id = ?", userID).
+					Updates(map[string]any{"totp_secret": "", "totp_enabled": false}).Error
+			},
+			func() error { return tx.Delete(&models.User{}, userID).Error },
+		} {
+			if err := step(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

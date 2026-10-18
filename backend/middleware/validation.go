@@ -2,23 +2,18 @@ package middleware
 
 import (
 	"fmt"
-	apperrors "meerkat/errors"
-	"meerkat/logger"
 	"reflect"
 	"regexp"
 	"strings"
 	"unicode"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-// Global validator instances: validate names fields as Go does (the original error keys);
-// validateJSON names them by their JSON name, for the huma operations.
-var validate, validateJSON *validator.Validate
+// validateJSON names fields by their JSON name, as the huma operations report them.
+var validateJSON *validator.Validate
 
 func init() {
-	validate = newValidator()
 	validateJSON = newValidator()
 	validateJSON.RegisterTagNameFunc(jsonFieldName)
 }
@@ -64,25 +59,8 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// ValidateStruct validates a struct and returns formatted errors
-func ValidateStruct(obj interface{}) []ValidationError {
-	var errors []ValidationError
-
-	err := validate.Struct(obj)
-	if err != nil {
-		for _, err := range err.(validator.ValidationErrors) {
-			errors = append(errors, ValidationError{
-				Field:   err.Field(),
-				Message: formatValidationError(err),
-			})
-		}
-	}
-
-	return errors
-}
-
-// ValidateStructJSON is ValidateStruct with JSON field names: "email" and
-// "emails[0].value" instead of "Email" and "Value". Messages are the same.
+// ValidateStructJSON validates a struct and returns formatted errors named by JSON field:
+// "email" and "emails[0].value".
 func ValidateStructJSON(obj interface{}) []ValidationError {
 	var errors []ValidationError
 	if err := validateJSON.Struct(obj); err != nil {
@@ -96,11 +74,6 @@ func ValidateStructJSON(obj interface{}) []ValidationError {
 		}
 	}
 	return errors
-}
-
-// formatValidationError creates user-friendly error messages
-func formatValidationError(err validator.FieldError) string {
-	return formatMessage(err, err.Field())
 }
 
 func formatMessage(err validator.FieldError, field string) string {
@@ -131,30 +104,6 @@ func formatMessage(err validator.FieldError, field string) string {
 	default:
 		return field + " is invalid"
 	}
-}
-
-// SanitizeString removes potentially dangerous characters and trims whitespace
-func SanitizeString(s string) string {
-	// Trim whitespace
-	s = strings.TrimSpace(s)
-
-	// Remove null bytes
-	s = strings.ReplaceAll(s, "\x00", "")
-
-	// Remove control characters except newlines and tabs
-	s = removeControlChars(s)
-
-	return s
-}
-
-// removeControlChars removes control characters except newlines and tabs
-func removeControlChars(s string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) && r != '\n' && r != '\t' && r != '\r' {
-			return -1
-		}
-		return r
-	}, s)
 }
 
 // validatePhone validates phone number format
@@ -272,58 +221,4 @@ func validateNoAtSign(fl validator.FieldLevel) bool {
 func ValidateEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
-}
-
-// GetValidated retrieves and type-asserts the validated struct from context.
-// This provides type-safe access to data set by ValidateJSONMiddleware.
-func GetValidated[T any](c *gin.Context) (*T, *apperrors.AppError) {
-	validated, exists := c.Get("validated")
-	if !exists {
-		return nil, apperrors.ErrInvalidInput("request", "validation data not found")
-	}
-	result, ok := validated.(*T)
-	if !ok {
-		return nil, apperrors.ErrInvalidInput("request", "invalid validation data type")
-	}
-	return result, nil
-}
-
-// ValidateJSONMiddleware validates JSON request body against a struct
-// Usage: router.POST("/endpoint", ValidateJSONMiddleware(&MyStruct{}), handler)
-func ValidateJSONMiddleware(template interface{}) gin.HandlerFunc {
-	// Get the type of the template to create new instances per request
-	templateType := reflect.TypeOf(template)
-	if templateType.Kind() == reflect.Ptr {
-		templateType = templateType.Elem()
-	}
-
-	return func(c *gin.Context) {
-		// Create a new instance of the struct for each request
-		obj := reflect.New(templateType).Interface()
-
-		if err := c.ShouldBindJSON(obj); err != nil {
-			logger.FromContext(c).Warn().Err(err).Msg("Invalid JSON in request body")
-
-			appErr := apperrors.ErrInvalidInput("request body", err.Error())
-			apperrors.AbortWithError(c, appErr)
-			return
-		}
-
-		// Validate the struct
-		if validationErrors := ValidateStruct(obj); len(validationErrors) > 0 {
-			logger.FromContext(c).Warn().Interface("validation_errors", validationErrors).Msg("Validation failed")
-
-			// Build detailed validation error
-			appErr := apperrors.ErrValidation("Request validation failed")
-			for _, ve := range validationErrors {
-				appErr.WithDetails(ve.Field, ve.Message)
-			}
-			apperrors.AbortWithError(c, appErr)
-			return
-		}
-
-		// Store validated object in context
-		c.Set("validated", obj)
-		c.Next()
-	}
 }

@@ -27,10 +27,11 @@ The server starts on `PORT` (default `8080`). Migrations run automatically.
 
 ## Adding a New Endpoint
 
-1. Define an input DTO in `models/` with validation tags.
-2. Add a controller function in `controllers/`.
-3. Register the route in `routes/routes.go`.
-4. Add the validation schema to the middleware registration if needed.
+Add a use case and an operation to the module the endpoint belongs to (or start a module, see
+[Modules](#modules-hexagonal)): a typed input with `validate` tags and a `Resolve` method calling
+`api.ValidateBody`, a handler in the module's `adapters/http`, and its registration. Then run
+`make openapi`. A JSON route that is not a huma operation fails `routes/contract_test.go`; only
+routes that send files, images or redirects are listed there as exceptions.
 
 ## Database Migrations
 
@@ -94,8 +95,9 @@ make migrate-status
 
 ## Models and DTOs
 
-GORM models (`Contact`, `Activity`, etc.) live alongside input DTOs (`NoteInput`, etc.) in
-`models/`. DTOs are what controllers receive after validation while models are what GORM persists.
+GORM models (`Contact`, `Activity`, etc.) live in `models/`. Request and response types belong to
+the module's `adapters/http` and are described by the OpenAPI spec; `models/` holds what GORM
+persists.
 
 All models include `UserID uint` for tenant isolation.
 
@@ -110,7 +112,7 @@ time or a `clock.Fake`.
 
 ## API contract (huma)
 
-Endpoints are being converted to [huma](https://huma.rocks) operations in `backend/api` (see
+Every JSON endpoint is a [huma](https://huma.rocks) operations in `backend/api` (see
 [ADR 0011](../adr/0011-api-contract-with-huma.md)): typed input and output structs, registered with
 `api.Register` on the same Gin groups, errors in the AppError format, `api.ValidateBody` for the
 project validators. After changing an operation run `make openapi` (writes `docs/openapi.json` and
@@ -120,12 +122,12 @@ generated types in the frontend instead of hand-written ones.
 ## Modules (hexagonal)
 
 Converted modules live in `backend/<module>/` (today contacts, notes, activities, reminders,
-relationships, photos, trash, users, tokens, webhooks, exports, imports, monicaimport and
-calendars): a public entry package, and under `internal/` the `domain` (entities and rules, standard
-library only), `app` (use cases and the ports they need), and `adapters` (`persistence` is the only
-code that imports GORM; `http` registers the huma operations, and keeps the routes that send bytes
-or redirects as plain Gin handlers; `webhooks` implements the event port). `main.go` calls
-`routes.NewModules(db, cfg, oidcProvider)`, which builds the modules
+relationships, photos, trash, users, tokens, webhooks, exports, imports, monicaimport, calendars,
+contactsync and admin): a public entry package, and under `internal/` the `domain` (entities and
+rules, standard library only), `app` (use cases and the ports they need), and `adapters`
+(`persistence` is the only code that imports GORM; `http` registers the huma operations, and keeps
+the routes that send bytes or redirects as plain Gin handlers; `webhooks` implements the event
+port). `main.go` calls `routes.NewModules(db, cfg, oidcProvider)`, which builds the modules
 (`contacts.New(contacts.Deps{...})`), and `routes` registers them. To add behaviour to a converted
 module write the use case in `app` (it takes the actor and `now`, and does its writes in one
 `Store.InTx`), a port if it needs new persistence, and a thin HTTP handler. See

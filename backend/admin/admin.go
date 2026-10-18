@@ -9,8 +9,10 @@ import (
 
 	httpadapter "meerkat/admin/internal/adapters/http"
 	"meerkat/admin/internal/adapters/persistence"
+	"meerkat/admin/internal/adapters/system"
 	"meerkat/admin/internal/app"
 	"meerkat/admin/internal/domain"
+	"meerkat/clock"
 	"meerkat/config"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -23,6 +25,8 @@ import (
 type Deps struct {
 	DB     *gorm.DB
 	Config *config.Config
+	// SendReminders runs the daily reminder e-mail job.
+	SendReminders func(clock.Clock) error
 }
 
 type Module struct{ uc *app.UseCases }
@@ -46,7 +50,7 @@ func New(d Deps) *Module {
 	}
 	return &Module{uc: app.New(
 		persistence.NewBackups(d.DB, cfg.BackupDir, photoDir, cfg.BackupRetentionCount),
-		persistence.NewAuditLog(d.DB), persistence.NewAudit(d.DB), persistence.NewUsers(d.DB), settings,
+		persistence.NewAuditLog(d.DB), persistence.NewAudit(d.DB), persistence.NewUsers(d.DB), system.NewReminders(d.SendReminders), system.Lockouts{}, settings,
 	)}
 }
 

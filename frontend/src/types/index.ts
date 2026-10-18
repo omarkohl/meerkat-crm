@@ -5,6 +5,8 @@
  * Types are re-exported from their source modules for backwards compatibility.
  */
 
+import type { components } from './generated/api';
+
 // Re-export types from API modules
 export type { Contact, ContactsResponse, GetContactsParams, Birthday } from '../api/contacts';
 
@@ -55,23 +57,14 @@ export interface AuthResponse {
 /**
  * Paginated list of users for admin
  */
-export interface UsersListResponse {
-  users: User[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
-}
+export type UsersListResponse = Omit<components['schemas']['UsersOutputBody'], 'users'> & { users: User[] };
 
 /**
  * Input for updating a user
  */
-export interface UserUpdateInput {
-  username?: string;
-  email?: string;
-  password?: string;
-  is_admin?: boolean;
-}
+export type UserUpdateInput = {
+  [K in keyof components['schemas']['UserUpdateBody']]?: Exclude<components['schemas']['UserUpdateBody'][K], null>;
+};
 
 /**
  * Form validation error

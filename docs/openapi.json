@@ -309,6 +309,55 @@
         },
         "type": "object"
       },
+      "AdminUserResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "date_format": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "two_factor_enabled": {
+            "description": "Whether a reset is needed; never the secret",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "email",
+          "language",
+          "date_format",
+          "is_admin",
+          "created_at",
+          "updated_at",
+          "two_factor_enabled"
+        ],
+        "type": "object"
+      },
       "AuditEntryResponse": {
         "additionalProperties": false,
         "properties": {
@@ -4476,6 +4525,73 @@
         ],
         "type": "object"
       },
+      "UserUpdateBody": {
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_admin": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "UsersOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_pages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "users",
+          "total",
+          "page",
+          "limit",
+          "total_pages"
+        ],
+        "type": "object"
+      },
       "WebhookBody": {
         "properties": {
           "events": {
@@ -5107,6 +5223,268 @@
         "summary": "Operational warnings for administrators",
         "tags": [
           "system-status"
+        ]
+      }
+    },
+    "/admin/trigger-reminders": {
+      "post": {
+        "operationId": "trigger-reminders",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Send the daily reminder e-mails now",
+        "tags": [
+          "admin-reminders"
+        ]
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "list-users",
+        "parameters": [
+          {
+            "description": "Page number, from 1",
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "description": "Page number, from 1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size, 1 to 100, default 25",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "Page size, 1 to 100, default 25",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Every account, oldest first",
+        "tags": [
+          "admin-users"
+        ]
+      }
+    },
+    "/admin/users/{id}": {
+      "delete": {
+        "operationId": "delete-user",
+        "parameters": [
+          {
+            "description": "The account's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The account's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete an account and everything it owns",
+        "tags": [
+          "admin-users"
+        ]
+      },
+      "get": {
+        "operationId": "get-user",
+        "parameters": [
+          {
+            "description": "The account's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The account's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "One account",
+        "tags": [
+          "admin-users"
+        ]
+      },
+      "patch": {
+        "operationId": "update-user",
+        "parameters": [
+          {
+            "description": "The account's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The account's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Change an account's username, email, password or admin flag; a new password ends its sessions",
+        "tags": [
+          "admin-users"
+        ]
+      }
+    },
+    "/admin/users/{id}/2fa/reset": {
+      "post": {
+        "operationId": "reset-user-two-factor",
+        "parameters": [
+          {
+            "description": "The account's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The account's ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Switch off an account's two-factor and end its sessions",
+        "tags": [
+          "admin-users"
         ]
       }
     },

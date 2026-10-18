@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"meerkat/admin"
+	"meerkat/api"
+	"meerkat/config"
 	"meerkat/models"
 	"net/http"
 	"net/http/httptest"
@@ -38,18 +41,9 @@ func setupRouter() (*gorm.DB, *gin.Engine) {
 	return db, router
 }
 
-func withValidated(factory func() any) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		payload := factory()
-		if payload != nil {
-			if err := c.ShouldBindJSON(payload); err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			c.Set("validated", payload)
-		}
-		c.Next()
-	}
+func mountAdmin(r *gin.Engine, db *gorm.DB) {
+	group := r.Group("")
+	admin.New(admin.Deps{DB: db, Config: &config.Config{}}).Register(api.New(group, r), group)
 }
 
 const (

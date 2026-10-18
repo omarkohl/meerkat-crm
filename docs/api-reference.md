@@ -6,6 +6,11 @@ has_children: false
 
 # API Reference
 
+The machine-readable contract of the JSON API is [openapi.json](openapi.json) (OpenAPI 3.1,
+generated from the code by `make openapi`). It is the source of truth for request and response
+shapes; this page adds the behaviour around them. Routes that send files, images or redirects are
+not in the spec.
+
 ## Base URL
 
 ```

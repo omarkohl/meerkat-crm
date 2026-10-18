@@ -253,7 +253,7 @@ func TestDeletingAUserRemovesTheirSessionsButKeepsTheAuditTrail(t *testing.T) {
 	require.NoError(t, db.Create(&victim).Error)
 	require.NoError(t, db.Create(&models.Session{UserID: victim.ID, PublicID: "v1", ExpiresAt: time.Now().Add(time.Hour)}).Error)
 	services.WriteAudit(db, models.AuditLog{UserID: &victim.ID, Username: "victim", Event: models.AuditLogin})
-	router.DELETE("/admin/users/:id", DeleteUser)
+	mountAdmin(router, db)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest("DELETE", fmt.Sprintf("/admin/users/%d", victim.ID), nil))
@@ -298,7 +298,7 @@ func TestAdminUserUpdateAuditDetailIsStructured(t *testing.T) {
 	target := models.User{Username: "target", Email: "t@example.com", Password: "x"}
 	require.NoError(t, db.Create(&target).Error)
 	require.NoError(t, db.Create(&models.Session{UserID: target.ID, PublicID: "t1", ExpiresAt: time.Now().Add(time.Hour)}).Error)
-	router.PATCH("/admin/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), UpdateUser)
+	mountAdmin(router, db)
 
 	body := `{"email":"new@example.com","password":"` + strongPasswordAlt + `"}`
 	req := httptest.NewRequest("PATCH", fmt.Sprintf("/admin/users/%d", target.ID), strings.NewReader(body))
