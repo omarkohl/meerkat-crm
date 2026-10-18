@@ -12,6 +12,7 @@ import (
 	"meerkat/metrics"
 	"meerkat/middleware"
 	"meerkat/models"
+	"meerkat/monicaimport"
 	"meerkat/notes"
 	"meerkat/photos"
 	"meerkat/relationships"
@@ -40,6 +41,7 @@ type Modules struct {
 	Webhooks      *webhooks.Module
 	Exports       *exports.Module
 	Imports       *imports.Module
+	MonicaImport  *monicaimport.Module
 	Users         *users.Module
 }
 
@@ -58,6 +60,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Webhooks:      webhooks.New(webhooks.Deps{DB: db, Config: cfg}),
 		Exports:       exports.New(exports.Deps{DB: db, Config: cfg}),
 		Imports:       imports.New(imports.Deps{DB: db, Config: cfg}),
+		MonicaImport:  monicaimport.New(monicaimport.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -88,6 +91,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Webhooks.Register(a, g.Protected)
 	m.Exports.Register(g.Protected)
 	m.Imports.Register(a, g.Protected)
+	m.MonicaImport.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -118,18 +122,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 
 			// Contact routes
 			RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected})
-
-			// Contact import routes (Monica CRM, via its REST API)
-			protected.POST("/contacts/import/monica/connect", middleware.ValidateJSONMiddleware(&models.MonicaConnectRequest{}), func(c *gin.Context) {
-				controllers.ConnectMonicaImport(c, cfg)
-			})
-			protected.POST("/contacts/import/monica/fetch", middleware.ValidateJSONMiddleware(&models.MonicaFetchRequest{}), controllers.StartMonicaFetch)
-			protected.GET("/contacts/import/monica/status", controllers.GetMonicaImportStatus)
-			protected.GET("/contacts/import/monica/preview", controllers.GetMonicaImportPreview)
-			protected.POST("/contacts/import/monica/confirm", middleware.ValidateJSONMiddleware(&models.MonicaConfirmRequest{}), func(c *gin.Context) {
-				controllers.ConfirmMonicaImport(c, cfg)
-			})
-			protected.DELETE("/contacts/import/monica/session", controllers.CancelMonicaImport)
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)

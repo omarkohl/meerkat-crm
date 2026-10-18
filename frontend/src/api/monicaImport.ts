@@ -1,24 +1,11 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
-import type { ImportRowPreview, ImportResult, RowImportAction } from './import';
+import type { ImportRowPreview, RowImportAction, SkippedRow } from './import';
+import type { components } from '../types/generated/api';
 
-// Per-entity totals of the connected Monica account
-export interface MonicaEntityCounts {
-  contacts: number;
-  activities: number;
-  notes: number;
-  reminders: number;
-  calls: number;
-  tasks: number;
-  gifts: number;
-  debts: number;
-}
+type Schemas = components['schemas'];
 
-// Response from connecting to a Monica instance
-export interface MonicaConnectResponse {
-  session_id: string;
-  totals: MonicaEntityCounts;
-  estimated_fetch_seconds: number;
-}
+export type MonicaEntityCounts = Schemas['MonicaEntityCounts'];
+export type MonicaConnectResponse = Schemas['MonicaConnectResponse'];
 
 // Phases of the fetch/import pipeline, reported by the status endpoint
 export type MonicaPhase =
@@ -36,23 +23,18 @@ export type MonicaPhase =
   | 'done'
   | 'failed';
 
-// Polling payload for fetch and import progress
-export interface MonicaImportStatus {
-  session_id: string;
-  phase: MonicaPhase;
-  phase_done: number;
-  phase_total: number;
-  error?: string;
-  result?: MonicaImportResult;
+// Related entities that would be imported alongside one contact
+export type MonicaRowRelatedCounts = Schemas['MonicaRelatedCounts'];
+
+// Import result extended with related-entity and photo counts
+export interface MonicaImportResult extends Omit<Schemas['MonicaImportResult'], 'skipped_rows'> {
+  skipped_rows: SkippedRow[];
 }
 
-// Related entities that would be imported alongside one contact
-export interface MonicaRowRelatedCounts {
-  activities: number;
-  notes: number;
-  reminders: number;
-  relationships: number;
-  extra_notes: number;
+// Polling payload for fetch and import progress
+export interface MonicaImportStatus extends Omit<Schemas['MonicaStatusResponse'], 'phase' | 'result'> {
+  phase: MonicaPhase;
+  result?: MonicaImportResult;
 }
 
 // Preview row extended with Monica-specific context
@@ -62,26 +44,8 @@ export interface MonicaImportRowPreview extends ImportRowPreview {
 }
 
 // Full preview of a fetched Monica snapshot
-export interface MonicaPreviewResponse {
-  session_id: string;
+export interface MonicaPreviewResponse extends Omit<Schemas['MonicaPreviewResponse'], 'rows'> {
   rows: MonicaImportRowPreview[];
-  total_rows: number;
-  valid_rows: number;
-  duplicate_count: number;
-  error_count: number;
-  totals: MonicaRowRelatedCounts;
-}
-
-// Import result extended with related-entity and photo counts
-export interface MonicaImportResult extends ImportResult {
-  activities_created: number;
-  notes_created: number;
-  reminders_created: number;
-  relationships_created: number;
-  relationships_collapsed: number;
-  photos_queued: number;
-  photos_saved: number;
-  photos_failed: number;
 }
 
 // Connect makes nine serialized requests to Monica at ~1/second, and a slow

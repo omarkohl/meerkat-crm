@@ -179,6 +179,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/import/monica/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the fetched contacts with the chosen action per contact */
+        post: operations["confirm-monica-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/monica/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the Monica URL and API token; answers what the account holds and a session */
+        post: operations["connect-monica-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/monica/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start fetching the account in the background */
+        post: operations["fetch-monica-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/monica/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The contacts of the fetched account with duplicate detection */
+        get: operations["monica-import-preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/monica/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel a session and drop its API token from memory */
+        delete: operations["cancel-monica-import"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/monica/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress of the fetch and the import, for polling */
+        get: operations["monica-import-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/import/preview": {
         parameters: {
             query?: never;
@@ -1600,6 +1702,167 @@ export interface components {
         MessageOutputBody: {
             message: string;
         };
+        MonicaCancelOutputBody: {
+            status: string;
+        };
+        MonicaConfirmBody: {
+            actions: components["schemas"]["MonicaRowAction"][] | null;
+            session_id: string;
+        };
+        MonicaConnectBody: {
+            /** @description Held in memory for the session only */
+            api_token: string;
+            base_url: string;
+        };
+        MonicaConnectResponse: {
+            /** Format: int64 */
+            estimated_fetch_seconds: number;
+            session_id: string;
+            totals: components["schemas"]["MonicaEntityCounts"];
+        };
+        MonicaDuplicateMatch: {
+            /** Format: int64 */
+            existing_contact_id: number;
+            existing_deleted: boolean;
+            existing_email: string;
+            existing_firstname: string;
+            existing_lastname: string;
+            existing_phone: string;
+            /** @description email, name, phone or vcard_uid */
+            match_reason: string;
+        };
+        MonicaEntityCounts: {
+            /** Format: int64 */
+            activities: number;
+            /** Format: int64 */
+            calls: number;
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            debts: number;
+            /** Format: int64 */
+            gifts: number;
+            /** Format: int64 */
+            notes: number;
+            /** Format: int64 */
+            reminders: number;
+            /** Format: int64 */
+            tasks: number;
+        };
+        MonicaFetchBody: {
+            /** @description Import one row per relationship pair */
+            collapse_reciprocal_relationships?: boolean;
+            /** @description Import calls, tasks, gifts and debts as notes */
+            include_extras?: boolean;
+            /** @description One extra request per contact */
+            include_relationships?: boolean;
+            session_id: string;
+        };
+        MonicaFetchOutputBody: {
+            session_id: string;
+        };
+        MonicaImportResult: {
+            /** Format: int64 */
+            activities_created: number;
+            /** Format: int64 */
+            created: number;
+            errors: string[];
+            /** Format: int64 */
+            notes_created: number;
+            /** Format: int64 */
+            photos_failed: number;
+            /** Format: int64 */
+            photos_queued: number;
+            /** Format: int64 */
+            photos_saved: number;
+            /**
+             * Format: int64
+             * @description Reciprocal halves skipped because the other direction was imported
+             */
+            relationships_collapsed: number;
+            /** Format: int64 */
+            relationships_created: number;
+            /** Format: int64 */
+            reminders_created: number;
+            /** Format: int64 */
+            skipped: number;
+            skipped_rows: components["schemas"]["MonicaSkippedRow"][];
+            /** Format: int64 */
+            total_processed: number;
+            /** Format: int64 */
+            updated: number;
+        };
+        MonicaPreviewResponse: {
+            /** Format: int64 */
+            duplicate_count: number;
+            /** Format: int64 */
+            error_count: number;
+            rows: components["schemas"]["MonicaRowPreview"][];
+            session_id: string;
+            /** Format: int64 */
+            total_rows: number;
+            totals: components["schemas"]["MonicaRelatedCounts"];
+            /** Format: int64 */
+            valid_rows: number;
+        };
+        MonicaRelatedCounts: {
+            /** Format: int64 */
+            activities: number;
+            /**
+             * Format: int64
+             * @description Calls, tasks, gifts and debts converted to notes
+             */
+            extra_notes: number;
+            /** Format: int64 */
+            notes: number;
+            /** Format: int64 */
+            relationships: number;
+            /** Format: int64 */
+            reminders: number;
+        };
+        MonicaRowAction: {
+            action: string;
+            /** Format: int64 */
+            row_index?: number;
+        };
+        MonicaRowPreview: {
+            /** @description The existing contact this row matches, null when none */
+            duplicate_match: components["schemas"]["MonicaDuplicateMatch"] | null;
+            has_photo: boolean;
+            parsed_contact: {
+                [key: string]: unknown;
+            };
+            related: components["schemas"]["MonicaRelatedCounts"];
+            /** Format: int64 */
+            row_index: number;
+            /** @description add, skip or update */
+            suggested_action: string;
+            validation_errors: string[];
+            warnings: string[];
+        };
+        MonicaSkippedRow: {
+            detail?: string;
+            name: string;
+            /** @description skipped, invalid or failed */
+            reason: string;
+            /**
+             * Format: int64
+             * @description 1-based, as the preview shows it
+             */
+            row: number;
+        };
+        MonicaStatusResponse: {
+            error?: string;
+            /** @description connecting, fetching_contacts, fetching_activities, fetching_notes, fetching_reminders, fetching_extras, fetching_relationships, building_preview, ready, importing, importing_photos, done or failed */
+            phase: string;
+            /** Format: int64 */
+            phase_done: number;
+            /** Format: int64 */
+            phase_total: number;
+            /** @description Set from the importing_photos phase on */
+            result?: components["schemas"]["MonicaImportResult"];
+            session_id: string;
+        };
         NoteBody: {
             /**
              * Format: int64
@@ -2520,6 +2783,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "confirm-monica-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonicaConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaImportResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "connect-monica-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonicaConnectBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaConnectResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "fetch-monica-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonicaFetchBody"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaFetchOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "monica-import-preview": {
+        parameters: {
+            query?: {
+                /** @description The session from connect */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaPreviewResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "cancel-monica-import": {
+        parameters: {
+            query?: {
+                /** @description The session from connect */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaCancelOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "monica-import-status": {
+        parameters: {
+            query?: {
+                /** @description The session from connect */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonicaStatusResponse"];
                 };
             };
             /** @description Error */

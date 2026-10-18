@@ -37,6 +37,7 @@ backend/
   webhooks/            # hexagonal module for managing webhooks; delivery and retries still run in services (every module's events share them)
   exports/             # hexagonal module for the CSV and vCard downloads (plain Gin handlers: they send files)
   imports/             # hexagonal module for the CSV and vCard import wizard (the parsing, mapping and merging stay in services, shared with the Monica import)
+  monicaimport/        # hexagonal module for the import from Monica (the fetch, mapping and applying stay in services)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout, plus the daily reminder e-mail job (`SendDailyDigest`; the lock around it and the e-mail outbox are in services)
   models/              # GORM models and input DTOs

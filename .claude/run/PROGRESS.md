@@ -2,7 +2,7 @@
 
 ## Next step
 
-13j3 (Monica import).
+13k (CardDAV sync settings and contact/calendar sync).
 
 ## Stack
 
@@ -286,6 +286,16 @@
   ownership, expiry with the fake clock, preview before confirm, VCF wizard, CSV session refused on
   the VCF endpoint, validation, 401). Frontend import types derive from the generated types.
   `make precommit` green.
+- Step 13j3: `backend/monicaimport` (domain: phases and the wizard's vocabulary; use cases
+  `Connect`, `StartFetch`, `Status`, `Preview`, `Confirm`, `Cancel`; port `Wizard`; persistence and
+  http adapters) with huma operations for the six endpoints (`connect`, `fetch` answering 202,
+  `status`, `preview`, `confirm`, `DELETE session`). The module owns its `MonicaImportManager`;
+  `main.go` gives it the clock; the last Gin import handlers and `controllers.SetImportClock` are
+  gone. Schema names are prefixed `Monica...` (they collide with the imports module's). The old
+  controller tests moved into 10 module tests on real SQLite with the fake Monica server (end to
+  end, idempotent rerun, bad token, validation, session ownership for every endpoint, required
+  `session_id`, cancel, expiry with the fake clock, 401). Frontend Monica types derive from the
+  generated types. Step 13j is done. `make precommit` green.
 
 ## Decisions
 
@@ -622,6 +632,15 @@
   `headers`, `sample_data`, `rows`, `errors`, `skipped_rows`, `validation_errors` and `warnings` are
   never null; `warnings` used to be missing when empty (now `[]`), which the frontend already
   treated as none.
+- 13j3, scope: as in 13j2 the fetch, mapping and applying of the snapshot stay in `services`
+  (`monica_import_*`); the module calls them behind the `Wizard` port. `Cancel` checks ownership
+  before it drops the session, as before. A missing `session_id` is still a 400 "Required field
+  'session_id' is missing".
+- 13j, cleanups: `models.FormatAddress` and `Contact.BeforeSave` **stay**: the CSV, VCF and Monica
+  imports and the CardDAV sync still save the GORM model directly, so they need the primary-value
+  sync; remove them with 13k, when the sync goes through the contacts module (or never, if the sync
+  stays on models). `services.addMonths/addYears` **stay**: the Monica mapping
+  (`nextRecurrenceOnOrAfter`) uses them. The reminders module keeps its own copy in the domain.
 
 ## For review
 

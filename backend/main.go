@@ -245,8 +245,6 @@ func main() {
 	// Add request ID middleware for tracing
 	r.Use(middleware.RequestIDMiddleware())
 
-	controllers.SetImportClock(clk)
-
 	// Take the time once per request; handlers read it with middleware.RequestNow
 	r.Use(middleware.ClockMiddleware(clk))
 
@@ -285,6 +283,7 @@ func main() {
 	// Composition root: the converted modules are built here from concrete adapters
 	modules := routes.NewModules(db, cfg, oidcProvider)
 	modules.Imports.SetClock(clk)
+	modules.MonicaImport.SetClock(clk)
 	routes.RegisterRoutes(r, cfg, db, modules)
 
 	// Create HTTP server with timeout configuration
