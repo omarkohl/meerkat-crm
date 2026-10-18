@@ -41,6 +41,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The user's API tokens, newest first, revoked ones included */
+        get: operations["list-api-tokens"];
+        put?: never;
+        /** Create an API token; the plaintext is in this response only */
+        post: operations["create-api-token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API token */
+        delete: operations["revoke-api-token"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/oidc/config": {
         parameters: {
             query?: never;
@@ -349,6 +384,25 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ics-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the user has a calendar feed; never the token */
+        get: operations["get-calendar-feed"];
+        put?: never;
+        /** Create the calendar feed or replace its token; the old URL stops working */
+        post: operations["create-calendar-feed"];
+        /** Revoke the calendar feed (idempotent) */
+        delete: operations["revoke-calendar-feed"];
         options?: never;
         head?: never;
         patch?: never;
@@ -859,6 +913,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        APITokenBody: {
+            name: string;
+        };
+        APITokenCreatedResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            last_used_at: string | null;
+            name: string;
+            /** Format: date-time */
+            revoked_at: string | null;
+            /** @description The plaintext token; it cannot be read again */
+            token: string;
+        };
+        APITokenListOutputBody: {
+            tokens: components["schemas"]["APITokenResponse"][] | null;
+        };
+        APITokenResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            last_used_at: string | null;
+            name: string;
+            /** Format: date-time */
+            revoked_at: string | null;
+        };
         ActivityBody: {
             /** @description The contacts that took part. On update, leaving it out keeps the current ones; an empty list removes them. */
             contact_ids?: number[] | null;
@@ -1230,6 +1314,28 @@ export interface components {
             };
             message: string;
         };
+        FeedCreatedResponse: {
+            /** Format: date-time */
+            created_at: string | null;
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description When the feed URL was last read; recorded at most once a minute
+             */
+            last_fetched_at: string | null;
+            /** @description The secret in the feed URL; it cannot be read again */
+            token: string;
+        };
+        FeedStatusResponse: {
+            /** Format: date-time */
+            created_at: string | null;
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description When the feed URL was last read; recorded at most once a minute
+             */
+            last_fetched_at: string | null;
+        };
         GraphEdgeResponse: {
             id: string;
             /** @description The relationship type or the activity title */
@@ -1275,6 +1381,9 @@ export interface components {
             language?: string;
             /** @description True when the password was right and the second step is still due */
             totp_required?: boolean;
+        };
+        MessageOutputBody: {
+            message: string;
         };
         NoteBody: {
             /**
@@ -1762,6 +1871,100 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APITokenListOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "create-api-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APITokenBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APITokenCreatedResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "revoke-api-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
                 };
             };
             /** @description Error */
@@ -2616,6 +2819,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GraphOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedStatusResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "create-calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedCreatedResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "revoke-calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
                 };
             };
             /** @description Error */

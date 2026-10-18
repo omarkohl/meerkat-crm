@@ -1,15 +1,9 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
-export interface IcsFeedStatus {
-  enabled: boolean;
-  created_at: string | null;
-  last_fetched_at: string | null;
-}
-
-export interface IcsFeedCreateResponse extends IcsFeedStatus {
-  token: string;
-}
+export type IcsFeedStatus = components['schemas']['FeedStatusResponse'];
+export type IcsFeedCreateResponse = components['schemas']['FeedCreatedResponse'];
 
 export async function getIcsFeed(): Promise<IcsFeedStatus> {
   const response = await apiFetch(`${API_BASE_URL}/ics-feed`, {

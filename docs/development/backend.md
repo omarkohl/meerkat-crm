@@ -120,8 +120,8 @@ generated types in the frontend instead of hand-written ones.
 ## Modules (hexagonal)
 
 Converted modules live in `backend/<module>/` (today contacts, notes, activities, reminders,
-relationships, photos, trash and users): a public entry package, and under `internal/` the `domain`
-(entities and rules, standard library only), `app` (use cases and the ports they need), and
+relationships, photos, trash, users and tokens): a public entry package, and under `internal/` the
+`domain` (entities and rules, standard library only), `app` (use cases and the ports they need), and
 `adapters` (`persistence` is the only code that imports GORM; `http` registers the huma operations,
 and keeps the routes that send bytes or redirects as plain Gin handlers; `webhooks` implements the
 event port). `main.go` calls `routes.NewModules(db, cfg, oidcProvider)`, which builds the modules

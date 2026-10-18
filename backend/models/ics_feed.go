@@ -10,22 +10,8 @@ type IcsFeed struct {
 	UserID    uint   `gorm:"not null;uniqueIndex"`
 	TokenHash string `gorm:"not null;uniqueIndex" json:"-"`
 	// LastFetchedAt is when the feed was last read through its URL; it is written at
-	// most once a minute (see ServeIcsFeed).
+	// most once a minute (see the tokens module).
 	LastFetchedAt *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
-}
-
-// IcsFeedStatus is returned by the feed management endpoints.
-type IcsFeedStatus struct {
-	Enabled       bool       `json:"enabled"`
-	CreatedAt     *time.Time `json:"created_at"`
-	LastFetchedAt *time.Time `json:"last_fetched_at"`
-}
-
-// IcsFeedCreateResponse is returned on creation/regeneration and includes the
-// plaintext token, which is never retrievable again.
-type IcsFeedCreateResponse struct {
-	IcsFeedStatus
-	Token string `json:"token"`
 }

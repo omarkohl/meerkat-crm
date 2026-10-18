@@ -2,7 +2,7 @@
 
 ## Next step
 
-13h (API tokens and ICS feeds).
+13i (webhooks and email outbox).
 
 ## Stack
 
@@ -234,6 +234,17 @@
   `services.OIDCProvider`) and `ProvisionOIDC` (over `services.FindOrProvisionUser`). The old
   controller is gone; its tests with the fake provider moved into 10 module tests. **Step 13g is
   done.** `make precommit` green.
+- Step 13h: `backend/tokens` (domain: secret generation and hashing, feed file pattern, audit
+  detail; use cases for the six management endpoints and `ServeFeed`; ports `Tokens`/`Feeds`/
+  `Audit`; persistence and http adapters) with huma operations for `/api-tokens` (GET, POST, DELETE)
+  and `/ics-feed` (GET, POST, DELETE); the public `GET /ics/:file` is a plain Gin handler of the
+  http adapter on the public group with the API rate limit (like the photo downloads).
+  `routes.NewModules` extended; depguard rules `tokens-*` (shown to fail). Old controllers, their
+  tests and `models.ApiTokenInput/Response/CreateResponse`, `IcsFeedStatus/CreateResponse` removed
+  (the audit assertions moved into the module's tests). 23 module tests on real SQLite incl.
+  isolation, 401, throttled fetch recording with the fake clock, the unique-conflict retry and a
+  failed build. Frontend `ApiToken*` and `IcsFeed*` derive from the generated types. The auth
+  middleware keeps verifying API tokens itself (step 14+). `make precommit` green.
 
 ## Decisions
 
@@ -513,6 +524,13 @@
   loses the action's lint cache.
 
 - `test-coverage` is not in `precommit` yet (step 8 adds thresholds first).
+- 13h: `GET /ics/:file` records a fetch with the request's clock time (it read the real time before,
+  so `FAKE_NOW` now applies); a `304` still counts as a fetch. The API token endpoints stay open to
+  API tokens as before (a token can create or revoke tokens). Revoking an already revoked token
+  succeeds and stamps `revoked_at` again, as before. Audit entries are written by a copy of the
+  users module's audit adapter (username lookup + `services.WriteAudit`); extract one when a third
+  module needs it. Failure wording per stage is kept ("query", "insert", "update", "delete", "build
+  calendar feed", "token generation failed").
 
 ## For review
 

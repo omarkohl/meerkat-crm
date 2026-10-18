@@ -144,7 +144,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       - [x] 13g4b. register and `GET /users/me`
       - [x] 13g4c. login with the second step and logout
     - [x] 13g5. OIDC login and callback (redirects; stay Gin handlers in the module)
-  - [ ] 13h. API tokens and ICS feeds
+  - [x] 13h. API tokens and ICS feeds
   - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job)
   - [ ] 13j. import (CSV, VCF, Monica) and export
   - [ ] 13k. CardDAV sync settings and contact/calendar sync (the CardDAV protocol endpoints stay

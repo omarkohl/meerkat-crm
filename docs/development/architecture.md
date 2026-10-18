@@ -33,6 +33,7 @@ backend/
   relationships/       # hexagonal module for relationships and the network graph, same layout
   photos/              # hexagonal module for profile pictures and thumbnails (image downloads are plain Gin handlers)
   trash/               # hexagonal module for the trash; restore and purge still run in services (shared with the contact sync)
+  tokens/              # hexagonal module for API tokens and the calendar feed (the feed itself is a plain Gin handler)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout (the e-mail job is still in services)
   models/              # GORM models and input DTOs

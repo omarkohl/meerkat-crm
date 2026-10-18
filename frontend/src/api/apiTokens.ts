@@ -1,19 +1,11 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
-export interface ApiToken {
-  id: number;
-  name: string;
-  created_at: string;
-  last_used_at: string | null;
-  revoked_at: string | null;
-}
+export type ApiToken = components['schemas']['APITokenResponse'];
+export type ApiTokenCreateResponse = components['schemas']['APITokenCreatedResponse'];
 
-export interface ApiTokenCreateResponse extends ApiToken {
-  token: string;
-}
-
-export interface ApiTokensListResponse {
+export interface ApiTokensListResponse extends Omit<components['schemas']['APITokenListOutputBody'], 'tokens'> {
   tokens: ApiToken[];
 }
 

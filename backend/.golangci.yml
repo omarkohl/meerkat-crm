@@ -339,6 +339,43 @@ linters:
               desc: only the persistence adapter talks to GORM (ADR 0012)
             - pkg: meerkat/models
               desc: only the persistence adapter knows the GORM models (ADR 0012)
+        tokens-domain-stays-pure:
+          files:
+            - "**/tokens/internal/domain/**"
+            - "!$test"
+          allow:
+            - $gostd
+        tokens-use-cases-depend-on-ports:
+          files:
+            - "**/tokens/internal/app/**"
+            - "!$test"
+          deny:
+            - pkg: gorm.io/gorm
+              desc: use cases talk to ports, not to GORM; put the query in internal/adapters/persistence (ADR 0012)
+            - pkg: github.com/gin-gonic/gin
+              desc: use cases do not know HTTP; map in internal/adapters/http (ADR 0012)
+            - pkg: github.com/danielgtaylor/huma
+              desc: use cases do not know HTTP; map in internal/adapters/http (ADR 0012)
+            - pkg: meerkat/models
+              desc: use cases use domain types; the adapter maps from models (ADR 0012)
+            - pkg: meerkat/services
+              desc: use cases depend on a port, an adapter calls the service (ADR 0012)
+            - pkg: meerkat/api
+              desc: use cases do not know the HTTP layer (ADR 0012)
+            - pkg: meerkat/tokens/internal/adapters
+              desc: use cases never import adapters; adapters implement the ports (ADR 0012)
+        tokens-repositories-stay-in-persistence:
+          # tokens.go is the entry seam: Deps.DB is a *gorm.DB, which it hands to persistence.New.
+          files:
+            - "**/tokens/**"
+            - "!**/tokens/internal/adapters/persistence/**"
+            - "!**/tokens/tokens.go"
+            - "!$test"
+          deny:
+            - pkg: gorm.io/gorm
+              desc: only the persistence adapter talks to GORM (ADR 0012)
+            - pkg: meerkat/models
+              desc: only the persistence adapter knows the GORM models (ADR 0012)
         users-domain-stays-pure:
           files:
             - "**/users/internal/domain/**"

@@ -15,6 +15,7 @@ import (
 	"meerkat/relationships"
 	"meerkat/reminders"
 	"meerkat/services"
+	"meerkat/tokens"
 	"meerkat/trash"
 	"meerkat/users"
 
@@ -32,6 +33,7 @@ type Modules struct {
 	Relationships *relationships.Module
 	Photos        *photos.Module
 	Trash         *trash.Module
+	Tokens        *tokens.Module
 	Users         *users.Module
 }
 
@@ -46,6 +48,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
+		Tokens:        tokens.New(tokens.Deps{DB: db}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -72,6 +75,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Relationships.Register(a, g.Protected)
 	m.Photos.Register(a, g.Protected)
 	m.Trash.Register(a, g.Protected)
+	m.Tokens.Register(a, g.Public, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -93,10 +97,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 		// exists, see RegisterAPI; the rest are plain Gin handlers until they are converted
 		// (docs/adr/0011-api-contract-with-huma.md).
 		humaAPI := api.New(v1, router)
-
-		// Calendar feed (ICS). Public on purpose: calendar apps cannot send cookies or
-		// headers, so the unguessable per-user token in the path is the only credential.
-		v1.GET("/ics/:file", middleware.APIRateLimitMiddleware(), controllers.ServeIcsFeed)
 
 		// Protected routes (authentication required, general rate limiting)
 		protected := v1.Group("/")
@@ -140,16 +140,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 			protected.GET("/export/vcf", func(c *gin.Context) {
 				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
 			})
-
-			// API token routes
-			protected.GET("/api-tokens", controllers.ListApiTokens)
-			protected.POST("/api-tokens", middleware.ValidateJSONMiddleware(&models.ApiTokenInput{}), controllers.CreateApiToken)
-			protected.DELETE("/api-tokens/:id", controllers.RevokeApiToken)
-
-			// Calendar feed (ICS) management; the feed itself is the public /ics/:file route
-			protected.GET("/ics-feed", controllers.GetIcsFeed)
-			protected.POST("/ics-feed", controllers.CreateIcsFeed)
-			protected.DELETE("/ics-feed", controllers.DeleteIcsFeed)
 
 			// Webhook routes
 			protected.GET("/webhooks", controllers.ListWebhooks)

@@ -67,3 +67,13 @@ func cookie(w *httptest.ResponseRecorder, name string) *http.Cookie {
 	}
 	return found
 }
+
+func doReq(r *gin.Engine, method, path string, hdr ...string) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest(method, path, nil)
+	for i := 0; i+1 < len(hdr); i += 2 {
+		req.Header.Set(hdr[i], hdr[i+1])
+	}
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}

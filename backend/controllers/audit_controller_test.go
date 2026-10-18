@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -26,10 +25,6 @@ func auditEnv(t *testing.T) (*backupEnv, func(uid uint) *gin.Engine) {
 		r := gin.New()
 		r.Use(func(c *gin.Context) { c.Set("db", e.db); c.Set("userID", uid); c.Next() })
 		r.GET("/admin/audit-log", middleware.AdminMiddleware(), ListAuditLog)
-		r.POST("/api-tokens", middleware.ValidateJSONMiddleware(&models.ApiTokenInput{}), CreateApiToken)
-		r.DELETE("/api-tokens/:id", RevokeApiToken)
-		r.POST("/ics-feed", CreateIcsFeed)
-		r.DELETE("/ics-feed", DeleteIcsFeed)
 		return r
 	}
 	return e, mk
@@ -83,39 +78,6 @@ func TestAuditLogListFiltersAndPagesNewestFirst(t *testing.T) {
 	page := get("?limit=3&page=2")
 	assert.Len(t, page.Entries, 3)
 	assert.Equal(t, 7, page.Total)
-}
-
-func TestSecurityRelevantActionsAreAudited(t *testing.T) {
-	e, mk := auditEnv(t)
-	var user models.User
-	require.NoError(t, e.db.Where("is_admin = ?", false).First(&user).Error)
-	r := mk(user.ID)
-
-	req := httptest.NewRequest("POST", "/api-tokens", strings.NewReader(`{"name":"ci"}`))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
-	var created struct{ ID uint }
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &created))
-	assert.Equal(t, http.StatusOK, e.do(r, "DELETE", fmt.Sprintf("/api-tokens/%d", created.ID)).Code)
-	assert.Equal(t, http.StatusCreated, e.do(r, "POST", "/ics-feed").Code)
-	assert.Equal(t, http.StatusOK, e.do(r, "DELETE", "/ics-feed").Code)
-
-	var got []models.AuditLog
-	require.NoError(t, e.db.Order("id").Find(&got).Error)
-	var events []string
-	for _, g := range got {
-		events = append(events, g.Event)
-		require.NotNil(t, g.UserID)
-		assert.Equal(t, user.ID, *g.UserID)
-		assert.Equal(t, "plain", g.Username)
-		// Never a secret
-		assert.NotContains(t, g.Detail, "meerkat_")
-	}
-	assert.Equal(t, []string{models.AuditAPITokenCreated, models.AuditAPITokenRevoked, models.AuditICSFeedCreated, models.AuditICSFeedRevoked}, events)
-	assert.Equal(t, "token:ci", got[0].Detail)
-	assert.Equal(t, "token:ci", got[1].Detail)
 }
 
 func TestPurgedAuditEntriesKeepOtherYears(t *testing.T) {

@@ -126,26 +126,6 @@ type AdminUsersListResponse struct {
 	TotalPages int                 `json:"total_pages"`
 }
 
-// ApiTokenInput represents the DTO for creating an API token
-type ApiTokenInput struct {
-	Name string `json:"name" validate:"required,min=1,max=100"`
-}
-
-// ApiTokenResponse represents the DTO returned for an API token
-type ApiTokenResponse struct {
-	ID         uint       `json:"id"`
-	Name       string     `json:"name"`
-	CreatedAt  time.Time  `json:"created_at"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	RevokedAt  *time.Time `json:"revoked_at"`
-}
-
-// ApiTokenCreateResponse is returned on token creation and includes the plaintext token
-type ApiTokenCreateResponse struct {
-	ApiTokenResponse
-	Token string `json:"token"`
-}
-
 // WebhookInput is the DTO for creating/updating a webhook
 type WebhookInput struct {
 	Name     string   `json:"name" validate:"required,min=1,max=200"`
