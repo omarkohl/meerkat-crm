@@ -30,8 +30,8 @@ implementer's summary.
    - **Accessibility**: labels, keyboard use, focus, nothing conveyed only by colour.
    - **Maintainability**: clarity, naming, structure; tests written first, testing behaviour; E2E
      using roles and labels (no test ids); no duplicated coverage.
-   - **Consistency**: codebase patterns (`ValidateJSONMiddleware`, `AppError`, `api/client.ts`,
-     hooks), `docs/api-reference.md` updated for API changes.
+   - **Consistency**: codebase patterns (`api.ValidateBody`, `AppError`, `api/client.ts`, hooks),
+     `docs/api-reference.md` updated for API changes.
    - **Scope**: the commit does the step, all of it, and nothing beyond it.
 3. Rate each finding **Critical** (bugs, data loss, cross-user leak, security), **Major** (likely
    problems, requirement deviations, significant maintainability concerns) or **Minor** (style,

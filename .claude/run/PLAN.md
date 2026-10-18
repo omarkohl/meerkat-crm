@@ -186,7 +186,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       prefix, ≤ 72 chars). `CHANGELOG.md` for users: one bullet per change, issue reference, length
       limit checked by a script. ADR for the changelog; commit rules (§7) in
       `docs/development/contributing.md` and `AGENTS.md`.
-- [ ] 22. **Docs**: README, `docs/development/*`, `AGENTS.md` reflect the new targets and layout.
+- [x] 22. **Docs**: README, `docs/development/*`, `AGENTS.md` reflect the new targets and layout.
       Full `make precommit`.
 - [ ] 23. **Finish**: check each row of the destination table: the content is in its destination.
       Summary and "For review" list in PROGRESS.md. Then purge `.claude/run/` and delete

@@ -8,19 +8,20 @@ nav_order: 4
 
 ## Make targets
 
-`make test` (unit and integration), `make test-coverage` (same, with coverage), `make test-e2e`
-(Playwright against a local stack), `make precommit` (all checks including E2E). Targets that need
-dependencies depend on `install-go` and/or `install-frontend` (`install` runs both), so a fresh
-clone works. CI runs the same targets (`test-coverage-go GO_TEST_FLAGS=-race`,
-`test-coverage-frontend`, `test-carddav`, `test-e2e-docker`).
+`make test` (script tests, use-case check, Go and Vitest tests), `make test-coverage` (Go and Vitest
+tests with coverage thresholds), `make test-e2e` (Playwright against a local stack),
+`make precommit` (all checks including E2E). Targets that need dependencies depend on `install-go`
+and/or `install-frontend` (`install` runs both), so a fresh clone works. CI runs the same targets
+(`test-coverage-go GO_TEST_FLAGS=-race`, `test-coverage-frontend`, `test-carddav`,
+`test-e2e-docker`).
 
 ## Running one test
 
-| Suite      | By file                                    | By name                                                 | By line                                           |
-| ---------- | ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------- |
-| Go         | `cd backend && go test ./controllers/`     | `cd backend && go test ./controllers/ -run TestName -v` | no line syntax; use `-run` with the test function |
-| Vitest     | `cd frontend && npm test src/auth.test.ts` | `npm test src/auth.test.ts -- -t "part of the name"`    | no line syntax; use `-t`                          |
-| Playwright | `make test-e2e ARGS=e2e/contacts.spec.ts`  | `make test-e2e ARGS='-g "part of the title"'`           | `make test-e2e ARGS=e2e/contacts.spec.ts:42`      |
+| Suite      | By file                                    | By name                                              | By line                                           |
+| ---------- | ------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------- |
+| Go         | `cd backend && go test ./notes/`           | `cd backend && go test ./notes/ -run TestName -v`    | no line syntax; use `-run` with the test function |
+| Vitest     | `cd frontend && npm test src/auth.test.ts` | `npm test src/auth.test.ts -- -t "part of the name"` | no line syntax; use `-t`                          |
+| Playwright | `make test-e2e ARGS=e2e/contacts.spec.ts`  | `make test-e2e ARGS='-g "part of the title"'`        | `make test-e2e ARGS=e2e/contacts.spec.ts:42`      |
 
 `E2E_SKIP_BUILD=1 make test-e2e ARGS=...` reuses the previous builds.
 

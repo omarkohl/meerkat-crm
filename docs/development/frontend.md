@@ -31,14 +31,16 @@ Hot reload is enabled. The dev server proxies nothing so requests go directly to
 
 ## Adding a New Page
 
-1. Create `src/pages/FooPage.tsx`.
+1. Create `src/FooPage.tsx`.
 2. Add a route in the router (typically in `App.tsx`).
 3. Add a custom hook in `src/hooks/useFoo.ts` for data fetching (see pattern below).
 4. Add an API module in `src/api/foo.ts` if needed.
 
 ## API Client
 
-All requests go through `src/api/client.ts`. It handles:
+API types come from the OpenAPI document: derive them from `src/types/generated/api.ts`
+(`components['schemas']['NoteResponse']`) instead of writing them by hand, and run `make openapi`
+after the backend changes. All requests go through `src/api/client.ts`. It handles:
 
 - httpOnly cookie auth (`credentials: 'include'`, no Authorization header)
 - Configurable timeout via `VITE_REQUEST_TIMEOUT` (default 30s)
@@ -60,15 +62,16 @@ prop and `onClose` callback.
 
 ## Translations
 
-All user-facing strings must be translated. Add keys to both `src/i18n/locales/en.json` and
-`de.json`. Do not hardcode English strings in components.
+All user-facing strings must be translated. Add keys to all five files in `src/i18n/locales/` (en,
+de, it, es, fr); `make i18n-check` fails on a missing key. Do not hardcode English strings in
+components.
 
 ## Linting
 
 `make lint-frontend` runs ESLint 9 (`frontend/eslint.config.mjs`) on `src/**/*.{ts,tsx}`:
 `typescript-eslint` strict-type-checked, `react-hooks`, `jsx-a11y`, `eslint-comments`. Every rule is
-an error. E2E specs and config files are not linted yet (step 16 of the engineering-principles run
-adds `eslint-plugin-playwright` and them).
+an error. `e2e/` is linted with `eslint-plugin-playwright` and two extra rules (no template-literal
+`goto`, no `getByTestId`), see [Testing](testing.md).
 
 ### Suppressions (existing findings)
 
@@ -105,5 +108,5 @@ nothing outside `src/api` imports `src/api/client.ts`. Existing violations are r
 
 ## Testing
 
-The frontend is tested via Playwright E2E tests against a running application. See
-[Testing](testing.md).
+Vitest unit tests sit next to the code (`*.test.ts(x)`, `make test-frontend`); Playwright E2E tests
+drive the running application. See [Testing](testing.md).

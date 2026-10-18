@@ -131,39 +131,17 @@ to feature requests in these cases.
 
 ### Development
 
-To set up this repository for development, follow these steps:
+You need [Go](https://golang.org/doc/install) and the Node.js version in `.node-version`.
 
-1. **Clone the repository:**
+```sh
+git clone https://github.com/omarkohl/meerkat-crm.git
+cd meerkat-crm
+make dev        # backend and frontend with no setup; data goes to .dev/
+make seed       # in a second terminal: a demo user and contacts
+make precommit  # all checks, including E2E; run it before each commit
+```
 
-   ```sh
-   git clone https://github.com/omarkohl/meerkat-crm.git
-   cd meerkat-crm
-   ```
-
-1. **Run the backend:** Ensure you have [Go](https://golang.org/doc/install) installed. Then, set up
-   your environment configuration:
-
-   ```sh
-    cd backend
-    # Copy the example environment file and configure it with your settings
-    cp .env.example .env
-
-    # Install dependencies and run
-    go mod tidy
-    source .env
-    go run main.go
-   ```
-
-   The project uses an SQLite database for storage. Database migrations run automatically on
-   startup.
-
-1. **Run the frontend (in a second terminal):**
-   ```sh
-   cd frontend
-
-   npm ci
-   npm start
-   ```
+`make help` lists all targets. The project uses an SQLite database; migrations run on startup.
 
 You can find a more comprehensive overview for developers in the [CONTRIBUTING.md](CONTRIBUTING.md).
 

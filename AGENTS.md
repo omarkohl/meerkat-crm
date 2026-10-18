@@ -58,6 +58,10 @@ green, refactor without touching the test. Exceptions: pure styling and fully co
 
 Before a commit run `make precommit` (it includes the E2E tests).
 
+A new route or a model with a `user_id` needs an entry, with its isolation test, in
+`backend/routes/invariants_test.go`. A new JSON route is a huma operation (`make openapi`). Tag
+tests with the use case they cover (`@001-US1`, `docs/use-cases.yml`).
+
 ## Changelog
 
 Update `CHANGELOG.md` under `[Unreleased]` for any user-facing change. The audience is users and

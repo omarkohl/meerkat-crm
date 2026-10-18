@@ -34,10 +34,11 @@ The main session is the orchestrator. Per step:
 
 Run from the repository root. All must pass before a commit:
 
-- `make precommit`: gofmt and Prettier check on all files, `go vet`, golangci-lint, ESLint, `tsc`,
-  i18n check, Go tests, Vitest and `make test-e2e` (Playwright against a local stack without Docker,
-  `scripts/e2e-stack.mjs`). Use `E2E_SKIP_BUILD=1` to reuse builds and `ARGS=e2e/contacts.spec.ts`
-  to narrow, when you run `make test-e2e` alone.
+- `make precommit`: gofmt and Prettier check on all files, `go vet`, golangci-lint, ESLint, Markdown
+  link and changelog checks, `tsc`, i18n check, architecture rules, OpenAPI check, script tests,
+  use-case check, Go and Vitest tests with coverage thresholds and `make test-e2e` (Playwright
+  against a local stack without Docker, `scripts/e2e-stack.mjs`). Use `E2E_SKIP_BUILD=1` to reuse
+  builds and `ARGS=e2e/contacts.spec.ts` to narrow, when you run `make test-e2e` alone.
 - If `npx playwright install chromium` is blocked, look for preinstalled browsers (e.g.
   `/opt/pw-browsers`) and point a throwaway, **uncommitted** Playwright config at them via
   `launchOptions.executablePath`. Record the workaround in PROGRESS.md. If no browser works, record
@@ -56,14 +57,19 @@ Run from the repository root. All must pass before a commit:
 - **Transactions** for multi-entity writes; deletes clean up dependants.
 - **i18n**: every new UI string in all five locales (`frontend/src/i18n/locales/`, and
   `backend/i18n/locales/` for backend strings): en, de, it, es, fr.
-- **API**: new endpoints go through `frontend/src/api/client.ts`; update `docs/api-reference.md`.
+- **API**: a new JSON endpoint is a huma operation in its module; run `make openapi`; the frontend
+  derives types from `src/types/generated/api.ts` and calls `src/api/client.ts`; update
+  `docs/api-reference.md` for behaviour. A new route or model with a `user_id` needs its entry and
+  isolation test in `backend/routes/invariants_test.go`. Tag tests with a use case from
+  `docs/use-cases.yml`.
 - **Scope**: do the step, all of it, nothing beyond it. Unrelated findings go to PROGRESS.md
   `## Questions`.
 
 ## Commits
 
-- Conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`). Message as short
-  as possible, as long as necessary, focus on **why**.
+- Conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, ...; subject at
+  most 72 characters, checked by `make check-commits`). Message as short as possible, as long as
+  necessary, focus on **why**.
 - One commit per step; tick the step in PLAN.md and update PROGRESS.md in the same commit.
 - Cloud: use `git`. Locally: use `jj`.
 

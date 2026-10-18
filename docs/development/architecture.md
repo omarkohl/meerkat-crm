@@ -43,8 +43,11 @@ backend/
   contactsync/         # hexagonal module for the CardDAV connection settings (the sync engine and the protocol endpoints are elsewhere)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout, plus the daily reminder e-mail job (`SendDailyDigest`; the lock around it and the e-mail outbox are in services)
-  models/              # GORM models and input DTOs
-  services/            # Business logic (reminders, import, birthdays, password reset)
+  models/              # GORM models
+  services/            # Logic the modules still share: sync engines, webhook delivery, e-mail outbox, import parsing, backups, jobs
+  cmd/openapi/         # Writes docs/openapi.json (make openapi)
+  cmd/migrate/         # Runs migrations by hand (cd backend && make migrate-up)
+  search/ session/ netguard/ clock/ logger/ idutil/ httputil/ photofile/ monica/  # small shared packages (the tree shows the main parts only)
   errors/              # AppError type and error handler middleware
   database/migrations/ # Embedded SQL migrations, auto-applied on startup
   carddav/             # CardDAV protocol implementation
@@ -53,18 +56,19 @@ backend/
 
 ### Error Handling
 
-Controllers return `*apperrors.AppError`. The error handler middleware at the top of the stack
-catches these and writes a structured JSON response. Unhandled panics are also caught.
+Handlers (the huma operations in each module's `adapters/http`) return `*apperrors.AppError`; the
+AppError format is the error body of every operation. The error handler middleware catches the rest
+and unhandled panics ([ADR 0007](../adr/0007-apperror.md)).
 
 ```go
-return nil, apperrors.New(http.StatusNotFound, "CONTACT_NOT_FOUND", "contact not found")
+return nil, apperrors.ErrNotFound("Contact")
 ```
 
 ### Database Layer
 
 SQLite via GORM. All SQL migrations live in `database/migrations/` as embedded files and run
-automatically on startup in version order. Use `make migrate-create NAME=xxx` to add a new
-migration.
+automatically on startup in version order (`cd backend && make migrate-create NAME=xxx` adds a new
+pair, see [Backend](backend.md#database-migrations)).
 
 Every table includes `user_id` for multi-tenant isolation and all queries must filter by it.
 
@@ -77,9 +81,9 @@ frontend/src/
   api/          # One module per resource (contacts, activities, …) + client.ts
   hooks/        # Data-fetching hooks (useContacts, useActivities, …)
   components/   # Reusable dialog and display components
-  pages/        # Top-level route components (one per page)
-  types/        # Shared TypeScript types
-  i18n/locales/ # en.json, de.json
+  *Page.tsx     # Top-level route components (one per page), next to App.tsx
+  types/        # Shared TypeScript types; types/generated/api.ts is generated (make openapi)
+  i18n/locales/ # en, de, it, es, fr
 ```
 
 ### State Management
@@ -95,9 +99,9 @@ React Router. Each page component maps to a route. Protected routes redirect to 
 
 ### Internationalization
 
-`i18next` with `react-i18next`. All UI strings live in `i18n/locales/en.json` and `de.json`. Use the
-`useTranslation()` hook. The user's language preference is stored server-side and applied to backend
-email notifications too.
+`i18next` with `react-i18next`. All UI strings live in `i18n/locales/` (en, de, it, es, fr; see
+[ADR 0008](../adr/0008-five-locales.md)). Use the `useTranslation()` hook. The user's language
+preference is stored server-side and applied to backend email notifications too.
 
 ## Security
 

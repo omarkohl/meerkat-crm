@@ -38,10 +38,13 @@ routes that send files, images or redirects are listed there as exceptions.
 ### Creating a Migration
 
 ```sh
-make migrate-create NAME=add_foo_column
+cd backend && make migrate-create NAME=add_foo_column
 ```
 
-This creates two files in `database/migrations/`: `NNNNNN_add_foo_column.up.sql` and `.down.sql`.
+This creates `NNNNNN_add_foo_column.up.sql` and `.down.sql` in `database/migrations/` (needs the
+[`migrate` CLI](https://github.com/golang-migrate/migrate)); write a working `down`. Never edit an
+existing migration ([ADR 0006](../adr/0006-never-edit-a-migration.md)); the round-trip test in
+`database/` runs every pair up and down.
 
 ### Dropping the legacy thumbnail column
 
@@ -80,7 +83,7 @@ create the tables before the first search on a database.
   the triggers and rebuild the index: `DELETE FROM contacts_fts;` followed by the
   `INSERT ... SELECT` from migration 29.
 - When the tables do not exist (for example the in-memory test databases built with `AutoMigrate`)
-  the controllers fall back to the old `LIKE` search, so both paths stay covered by tests;
+  the search code falls back to the old `LIKE` search, so both paths stay covered by tests;
   `controllers/search_fts_test.go` builds the index from the migration file.
 
 ### Running Migrations
@@ -88,10 +91,14 @@ create the tables before the first search on a database.
 Migrations run automatically on startup. To apply or roll back manually:
 
 ```sh
+cd backend
 make migrate-up
 make migrate-down
 make migrate-status
 ```
+
+`go test ./database` runs every pair up and down and migrates the databases made by past releases
+(`database/testdata/releases/`).
 
 ## Models and DTOs
 
@@ -103,16 +110,17 @@ All models include `UserID uint` for tenant isolation.
 
 ## Services
 
-Complex business logic lives in `services/`. Controllers call services; services own multi-step
-operations (e.g. sending emails). Services receive a `*gorm.DB` and any needed config, they do not
-access `*gin.Context`. They never read the wall clock: take `now time.Time` as a parameter
-(controllers pass `middleware.RequestNow(c)`, jobs the time taken by the scheduler). `forbidigo`
-fails the build on `time.Now`; see [ADR 0009](../adr/0009-injected-clock.md). In tests pass a fixed
-time or a `clock.Fake`.
+Logic that several modules or jobs share lives in `services/` (sync engines, webhook delivery, the
+e-mail outbox, import parsing, backups). The adapters of the modules (persistence, webhooks) call
+services; services own multi-step operations (e.g. sending emails). Services receive a `*gorm.DB`
+and any needed config, they do not access `*gin.Context`. They never read the wall clock: take
+`now time.Time` as a parameter (handlers pass `api.Now(ctx)`, jobs the time taken by the scheduler).
+`forbidigo` fails the build on `time.Now`; see [ADR 0009](../adr/0009-injected-clock.md). In tests
+pass a fixed time or a `clock.Fake`.
 
 ## API contract (huma)
 
-Every JSON endpoint is a [huma](https://huma.rocks) operations in `backend/api` (see
+Every JSON endpoint is a [huma](https://huma.rocks) operation in `backend/api` (see
 [ADR 0011](../adr/0011-api-contract-with-huma.md)): typed input and output structs, registered with
 `api.Register` on the same Gin groups, errors in the AppError format, `api.ValidateBody` for the
 project validators. After changing an operation run `make openapi` (writes `docs/openapi.json` and
@@ -135,15 +143,15 @@ module write the use case in `app` (it takes the actor and `now`, and does its w
 
 ## Layering
 
-`controllers` call `services`, `services` use `models`; never the other way round. `make arch`
-(depguard) fails when `models` imports `controllers`, `services` or `gin`, when `services` imports
-`controllers` or `gin`, or when anything but `routes` (and `main.go`) imports `controllers`. See
-[ADR 0010](../adr/0010-target-layering.md).
+`services` use `models`, the modules and `controllers` call `services`; never the other way round.
+`make arch` (depguard) fails when `models` imports `controllers`, `services` or `gin`, when
+`services` imports `controllers` or `gin`, or when anything but `routes` (and `main.go`) imports
+`controllers`. See [ADR 0010](../adr/0010-target-layering.md).
 
 ## Testing
 
 ```sh
-go test ./...
+make test-go   # or: cd backend && go test ./...
 ```
 
 Tests use an in-memory SQLite database (auto-migrated). See [Testing](testing.md).

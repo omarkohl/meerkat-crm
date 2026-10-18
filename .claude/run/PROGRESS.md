@@ -2,7 +2,7 @@
 
 ## Next step
 
-22 (docs).
+23 (finish).
 
 ## Stack
 
@@ -423,6 +423,14 @@
   footers. Dependabot subjects are exempt from the length rule. `[Unreleased]` got one Internal
   entry (OpenAPI document). contributing.md has a "Commits and the changelog" section; AGENTS.md
   points to the checks. `make precommit` green.
+- Step 22: docs checked against the code and the Makefile. Fixed: README development section
+  (`make dev`, `make seed`, `make precommit`); architecture.md (error example, `*Page.tsx` and five
+  locales, `services/`, `cmd/openapi`, `cmd/migrate` and the small shared packages); backend.md
+  (handlers and `api.Now`, layering, adapters call services, typo; the migrate targets are kept as
+  `cd backend && make migrate-...`, since `backend/Makefile` defines them); frontend.md (page path,
+  five locales, generated API types, e2e linted, Vitest); testing.md; AUTONOMOUS-RUNS.md (Checks
+  list, API rule with huma and the invariant tests, commit subjects); AGENTS.md (invariant and
+  use-case line). `make precommit` green.
 
 ## Decisions
 
@@ -873,10 +881,5 @@
   `.github/dependabot.yml`. `docker-compose.carddav-test.yml` uses `nextcloud:latest` (a manual test
   stack, not seen by Dependabot's `docker` ecosystem): pin it, or add the `docker-compose`
   ecosystem?
-- Step 21: two commit subjects of this run, against `omk..HEAD`, are longer than 72 characters and
-  fail the commit check (`make check-commits RANGE=omk..HEAD`; the ids change when they are
-  rebased): `0ec518cf4a22` "test: upgrade databases made by past releases; no silent Radicale skip
-  on CI" (76) and `33d0c69dc25c` "refactor: serve backups, audit log and system status from the
-  admin module" (74). To be reworded by the coordinator before the PR.
 
 ## Blocked
