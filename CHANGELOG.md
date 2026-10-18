@@ -13,6 +13,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Fixed
 
+- **Asking CardDAV for another user's address book answers "not found"**: it answered with a server
+  error.
 - **Editing an activity finds every contact** (#140): the contact field only offered some contacts
   when you had many. It now searches all of them as you type.
 

@@ -64,7 +64,7 @@ use-cases: ## Check the use-case catalogue against the tests; lists the uncovere
 
 GO_TEST_FLAGS ?=
 # Minimum total Go coverage in percent (current value rounded down). Raise it when coverage rises.
-GO_COVERAGE_MIN ?= 71
+GO_COVERAGE_MIN ?= 82
 
 test: test-scripts use-cases test-go test-frontend ## Backend, frontend and script unit tests, and the use-case check
 

@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 3: CardDAV server discovery and auth tests (#107).
+Step 4: CardDAV server writes tests (#107).
 
 ## Stack
 
@@ -17,10 +17,23 @@ Local run: no branches, no PRs.
   server (300 ms debounce, `limit: 100`, like `AddActivityDialog`); `allContacts` is gone from the
   dialog, `useTimelineEditing`, `ActivitiesPage`, `NetworkPage`, `ContactDetailPage`, `NotesPage`.
   Added Vitest test and an E2E test; the timeline edit button got an accessible name.
-
 - Step 2: `make test-coverage` is green. Go total 81.9% (`GO_COVERAGE_MIN` 71); Vitest lines 26.9%
-  (thresholds 25/23/19/25). Per-function numbers from `backend/coverage.out`, Vitest from
-  `frontend/coverage/coverage-summary.json`. The audit is in `## Coverage audit (#107)
+  (thresholds 25/23/19/25). Numbers from `backend/coverage.out` and
+  `frontend/coverage/coverage-summary.json`. The audit is in `## Coverage audit (#107)`; no code
+  changed.
+- Step 3: `backend/carddav/server_test.go` drives the handler with Basic auth: well-known redirect,
+  principal, home set, address-book list, login by username or e-mail, refusals (none, wrong
+  password, unknown user, a real API token as password), lockout (429 with `Retry-After`; the global
+  limiter is reset after each test), another user's address book. Found and fixed: that request
+  answered 500, now 404 (`fix:`, changelog `Fixed`). `BasicAuthMiddleware` 16% to 100%.
+  `GO_COVERAGE_MIN` 71 to 82 (total 82.3%, a margin of 0.3 points). `make precommit` green.
+
+## Decisions
+
+- Step 1: the E2E test cannot reproduce the 100-contact cap (few seeded contacts); the Vitest test
+  covers the server search.
+
+## Coverage audit (#107)
 
 Percentages only point at code; each gap below is a user workflow that no test would catch. Go
 function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is left out.
@@ -102,6 +115,9 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
 
 ## Questions
 
+- The plan and audit expect CardDAV Basic auth with an API token. The server accepts the account
+  password only (`docs/carddav.md`); a token as password is refused, and the test pins that. If
+  tokens should work, it is a feature, not a test.
 - `invariants_test.go` enforces per-route isolation for mutating routes only; GET routes with an id
   rely on module tests (checked by hand in the audit). A per-route map for ID-taking GETs would keep
   it so.
@@ -111,13 +127,16 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
   (timeline has E2E); `CustomFieldsSettings`, `ContactFieldSettings`, `EditableArrayField` are
   settings/editing glue with no branching beyond rendering a list. Revisit if the user wants more
   unit tests.
-
 - Frontend pages (`ContactDetailPage`, `ContactsPage`, `NotesPage`, `ActivitiesPage`) and most hooks
   stay near 0% unit coverage after step 9; E2E covers the main paths. The audit proposes no extra
   step; the user may want one for `ContactDetailPage`.
-
 - Contact search in the activity dialogs is duplicated in `AddActivityDialog` and
   `EditTimelineItemDialog`; a shared `useContactSearch` hook would remove it.
 - The edit `IconButton` at `ActivitiesPage.tsx` (~line 284) has no accessible name.
+- The CardDAV test router copies `registerCardDAVRoutes` (`backend/routes/routes.go:150`) without
+  `CardDAVRateLimitMiddleware`; a shared register function would stop drift.
+- `GetAddressObject` and `DeleteAddressObject` return a plain "contact not found" error, which
+  go-webdav probably answers with 500 instead of 404 (unverified). Left for step 4, which tests
+  those paths.
 
 ## Blocked

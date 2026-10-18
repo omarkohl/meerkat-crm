@@ -122,7 +122,7 @@ func (b *Backend) GetAddressBook(ctx context.Context, urlPath string) (*carddav.
 
 	expectedPath := "/carddav/addressbooks/" + username + "/contacts/"
 	if urlPath != expectedPath && urlPath+"/" != expectedPath {
-		return nil, fmt.Errorf("address book not found")
+		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("address book not found"))
 	}
 
 	return &carddav.AddressBook{

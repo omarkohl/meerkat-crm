@@ -84,7 +84,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
       `exports/internal/app`, `services/mailer.go` (SMTP), `services/email_outbox.go`
       (`expireEmail`), `users/internal/adapters/http/oidc.go` (`oidcLogin`). If the audit shows a
       gap larger than steps 3-10 can hold, record it under `## Questions`; do not add steps.
-- [ ] 3. **Tests: CardDAV server discovery and auth (#107)** (`test:`, `issue #107`): through the
+- [x] 3. **Tests: CardDAV server discovery and auth (#107)** (`test:`, `issue #107`): through the
       HTTP handler: `.well-known/carddav` redirect, principal, address-book home set, address-book
       list; Basic auth with password, with API token, wrong password, and one user who asks for the
       address book of another user.
