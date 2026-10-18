@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 8: auth tests (#107).
+Step 9: frontend component tests (#107).
 
 ## Stack
 
@@ -63,6 +63,12 @@ Local run: no branches, no PRs.
   the send (`expireEmail`), and Resend delivery through a swapped `http.DefaultTransport`. No bug
   fixed; one found (see Questions). Go coverage 84.1%; `GO_COVERAGE_MIN` stays 83 (margin 1.1).
   `make precommit` green.
+- Step 8: most of the workflows the audit listed for auth were already tested (see the audit box for
+  the names), so the one new test is `routes/api_token_flow_test.go`: a token created by a logged-in
+  user writes and reads data through the real router, is refused for password change (401, as the
+  sessions test documents), 2FA setup, sessions and admin routes (403), does not change the
+  password, and is refused with 401 once revoked. No bug found. Go coverage 84.2%; `GO_COVERAGE_MIN`
+  stays 83. `make precommit` green.
 
 ## Decisions
 
@@ -131,13 +137,26 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
       claim and expiry (`email_outbox_test.go`). New in step 7: SMTP delivery and its failures
       against a fake server, Resend through a swapped transport, and an e-mail that expires after
       its claim (`expireEmail`). Open, see Questions: the birthday mail is not once per day.
-- [ ] **Auth (password, OIDC, API tokens)** - workflows without a test (step 8): OIDC login creates
-      a new user, links an existing one by e-mail, refuses a bad `state` and a provider error, and
-      refuses a user without an account when sign-up is off (`oidcLogin` 46%); an API token
-      authenticates a request, is refused on admin endpoints, and stops working after revoke (E2E is
-      not planned; Go covers it); a user with 2FA who loses the authenticator signs in with a
-      recovery code, and regenerating the codes invalidates the old ones (`replaceRecoveryCodes`
-      73%); password reset mail with the SMTP failing.
+- [x] **Auth (password, OIDC, API tokens)** (done in step 8) - the audit listed workflows that were
+      already tested by name: OIDC new user, link by verified e-mail, bad state or nonce, provider
+      error, no account without auto-provisioning (`users/oidc_test.go`:
+      `TestASuccessfulCallbackProvisionsTheAccountStartsASessionAndRedirectsHome`,
+      `TestAVerifiedEmailLinksTheIdentity...`,
+      `TestACallbackThatCannotBeTrustedEndsInTheLoginPage...`, `TestTheNonceAndTheTokenAreChecked`,
+      `TestWithoutAutoProvisioningAStrangerIsToldThereIsNoAccount`); password and second-factor
+      lockout (`users/login_test.go`); login with a recovery code that works once and new recovery
+      codes that invalidate the old (`TestAnAccountWithTwoFactorAsksFor...`,
+      `TestDisablingWorksWithACodeOrAOneTimeRecoveryCode`); API token checks in the middleware
+      (`middleware/auth_apitoken_test.go`). New: `routes/api_token_flow_test.go` runs the whole path
+      through the real router and migrations: register, log in, create a token, use it for data, see
+      it refused for password change, 2FA setup, sessions and admin routes, revoke it, and see it
+      refused. No E2E for tokens (Go covers it). Open: the `oidcLogin` error branches (state or
+      nonce generation failing, answered 500) are reachable only through the `app.Identity` port
+      (`NewToken` failing), which `users.New` builds itself, so a test needs a fake `Identity` in an
+      `app`-level test; not added. Password reset mail with a failing SMTP server: the reset mail
+      goes through the outbox (`TestQueueEmailWritesRowBeforeSending`,
+      `TestProcessEmailOutboxBackoffThenDead`, `TestExpiredEmailIsNeverSentAndLosesItsBody`) and
+      SMTP failures through `smtp_delivery_test.go`; no test joins the two.
 - [ ] **E2E: main user workflows** - existing: auth, contacts, timeline, activities, reminders,
       relationships, trash, 2FA, sessions, backups, ICS feed, isolation, dashboard, thumbnails,
       security headers, users banner. Missing: import vCard/CSV, export contacts (step 10);

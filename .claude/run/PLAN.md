@@ -100,7 +100,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 7. **Tests: reminders, birthdays, notifications (#107)**: triggered scheduler runs (injected
       clock) send the right reminder and birthday emails once; SMTP delivery against an in-process
       fake SMTP server; outbox retry and expiry.
-- [ ] 8. **Tests: auth (#107)**: OIDC login against an `httptest` fake provider (new user, linked
+- [x] 8. **Tests: auth (#107)**: OIDC login against an `httptest` fake provider (new user, linked
       user, bad state, provider error), API tokens (scope limits, revoked token), password login
       lockout and 2FA paths not yet covered.
 - [ ] 9. **Tests: frontend components with logic (#107)**: Vitest and Testing Library for
