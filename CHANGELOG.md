@@ -9,6 +9,13 @@ Versions `X.Y.Z` are upstream releases of
 [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm). Versions `X.Y.Z-omk.N` are releases
 of this fork (see [FORK.md](FORK.md)).
 
+## [Unreleased]
+
+### Security
+
+- **Docker images include current Alpine fixes**: published images now contain package security
+  fixes released after the base image.
+
 ## [1.7.0-omk.2] - 2026-10-17
 
 ### Fixed

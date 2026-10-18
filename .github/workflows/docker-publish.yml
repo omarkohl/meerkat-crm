@@ -116,6 +116,8 @@ jobs:
           file: ${{ matrix.file }}
           push: true
           platforms: linux/amd64,linux/arm64
+          # Rebuild the runtime stage on every run so apk fetches current Alpine fixes.
+          no-cache-filters: runtime
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Attach an SBOM and SLSA provenance to the image in the registry.

@@ -17,10 +17,11 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 
 # Runtime stage
-FROM alpine:3.24
+FROM alpine:3.24 AS runtime
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata shadow su-exec libc6-compat
+# Runtime dependencies; apk upgrade picks up Alpine fixes newer than the base image (Trivy gate).
+RUN apk add --no-cache ca-certificates tzdata shadow su-exec libc6-compat && \
+    apk upgrade --no-cache
 
 WORKDIR /app
 

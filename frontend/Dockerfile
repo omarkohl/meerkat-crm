@@ -19,7 +19,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Production stage - serve with unprivileged nginx
-FROM nginxinc/nginx-unprivileged:1.30-alpine
+FROM nginxinc/nginx-unprivileged:1.30-alpine AS runtime
 
 # Pick up Alpine security fixes published after the base image was built
 # (the Trivy job in docker-build.yml fails on fixable HIGH/CRITICAL findings).

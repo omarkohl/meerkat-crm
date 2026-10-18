@@ -50,7 +50,7 @@ RUN npm run build
 # =============================================================================
 # Stage 3: Runtime - nginx + Go backend under supervisord
 # =============================================================================
-FROM alpine:3.24
+FROM alpine:3.24 AS runtime
 
 # Runtime dependencies; apk upgrade picks up Alpine fixes newer than the base image (Trivy gate).
 # shadow provides usermod/groupmod for PUID/PGID remap.
