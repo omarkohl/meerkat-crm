@@ -33,7 +33,15 @@
     "showAll": "Afficher tous les résultats pour « {{query}} »",
     "submit": "Rechercher",
     "clear": "Effacer la recherche",
-    "noteField": "Note CardDAV"
+    "noteField": "Note CardDAV",
+    "pageTitle": "Résultats de la recherche",
+    "tabAll": "Tous",
+    "groups": "Groupes de résultats",
+    "showAllCount": "Afficher les {{count}}",
+    "error": "La recherche a échoué. Veuillez réessayer.",
+    "retry": "Réessayer",
+    "tooShort": "Saisissez au moins 2 caractères pour rechercher.",
+    "showInContactList": "Afficher dans la liste des contacts"
   },
   "dashboard": {
     "welcome": "Bienvenue sur le tableau de bord Meerkat CRM",

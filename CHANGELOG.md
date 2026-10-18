@@ -13,8 +13,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Added
 
-- **Search contacts, notes and activities from the header** (#118): the results come in groups with
-  the matching text marked and the matching field named, and cover every contact field.
+- **Search contacts, notes and activities from the header** (#118): grouped results with the match
+  marked and named, over every contact field, and a results page with a tab per group.
 
 ### Fixed
 

@@ -153,7 +153,7 @@ describe('HeaderSearch', () => {
     type('lovelace');
     await settle();
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
-    expect(screen.getByTestId('where').textContent).toBe('/contacts?search=lovelace');
+    expect(screen.getByTestId('where').textContent).toBe('/search?q=lovelace');
   });
 
   test('searching again for the same term opens the list again @022-US1', async () => {
@@ -169,14 +169,14 @@ describe('HeaderSearch', () => {
     type('anna');
     await settle();
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
-    expect(screen.getByTestId('where').textContent).toBe('/contacts?search=anna');
+    expect(screen.getByTestId('where').textContent).toBe('/search?q=anna');
     fireEvent.click(screen.getByRole('link', { name: 'elsewhere' }));
     expect(screen.getByTestId('where').textContent).toBe('/elsewhere');
 
     type('anna');
     await settle();
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
-    expect(screen.getByTestId('where').textContent).toBe('/contacts?search=anna');
+    expect(screen.getByTestId('where').textContent).toBe('/search?q=anna');
   });
 
   test('the no-results row never shows for an older answer @022-US1', async () => {

@@ -65,13 +65,29 @@ export async function waitForLoading(page: Page): Promise<void> {
 }
 
 /**
- * Searches the contacts list and returns once the matching contact is visible.
+ * Searches from the header and returns once the results page is open.
  * Replaces the previous fill + fixed-sleep pattern with an auto-waiting assertion.
  */
 export async function searchContact(page: Page, query: string): Promise<void> {
   const searchInput = page.getByPlaceholder(/search/i).first();
   await searchInput.fill(query);
   await searchInput.press('Enter');
+  await page.waitForURL(/\/search\?q=/);
+  await expect(page.getByRole('heading', { name: 'Search results' })).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: 'Search' })).toHaveValue(query);
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-busy', 'false');
+}
+
+/**
+ * Searches from the header, then opens the contact list for the term: the Contacts tab of the
+ * results page and its "Show in the contact list" link.
+ */
+export async function openContactList(page: Page, query: string): Promise<void> {
+  await searchContact(page, query);
+  await page.getByRole('tab', { name: /^Contacts/ }).click();
+  await page.getByRole('link', { name: 'Show in the contact list' }).click();
+  await expect(page).toHaveURL(/\/contacts\?search=/);
+  await waitForLoading(page);
 }
 
 // ---------------------------------------------------------------------------

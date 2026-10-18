@@ -120,7 +120,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
       kind (plain column, JSON array, JSON objects, custom fields), the update triggers, the
       contacts list search still ignores the new fields, migration round trip. Update the changelog
       bullet.
-- [ ] 13. **Search results page (#118)** (`feat:`, `fixes #118`): `/search?q=` (the term lives in
+- [x] 13. **Search results page (#118)** (`feat:`, `fixes #118`): `/search?q=` (the term lives in
       the URL; back button works), a search field filled with the term, tabs All / Contacts / Notes
       / Activities with counts; "All" shows up to 10 per group with "Show all N" that switches tab;
       a tab pages its group. Notes and activities show date, contacts and snippet. List pages read

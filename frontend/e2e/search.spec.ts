@@ -31,4 +31,41 @@ test.describe('Global search', () => {
       await deleteTestContact(page.request, contact.ID);
     }
   });
+
+  test('Enter opens the results page; a tab shows one group and a result opens @022-US1', async ({ page }) => {
+    const contact = await createTestContact(page.request, { lastname: 'Pageable' });
+    const word = `axolotl${Date.now()}`;
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByLabel(/content/i).fill(`Keeps a ${word} as a pet`);
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+
+      await page.goto('/');
+      const header = page.getByRole('banner').getByPlaceholder(/search/i);
+      await header.fill(word);
+      await header.press('Enter');
+
+      await expect(page.getByRole('heading', { name: 'Search results' })).toBeVisible();
+      await expect(page.getByRole('searchbox', { name: 'Search' })).toHaveValue(word);
+      await expect(page.getByRole('heading', { name: 'Notes (1)' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'All (1)' })).toBeVisible();
+
+      await page.getByRole('tab', { name: 'Notes (1)' }).click();
+      await expect(page.getByRole('tab', { name: 'Notes (1)', selected: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Contacts (0)' })).toBeHidden();
+      await expect(page.getByText(word, { exact: true })).toHaveJSProperty('tagName', 'MARK');
+
+      await page.goBack();
+      await expect(page.getByRole('tab', { name: 'All (1)', selected: true })).toBeVisible();
+
+      await page.getByRole('link', { name: new RegExp(`Keeps a ${word}`) }).click();
+      await expect(page.getByRole('heading', { name: `${contact.firstname} Pageable` })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
 });

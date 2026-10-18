@@ -160,9 +160,10 @@ type result struct {
 	Activities *struct {
 		Total int `json:"total"`
 		Items []struct {
-			ID      uint      `json:"id"`
-			Title   []segment `json:"title"`
-			Snippet []segment `json:"snippet"`
+			ID       uint      `json:"id"`
+			Title    []segment `json:"title"`
+			Snippet  []segment `json:"snippet"`
+			Contacts []string  `json:"contacts"`
 		} `json:"items"`
 	} `json:"activities"`
 }
@@ -537,4 +538,23 @@ func TestALongFieldComesBackAsAnExcerpt(t *testing.T) {
 	assert.Equal(t, "note", hit.MatchedField)
 	assert.Equal(t, []string{"unicorn"}, marked(hit.Snippet))
 	assert.Less(t, len([]rune(text(hit.Snippet))), 200)
+}
+
+// @022-US1
+func TestAnActivityNamesItsOwnLiveContactsOnly(t *testing.T) {
+	e := newEnv(t)
+	ada := e.contact(t, e.a.ID, models.Contact{Firstname: "Ada", Lastname: "Lovelace"})
+	gone := e.contact(t, e.a.ID, models.Contact{Firstname: "Gone", Lastname: "Away"})
+	theirs := e.contact(t, e.b.ID, models.Contact{Firstname: "Bea", Lastname: "Foreign"})
+	activity := models.Activity{UserID: e.a.ID, Title: "Picnic planning", Date: now}
+	require.NoError(t, e.db.Create(&activity).Error)
+	for _, c := range []models.Contact{ada, gone, theirs} {
+		require.NoError(t, e.db.Exec("INSERT INTO activity_contacts (activity_id, contact_id) VALUES (?, ?)", activity.ID, c.ID).Error)
+	}
+	require.NoError(t, e.db.Transaction(func(tx *gorm.DB) error { return models.TrashContact(tx, e.a.ID, gone.ID) }))
+
+	res := search(t, e.asA, q("picnic"))
+
+	require.Len(t, res.Activities.Items, 1)
+	assert.Equal(t, []string{"Ada Lovelace"}, res.Activities.Items[0].Contacts)
 }

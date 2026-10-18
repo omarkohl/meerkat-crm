@@ -1,6 +1,6 @@
-import { useState, useMemo, ChangeEvent, MouseEvent } from 'react';
+import { useState, useMemo, useEffect, ChangeEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { Box, Typography, Paper, TextField, Button, IconButton, Chip, Pagination, Popover } from '@mui/material';
 import {
   Timeline,
@@ -29,9 +29,17 @@ const ActivitiesPage: React.FC = () => {
   const { t } = useTranslation();
   const { formatDate } = useDateFormat();
 
-  const [searchInput, setSearchInput] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
+
+  // A link to this page with a term (from the search) replaces the filter
+  useEffect(() => {
+    setSearchInput(urlSearch);
+    setPage(1);
+  }, [urlSearch]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const ACTIVITIES_PER_PAGE = 25;

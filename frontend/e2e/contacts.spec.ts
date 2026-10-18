@@ -1,5 +1,12 @@
 import { test, expect } from './fixtures';
-import { waitForLoading, searchContact, createTestContact, deleteTestContact, openContact } from './fixtures';
+import {
+  waitForLoading,
+  searchContact,
+  openContactList,
+  createTestContact,
+  deleteTestContact,
+  openContact,
+} from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // Authenticated via the shared storageState (see playwright.config.ts) — no
@@ -62,7 +69,7 @@ test.describe('Contacts', () => {
     await page.goto('/contacts');
     await waitForLoading(page);
     await expect(page.getByLabel(/sort by/i)).not.toContainText('Best match');
-    await searchContact(page, 'Alice');
+    await openContactList(page, 'Alice');
     await expect(page.getByText('Alice Johnson')).toBeVisible();
     await expect(page.getByLabel(/sort by/i)).toContainText('Best match');
   });

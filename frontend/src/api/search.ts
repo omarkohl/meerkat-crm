@@ -26,9 +26,17 @@ const group = <T>(g: { total: number; items: T[] | null } | undefined): SearchGr
   items: g?.items ?? [],
 });
 
-export async function searchAll(query: string, options: { limit?: number } = {}): Promise<SearchResults> {
+export type SearchKind = 'contacts' | 'notes' | 'activities';
+
+/** Without `type` every group answers with its first `limit` results; with it only that group, from `offset`. */
+export async function searchAll(
+  query: string,
+  options: { limit?: number; type?: SearchKind; offset?: number } = {},
+): Promise<SearchResults> {
   const params = new URLSearchParams({ q: query });
   if (options.limit) params.set('limit', String(options.limit));
+  if (options.type) params.set('type', options.type);
+  if (options.offset) params.set('offset', String(options.offset));
   const response = await apiFetch(`${API_BASE_URL}/search?${params.toString()}`, {
     method: 'GET',
     headers: getAuthHeaders(),

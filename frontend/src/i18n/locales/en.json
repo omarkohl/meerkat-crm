@@ -33,7 +33,15 @@
     "showAll": "Show all results for “{{query}}”",
     "submit": "Search",
     "clear": "Clear search",
-    "noteField": "CardDAV note"
+    "noteField": "CardDAV note",
+    "pageTitle": "Search results",
+    "tabAll": "All",
+    "groups": "Result groups",
+    "showAllCount": "Show all {{count}}",
+    "error": "The search failed. Please try again.",
+    "retry": "Try again",
+    "tooShort": "Type at least 2 characters to search.",
+    "showInContactList": "Show in the contact list"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",

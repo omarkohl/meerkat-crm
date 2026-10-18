@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Autocomplete, Box, IconButton, InputAdornment, ListSubheader, TextField, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
-import { searchAll, SearchResults, Segment } from '../api/search';
+import { searchAll, SearchResults } from '../api/search';
+import { activitiesPath, contactPath, Marked, notePath, searchPath, useFieldLabel } from './SearchMarks';
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 300;
@@ -22,39 +23,6 @@ type Option =
 
 const optionKey = (o: Option) =>
   o.kind === 'status' || o.kind === 'all' ? o.kind : `${o.kind}-${String(o.result.id)}`;
-
-const FIELD_LABELS: Record<string, string> = {
-  email: 'contacts.email',
-  phone: 'contacts.phone',
-  organization: 'contacts.organization',
-  job_title: 'contacts.jobTitle',
-  department: 'contacts.department',
-  role: 'contacts.role',
-  middle_name: 'contacts.middleName',
-  address: 'contacts.address',
-  circles: 'contacts.circles',
-  how_we_met: 'contacts.howWeMet',
-  food_preference: 'contacts.foodPreference',
-  work_information: 'contacts.workInformation',
-  contact_information: 'contacts.contactInformation',
-  note: 'search.noteField',
-};
-
-function Marked({ segments }: { segments: Segment[] | null }) {
-  return (
-    <>
-      {(segments ?? []).map((s, i) =>
-        s.match ? (
-          <mark key={i} style={{ background: 'rgba(255, 213, 79, 0.6)', color: 'inherit' }}>
-            {s.text}
-          </mark>
-        ) : (
-          <span key={i}>{s.text}</span>
-        ),
-      )}
-    </>
-  );
-}
 
 interface HeaderSearchProps {
   enabled: boolean;
@@ -112,7 +80,7 @@ export default function HeaderSearch({ enabled }: HeaderSearchProps) {
 
   const showAll = (text: string) => {
     if (text.trim()) {
-      void navigate(`/contacts?search=${encodeURIComponent(text.trim())}`);
+      void navigate(searchPath(text.trim()));
       reset();
     }
   };
@@ -144,17 +112,13 @@ export default function HeaderSearch({ enabled }: HeaderSearchProps) {
   const open = (option: Option) => {
     switch (option.kind) {
       case 'contact':
-        void navigate(`/contacts/${String(option.result.id)}`);
+        void navigate(contactPath(option.result.id));
         break;
       case 'note':
-        void navigate(
-          option.result.contact_id
-            ? `/contacts/${String(option.result.contact_id)}`
-            : `/notes?search=${encodeURIComponent(term)}`,
-        );
+        void navigate(notePath(option.result.contact_id, term));
         break;
       case 'activity':
-        void navigate(`/activities?search=${encodeURIComponent(term)}`);
+        void navigate(activitiesPath(term));
         break;
       case 'all':
         showAll(term);
@@ -265,12 +229,7 @@ export default function HeaderSearch({ enabled }: HeaderSearchProps) {
 }
 
 function OptionBody({ option }: { option: Option }) {
-  const { t } = useTranslation();
-  const fieldLabel = (field: string, name: string) => {
-    if (field === 'custom_field') return name;
-    const key = FIELD_LABELS[field];
-    return key ? t(key) : '';
-  };
+  const fieldLabel = useFieldLabel();
   switch (option.kind) {
     case 'contact': {
       const c = option.result;

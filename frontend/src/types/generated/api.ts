@@ -1513,6 +1513,8 @@ export interface components {
             title: string;
         };
         ActivityResult: {
+            /** @description The names of the contacts that took part */
+            contacts: string[] | null;
             /** Format: date-time */
             date: string;
             /** Format: int64 */

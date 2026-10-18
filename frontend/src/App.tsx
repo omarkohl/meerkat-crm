@@ -59,6 +59,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import './App.css';
 
 const AuditLogPage = lazy(() => import('./AuditLogPage'));
+const SearchPage = lazy(() => import('./SearchPage'));
 
 const EXPANDED_DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 64;
@@ -530,6 +531,20 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
                 }
               >
                 <AuditLogPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <Suspense
+                fallback={
+                  <Box display="flex" justifyContent="center" mt={4}>
+                    <CircularProgress />
+                  </Box>
+                }
+              >
+                <SearchPage />
               </Suspense>
             }
           />

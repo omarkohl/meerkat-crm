@@ -292,6 +292,16 @@
       "ActivityResult": {
         "additionalProperties": false,
         "properties": {
+          "contacts": {
+            "description": "The names of the contacts that took part",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "date": {
             "format": "date-time",
             "type": "string"
@@ -324,7 +334,8 @@
           "id",
           "title",
           "date",
-          "snippet"
+          "snippet",
+          "contacts"
         ],
         "type": "object"
       },

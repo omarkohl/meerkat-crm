@@ -63,7 +63,10 @@ total and the matching text marked. It searches every text field of a contact, n
 e-mail addresses and phone numbers: the note, addresses, circles, organization, job title, how you
 met, custom field values and so on, and tells which field matched. The contact list's search box
 still covers only names, e-mail addresses and phone numbers. A contact matched by name ranks above
-one matched by anything else. Trashed contacts and their notes are not found.
+one matched by anything else. "Show all results" (or Enter) opens a results page with tabs for All,
+Contacts, Notes and Activities, each with its count; a tab pages through its group, and a result
+opens the contact, or the Notes or Activities page filtered by the term. Trashed contacts and their
+notes are not found.
 
 ## Notes
 

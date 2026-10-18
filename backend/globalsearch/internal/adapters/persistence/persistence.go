@@ -201,9 +201,13 @@ func (r *Repository) Activities(ctx context.Context, actor domain.UserID, term s
 	if err := q.Order("activities.date DESC, activities.id DESC").Select("activities.*").Limit(limit).Offset(offset).Find(&found).Error; err != nil {
 		return app.Page[domain.Activity]{}, err
 	}
+	people, err := r.participants(db, actor, found)
+	if err != nil {
+		return app.Page[domain.Activity]{}, err
+	}
 	page := app.Page[domain.Activity]{Total: int(total), Substring: !indexed}
 	for _, a := range found {
-		page.Items = append(page.Items, domain.Activity{ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date})
+		page.Items = append(page.Items, domain.Activity{ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, Contacts: people[a.ID]})
 	}
 	return page, nil
 }
@@ -251,4 +255,34 @@ func toDomain(c models.Contact) domain.Contact {
 		}
 	}
 	return hit
+}
+
+// participants names, per activity, the actor's contacts that are not in the trash.
+func (r *Repository) participants(db *gorm.DB, actor domain.UserID, activities []models.Activity) (map[uint][]string, error) {
+	people := map[uint][]string{}
+	if len(activities) == 0 {
+		return people, nil
+	}
+	ids := make([]uint, len(activities))
+	for i, a := range activities {
+		ids[i] = a.ID
+	}
+	var rows []struct {
+		ActivityID uint
+		Firstname  string
+		Lastname   string
+		Nickname   string
+	}
+	err := db.Table("activity_contacts").
+		Select("activity_contacts.activity_id, contacts.firstname, contacts.lastname, contacts.nickname").
+		Joins("JOIN contacts ON contacts.id = activity_contacts.contact_id AND contacts.user_id = ? AND contacts.deleted_at IS NULL", uint(actor)).
+		Where("activity_contacts.activity_id IN ?", ids).
+		Order("contacts.firstname, contacts.lastname, contacts.id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		people[row.ActivityID] = append(people[row.ActivityID], domain.Contact{Firstname: row.Firstname, Lastname: row.Lastname, Nickname: row.Nickname}.DisplayName())
+	}
+	return people, nil
 }

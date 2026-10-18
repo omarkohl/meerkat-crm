@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 13: search results page (#118).
+Step 14: finish (check docs, summary, reset the run).
 
 ## Stack
 
@@ -113,8 +113,21 @@ Local run: no branches, no PRs.
   fields. Tests: migration round trip, triggers and JSON kinds in `database`, every field kind, the
   fallback, edit/trash/restore, isolation and the list search in `globalsearch` (dropping the column
   filter fails a test). `make precommit` green.
+- Step 13: `SearchPage` at `/search?q=&tab=&page=` (everything in the URL, so back works): a search
+  field filled with the term (submit searches again), tabs All / Contacts / Notes / Activities with
+  counts, All shows up to 10 per group with "Show all N" that switches tab and moves focus to it, a
+  tab pages 25 per page through `type`/`limit`/`offset`, notes and activities show date, contact and
+  snippet with the match marked, loading, empty and error (with retry) states, tabs with roles and
+  `aria-controls`. The header's "Show all results" and Enter open the page. Notes and Activities
+  pages read `?search=`. `SearchMarks` holds the shared marking, field labels and result paths.
+  Vitest for the page (7) and E2E (Enter opens the page, switch tab, back, open a result).
+  `make precommit` green.
 
 ## Decisions
+
+- Step 13: the overview (counts and the All tab) is one request with `limit=10`; a type tab adds a
+  second request for its page, so the counts stay visible. The contacts E2E for the best-match sort
+  now opens `/contacts?search=` by address, since the header no longer leads there.
 
 - Step 12: a custom field is found by its value, not its name; the legacy `address` is reported as
   `address` unless it equals a structured address; the field label in the header uses the existing
@@ -234,9 +247,6 @@ later card (panic on confirm).
 - The Vitest thresholds are rounded down with a small margin; the lines margin is 0.8 points.
 - `ImportContactsDialog.tsx` (~line 341): the drop zone is a clickable `Box` with no role or
   `tabIndex`, so keyboard users cannot open the file chooser.
-- Known gap until step 13: the header's "Show all results for …" option (and Enter without a
-  highlighted option) opens the contacts list filtered by the term, which shows only contacts, while
-  the label promises all results. Settled in PLAN.md for step 11; step 13 adds the results page.
 - The search fallback (LIKE, used for digits, Han/Kana/Hangul text and a missing index) lower-cases
   with SQLite's `LOWER`, which is ASCII only, so a mixed-case non-ASCII term (for example `Ü`) can
   miss in the fallback; the index path folds correctly.

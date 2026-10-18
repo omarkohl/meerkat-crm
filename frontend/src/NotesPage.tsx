@@ -1,4 +1,5 @@
-import { useState, useMemo, ChangeEvent, MouseEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useState, useMemo, useEffect, ChangeEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, Paper, TextField, Button, IconButton, Pagination, Popover } from '@mui/material';
 import {
@@ -27,9 +28,17 @@ import { now } from './utils/now';
 const NotesPage: React.FC = () => {
   const { t } = useTranslation();
   const { formatDate } = useDateFormat();
-  const [searchInput, setSearchInput] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') ?? '';
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const debouncedSearch = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
+
+  // A link to this page with a term (from the search) replaces the filter
+  useEffect(() => {
+    setSearchInput(urlSearch);
+    setPage(1);
+  }, [urlSearch]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const NOTES_PER_PAGE = 25;

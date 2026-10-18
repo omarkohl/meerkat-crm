@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { waitForLoading, searchContact, createTestContact, deleteTestContact } from './fixtures';
+import { openContactList, createTestContact, deleteTestContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // A 60x60 red PNG
@@ -29,9 +29,8 @@ test.describe('Contact thumbnails', () => {
       expect(etag).toBeTruthy();
       expect((await request.get(url, { headers: { 'If-None-Match': etag ?? '' } })).status()).toBe(304);
 
-      await page.goto('/contacts');
-      await waitForLoading(page);
-      await searchContact(page, 'Thumbed');
+      await page.goto('/');
+      await openContactList(page, 'Thumbed');
       const avatar = page
         .getByRole('link', { name: /Thumbed/ })
         .first()
