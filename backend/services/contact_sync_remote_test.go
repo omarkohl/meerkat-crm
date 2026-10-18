@@ -286,8 +286,9 @@ func newMeerkatRemote(t *testing.T) *davRemote {
 		path: "/carddav/addressbooks/" + user.Username + "/contacts/",
 	}
 
+	photoDir := t.TempDir()
 	handler := &carddavlib.Handler{
-		Backend: mcarddav.NewBackend(db, t.TempDir()),
+		Backend: mcarddav.NewBackend(db, photoDir),
 		Prefix:  "/carddav",
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -296,7 +297,7 @@ func newMeerkatRemote(t *testing.T) *davRemote {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx := mcarddav.ContextWithUser(req.Context(), user.ID, user.Username, db, "")
+		ctx := mcarddav.ContextWithUser(req.Context(), user.ID, user.Username, db, photoDir)
 		handler.ServeHTTP(w, req.WithContext(ctx))
 	}))
 	t.Cleanup(srv.Close)

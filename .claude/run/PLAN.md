@@ -91,7 +91,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 4. **Tests: CardDAV server writes (#107)**: PUT create and update, `If-Match` /
       `If-None-Match` conflicts (412), DELETE (contact goes to trash and leaves the address book), a
       vCard with a photo. Check the result through GET/REPORT or the REST API.
-- [ ] 5. **Tests: CardDAV client sync (#107)**: discovery (well-known, probe, errors the user sees),
+- [x] 5. **Tests: CardDAV client sync (#107)**: discovery (well-known, probe, errors the user sees),
       remote create/update/delete reaching Meerkat and back, conflicts, photos. Use the existing
       fake-server harness of `services` (it also runs against Radicale with `MEERKAT_CARDDAV_IT=1`).
 - [ ] 6. **Tests: import and export (#107)**: vCard and CSV import through preview and confirm

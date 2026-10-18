@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 5: CardDAV client sync tests (#107).
+Step 6: import and export tests (#107).
 
 ## Stack
 
@@ -33,6 +33,18 @@ Local run: no branches, no PRs.
   stale `If-Match` passed after two saves in one second (now nanoseconds); `If-None-Match` was
   ignored; `If-Match` on a missing contact created it; GET/DELETE of a missing contact answered 500
   (now 404). `make precommit` green.
+- Step 5: the existing fake-server scenarios already cover remote create/update/delete, conflicts
+  and token mode, so `contact_sync_discovery_test.go` adds what was missing: discovery from a server
+  address (the root answers 404, so it must follow `/.well-known/carddav`; the test counts the hit;
+  same-host success path of `resolveWellKnown` covered), from an address-book address, and from an
+  address-book address on a server without principals (`probeAddressBook`); the errors the user sees
+  (wrong password, not CardDAV, unknown address, bad scheme; the private-address case lives in
+  `private_urls_test.go`); no password sent to another host via well-known; photos pulled (embedded;
+  an address the SSRF guard blocks imports the contact anyway) and pushed; the scheduled sync over
+  several connections (a failing one in the middle, a disabled one; checked to fail when the loop
+  stops at the first error). The in-process remote now has a photo directory. No bug found. Go
+  coverage 82.9%, `GO_COVERAGE_MIN` stays 82. `fetchNeededCards` (multiget, Radicale only,
+  `make test-carddav`) stays open. `make precommit` green.
 
 ## Decisions
 

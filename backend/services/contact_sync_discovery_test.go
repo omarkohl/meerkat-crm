@@ -1,0 +1,245 @@
+package services
+
+import (
+	"bytes"
+	"context"
+	"encoding/base64"
+	"errors"
+	"image"
+	"image/png"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
+	"testing"
+
+	mcarddav "meerkat/carddav"
+	"meerkat/clock"
+	"meerkat/models"
+
+	"github.com/emersion/go-webdav"
+	carddavlib "github.com/emersion/go-webdav/carddav"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func bookPaths(books []models.DiscoveredAddressBook) []string {
+	var paths []string
+	for _, b := range books {
+		paths = append(paths, b.Path)
+	}
+	return paths
+}
+
+type noPrincipalBackend struct{ *mcarddav.Backend }
+
+func (noPrincipalBackend) CurrentUserPrincipal(context.Context) (string, error) {
+	return "", errors.New("no principal")
+}
+
+func newMeerkatServer(t *testing.T, wellKnownHits *atomic.Int32) (baseURL, bookPath string) {
+	return newMeerkatServerWith(t, wellKnownHits, false)
+}
+
+func newMeerkatServerWith(t *testing.T, wellKnownHits *atomic.Int32, withoutPrincipal bool) (baseURL, bookPath string) {
+	t.Helper()
+	db := newContactSyncDB(t)
+	user := models.User{Username: "remote", Password: "password123!A", Email: "remote@example.com"}
+	require.NoError(t, db.Create(&user).Error)
+	photoDir := t.TempDir()
+	var backend carddavlib.Backend = mcarddav.NewBackend(db, photoDir)
+	if withoutPrincipal {
+		backend = noPrincipalBackend{mcarddav.NewBackend(db, photoDir)}
+	}
+	lib := &carddavlib.Handler{Backend: backend, Prefix: "/carddav"}
+	r := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/.well-known/carddav" || req.URL.Path == "/" {
+			if req.URL.Path == "/.well-known/carddav" && req.Method == http.MethodGet && !withoutPrincipal {
+				wellKnownHits.Add(1)
+				http.Redirect(w, req, "/carddav/", http.StatusMovedPermanently)
+				return
+			}
+			http.NotFound(w, req)
+			return
+		}
+		if req.URL.Path == "/carddav/" || strings.HasPrefix(req.URL.Path, "/carddav/principals/") {
+			webdav.ServePrincipal(w, req, &webdav.ServePrincipalOptions{
+				CurrentUserPrincipalPath: "/carddav/principals/remote/",
+				HomeSets:                 []webdav.BackendSuppliedHomeSet{carddavlib.NewAddressBookHomeSet("/carddav/addressbooks/remote/")},
+				Capabilities:             []webdav.Capability{carddavlib.CapabilityAddressBook},
+			})
+			return
+		}
+		ctx := mcarddav.ContextWithUser(req.Context(), user.ID, user.Username, db, photoDir)
+		lib.ServeHTTP(w, req.WithContext(ctx))
+	})
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
+	return srv.URL, "/carddav/addressbooks/remote/contacts/"
+}
+
+// @017-US4
+func TestDiscoverFindsTheAddressBookFromAServerOrAnAddressBookAddress(t *testing.T) {
+	var hits atomic.Int32
+	base, book := newMeerkatServer(t, &hits)
+	svc := NewContactSyncService(false)
+
+	books, err := svc.Discover(context.Background(), base, "", "")
+	require.NoError(t, err)
+	assert.Contains(t, bookPaths(books), book)
+	assert.Equal(t, int32(1), hits.Load(), "the server address was resolved through /.well-known/carddav")
+
+	books, err = svc.Discover(context.Background(), base+book, "", "")
+	require.NoError(t, err)
+	assert.Contains(t, bookPaths(books), book)
+}
+
+// @017-US4
+func TestDiscoverAcceptsAnAddressBookAddressOnAServerWithoutPrincipals(t *testing.T) {
+	base, book := newMeerkatServerWith(t, nil, true)
+
+	books, err := NewContactSyncService(false).Discover(context.Background(), base+book, "", "")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{book}, bookPaths(books))
+	assert.Equal(t, "contacts", books[0].Name)
+}
+
+// @017-US4
+func TestDiscoverTellsTheUserWhatWentWrong(t *testing.T) {
+	respond := func(status int, body string) *httptest.Server {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(body))
+		}))
+		t.Cleanup(srv.Close)
+		return srv
+	}
+
+	cases := []struct {
+		name    string
+		address string
+		want    error
+	}{
+		{"a wrong password", respond(http.StatusUnauthorized, "").URL, ErrContactSyncUnauthorized},
+		{"a web page that is not CardDAV", respond(http.StatusOK, "<html>hello</html>").URL, ErrContactSyncUnreachable},
+		{"an address that does not exist", respond(http.StatusNotFound, "").URL, ErrContactSyncUnreachable},
+		{"an address that is not a web address", "ftp://example.com/dav", ErrContactSyncInvalidURL},
+	}
+	for _, tc := range cases {
+		_, err := NewContactSyncService(false).Discover(context.Background(), tc.address, "user", "pw")
+		assert.ErrorIs(t, err, tc.want, tc.name)
+	}
+}
+
+// @017-US4
+func TestDiscoverDoesNotSendThePasswordToAnotherHostViaWellKnown(t *testing.T) {
+	var hits atomic.Int32
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits.Add(1) }))
+	t.Cleanup(other.Close)
+	otherURL := strings.Replace(other.URL, "127.0.0.1", "localhost", 1)
+
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/.well-known/carddav" {
+			http.Redirect(w, r, otherURL+"/dav/", http.StatusMovedPermanently)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(origin.Close)
+
+	_, err := NewContactSyncService(false).Discover(context.Background(), origin.URL, "user", "secret")
+	assert.ErrorIs(t, err, ErrContactSyncUnreachable)
+	assert.Zero(t, hits.Load(), "the redirect target was never contacted")
+}
+
+func pngBase64(t *testing.T) string {
+	t.Helper()
+	var buf bytes.Buffer
+	require.NoError(t, png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 60, 60))))
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
+}
+
+// @017-US4
+func TestContactSyncPhotos(t *testing.T) {
+	runContactSync(t, models.CardDAVDirectionTwoWay, func(t *testing.T, env *contactSyncEnv) {
+		env.remote.putRaw(t, "uid-photo", "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:uid-photo\r\nFN:Pia Photo\r\nN:Photo;Pia;;;\r\n"+
+			"PHOTO;ENCODING=b;TYPE=PNG:"+pngBase64(t)+"\r\nEND:VCARD\r\n")
+		env.remote.putRaw(t, "uid-blocked", "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:uid-blocked\r\nFN:Bo Blocked\r\nN:Blocked;Bo;;;\r\n"+
+			"PHOTO;VALUE=uri:http://127.0.0.1:1/missing.png\r\nEND:VCARD\r\n")
+
+		stats := env.sync(t)
+
+		assert.Equal(t, 2, stats.PulledCreated)
+		assert.Zero(t, stats.Errors, "a photo that cannot be fetched does not fail the sync")
+		byName := map[string]models.Contact{}
+		for _, c := range env.localContacts(t) {
+			byName[c.Firstname] = c
+		}
+		assert.NotEmpty(t, byName["Pia"].Photo, "the embedded photo became the profile picture")
+		assert.Empty(t, byName["Bo"].Photo)
+		assert.Equal(t, "Blocked", byName["Bo"].Lastname, "the contact itself was still imported")
+	})
+}
+
+// @017-US4
+func TestContactSyncPushesAProfilePictureToTheServer(t *testing.T) {
+	runContactSync(t, models.CardDAVDirectionTwoWay, func(t *testing.T, env *contactSyncEnv) {
+		contact := env.createContact(t, "Quin", "Quick", "")
+		data, err := base64.StdEncoding.DecodeString(pngBase64(t))
+		require.NoError(t, err)
+		photo, thumb, err := mcarddav.SaveContactPhoto(data, "image/png", env.cfg.ProfilePhotoDir)
+		require.NoError(t, err)
+		require.NoError(t, env.db.Model(&models.Contact{}).Where("id = ?", contact.ID).
+			UpdateColumns(map[string]any{"photo": photo, "photo_thumbnail_file": thumb}).Error)
+
+		env.sync(t)
+
+		var uid string
+		require.NoError(t, env.db.Model(&models.Contact{}).Select("vcard_uid").Where("id = ?", contact.ID).Scan(&uid).Error)
+		card, ok := env.remote.card(t, uid)
+		require.True(t, ok)
+		assert.NotEmpty(t, card.Value("PHOTO"), "the server has the picture")
+	})
+}
+
+// @017-US4
+func TestScheduledSyncRunsEveryEnabledConnectionEvenWhenOneFails(t *testing.T) {
+	remote := newMeerkatRemote(t)
+	env := setupContactSyncEnv(t, models.CardDAVDirectionTwoWay, remote)
+	remote.putContact(t, "uid-sched", "Sam", "Scheduled", "")
+
+	broken := models.User{Username: "broken", Password: "password123!A", Email: "broken@example.com"}
+	require.NoError(t, env.db.Create(&broken).Error)
+	dead := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) }))
+	t.Cleanup(dead.Close)
+	conn := models.CardDAVConnection{UserID: broken.ID, BaseURL: dead.URL, AddressBookPath: "/x/", Direction: models.CardDAVDirectionTwoWay, SyncEnabled: true}
+	require.NoError(t, env.db.Create(&conn).Error)
+	second := models.User{Username: "second", Password: "password123!A", Email: "second@example.com"}
+	require.NoError(t, env.db.Create(&second).Error)
+	require.NoError(t, env.db.Create(&models.CardDAVConnection{UserID: second.ID, BaseURL: remote.proxyURL, AddressBookPath: remote.addressBookPath(), Direction: models.CardDAVDirectionTwoWay, SyncEnabled: true}).Error)
+	off := models.User{Username: "off", Password: "password123!A", Email: "off@example.com"}
+	require.NoError(t, env.db.Create(&off).Error)
+	disabled := models.CardDAVConnection{UserID: off.ID, BaseURL: remote.proxyURL, AddressBookPath: remote.addressBookPath(), Direction: models.CardDAVDirectionTwoWay}
+	require.NoError(t, env.db.Create(&disabled).Error)
+	require.NoError(t, env.db.Model(&disabled).Update("sync_enabled", false).Error)
+
+	SyncAllContactConnections(env.db, env.cfg, clock.Real())
+
+	var names []string
+	for _, c := range env.localContacts(t) {
+		names = append(names, c.Firstname)
+	}
+	assert.Equal(t, []string{"Sam"}, names, "the first connection synced")
+	var afterTheFailure int64
+	require.NoError(t, env.db.Model(&models.Contact{}).Where("user_id = ?", second.ID).Count(&afterTheFailure).Error)
+	assert.EqualValues(t, 1, afterTheFailure, "the connection after the failing one still synced")
+	var stored models.CardDAVConnection
+	require.NoError(t, env.db.First(&stored, conn.ID).Error)
+	assert.Equal(t, models.CardDAVSyncStatusError, stored.LastSyncStatus)
+	assert.NotEmpty(t, stored.LastSyncError, "the user sees why it failed")
+	var untouched int64
+	require.NoError(t, env.db.Model(&models.Contact{}).Where("user_id = ?", off.ID).Count(&untouched).Error)
+	assert.Zero(t, untouched, "a disabled connection is not synced")
+}
