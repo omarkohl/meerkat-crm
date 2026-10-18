@@ -5,7 +5,7 @@ import { API_BASE_URL } from './global-setup';
 // Notes and activities both render in the contact's Timeline tab. Each test
 // uses a throwaway contact and cleans it up (which cascades the note/activity).
 test.describe('Timeline', () => {
-  test('should add a note to a contact', async ({ page }) => {
+  test('should add a note to a contact @005-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
     const noteContent = `E2E note ${Date.now()}`;
 
@@ -27,7 +27,7 @@ test.describe('Timeline', () => {
     }
   });
 
-  test('should add an activity to a contact', async ({ page }) => {
+  test('should add an activity to a contact @005-US2', async ({ page }) => {
     const contact = await createTestContact(page.request);
     const activityTitle = `E2E activity ${Date.now()}`;
 
@@ -48,7 +48,7 @@ test.describe('Timeline', () => {
     }
   });
 
-  test('the add activity dialog preselects the contact, also when it is archived', async ({ page }) => {
+  test('the add activity dialog preselects the contact, also when it is archived @005-US2', async ({ page }) => {
     // Archived contacts are missing from the dialog's contact list, so preselection must not rely on it
     const contact = await createTestContact(page.request);
 

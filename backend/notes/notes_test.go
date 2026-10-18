@@ -122,6 +122,7 @@ func contents(body map[string]any) []string {
 	return out
 }
 
+// @005-US1
 func TestCreateForAContactStoresTheNoteForTheActor(t *testing.T) {
 	e := newEnv(t)
 	e.subscribe(t, e.a.ID, "note.created")
@@ -234,6 +235,7 @@ func TestListShowsTheActorsUnassignedNotesNewestFirstWithPaging(t *testing.T) {
 	assert.EqualValues(t, 1, body["page"])
 }
 
+// @005-US4
 func TestListSearchesAndFiltersByDate(t *testing.T) {
 	e := newEnv(t)
 	for content, date := range map[string]string{"Call Alice": "2026-03-10", "Call Bob": "2026-04-10"} {

@@ -24,7 +24,7 @@ test.describe('Two-factor authentication', () => {
   test.describe('login', () => {
     test.use({ storageState: LOGGED_OUT });
 
-    test('a user can turn it on, must then give a code, and can use a recovery code', async ({ page }) => {
+    test('a user can turn it on, must then give a code, and can use a recovery code @002-US1', async ({ page }) => {
       const user = {
         username: `e2e_2fa_${unique}`,
         email: `e2e_2fa_${unique}@example.com`,
@@ -98,7 +98,7 @@ test.describe('Two-factor authentication', () => {
     });
   });
 
-  test('an admin can reset a user whose phone is lost', async ({ page }) => {
+  test('an admin can reset a user whose phone is lost @002-US2', async ({ page }) => {
     const user = {
       username: `e2e_2fa_reset_${unique}`,
       email: `e2e_2fa_reset_${unique}@example.com`,

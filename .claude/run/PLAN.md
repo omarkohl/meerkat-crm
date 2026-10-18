@@ -170,7 +170,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       locators (7x) with user navigation and role/label locators. Add `eslint-plugin-playwright`
       plus a rule that bans template-literal `goto`. Move specs that change global settings into a
       serial project after the parallel one.
-- [ ] 17. **Use-case catalogue (§4)**: `docs/use-cases.yml` (ID `NNN-USn`, actor, priority, status).
+- [x] 17. **Use-case catalogue (§4)**: `docs/use-cases.yml` (ID `NNN-USn`, actor, priority, status).
       Tag E2E titles (`@001-US1`) and Go test names. A script in `make test` fails on unknown IDs
       and on E2E tests without ID, and prints uncovered use cases. Add to CI.
 - [ ] 18. **Test what you ship (§4)**: release-seeded databases in

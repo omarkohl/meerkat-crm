@@ -4,7 +4,7 @@ import { API_BASE_URL } from './global-setup';
 // Every test uses its own uniquely named contact and never empties the whole trash,
 // because the seeded user's trash is shared with the other specs running in parallel.
 test.describe('Trash', () => {
-  test('a deleted contact appears in the trash and can be restored', async ({ page }) => {
+  test('a deleted contact appears in the trash and can be restored @008-US1', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'Restorable' });
     const fullName = `${contact.firstname} Restorable`;
 
@@ -34,7 +34,7 @@ test.describe('Trash', () => {
     }
   });
 
-  test('a contact can be deleted permanently from the trash', async ({ page }) => {
+  test('a contact can be deleted permanently from the trash @008-US2', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'Purgeable' });
     const fullName = `${contact.firstname} Purgeable`;
     await page.request.delete(`${API_BASE_URL}/contacts/${contact.ID}`);
@@ -58,7 +58,7 @@ test.describe('Trash', () => {
     expect((trash.contacts || []).some((c: { id: number }) => c.id === contact.ID)).toBeFalsy();
   });
 
-  test('a trashed contact is hidden from the contact list and search', async ({ page }) => {
+  test('a trashed contact is hidden from the contact list and search @008-US3', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'Hidden' });
     try {
       await page.request.delete(`${API_BASE_URL}/contacts/${contact.ID}`);

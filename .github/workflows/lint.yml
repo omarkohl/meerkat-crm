@@ -141,6 +141,9 @@ jobs:
       - name: Test helper scripts
         run: make test-scripts
 
+      - name: Check the use-case catalogue
+        run: make use-cases
+
   format:
     permissions:
       contents: read

@@ -24,6 +24,7 @@ func (e *env) userByName(t *testing.T, name string) models.User {
 	return u
 }
 
+// @001-US1
 func TestRegisteringCreatesALowerCasedAccountWithAHashedPassword(t *testing.T) {
 	e := newEnv(t)
 	w := send(e.anon, http.MethodPost, "/register", registration(`,"language":"de"`))

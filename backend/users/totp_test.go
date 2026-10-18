@@ -68,6 +68,7 @@ func TestSingleSignOnAccountsCannotEnrol(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
+// @002-US1
 func TestEnrolmentTurnsTwoFactorOnAndSignsOtherBrowsersOut(t *testing.T) {
 	e := newEnv(t)
 	e.withPassword(t, &e.a, oldPassword)

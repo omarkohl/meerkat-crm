@@ -98,6 +98,7 @@ func TestARequestWithABadEmailIsRefused(t *testing.T) {
 	}
 }
 
+// @001-US4
 func TestAConfirmedResetChangesThePasswordEndsEverySessionAndIsSingleUse(t *testing.T) {
 	e := newEnv(t)
 	e.withPassword(t, &e.a, oldPassword)

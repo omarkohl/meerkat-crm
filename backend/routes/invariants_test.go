@@ -276,7 +276,7 @@ func TestEveryModelWithAUserIDHasIsolationCoverage(t *testing.T) {
 		if p.file == "" {
 			spec, err := os.ReadFile(filepath.Join("..", "..", "frontend", "e2e", "isolation.spec.ts"))
 			require.NoError(t, err)
-			assert.Regexp(t, `(?m)^\s*test\(\s*["'`+"`"+`]`+regexp.QuoteMeta(p.test)+`["'`+"`"+`]`, string(spec), "%s: isolation.spec.ts has no running test %q", m, p.test)
+			assert.Regexp(t, `(?m)^\s*test\(\s*["'`+"`"+`]`+regexp.QuoteMeta(p.test)+`(?: @[\w-]+)*["'`+"`"+`]`, string(spec), "%s: isolation.spec.ts has no running test %q", m, p.test)
 			continue
 		}
 		requireTest(t, m, p)

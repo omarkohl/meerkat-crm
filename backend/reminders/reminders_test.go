@@ -277,6 +277,7 @@ func TestUpdateRefusesOtherUsersRemindersContactsAndBadInput(t *testing.T) {
 	assert.Equal(t, alice.ID, *stored.ContactID)
 }
 
+// @006-US1
 func TestCompletingARecurringReminderRecordsItAndSchedulesTheNext(t *testing.T) {
 	e := newEnv(t)
 	c := e.contact(t, e.a.ID, "Alice")

@@ -5,7 +5,7 @@ import { API_BASE_URL } from './global-setup';
 // Authenticated via the shared storageState (see playwright.config.ts) — no
 // per-test login needed.
 test.describe('Contacts', () => {
-  test('should display contacts page with filter controls', async ({ page }) => {
+  test('should display contacts page with filter controls @004-US1', async ({ page }) => {
     await page.goto('/contacts');
 
     await expect(page.getByRole('heading', { name: /contacts/i })).toBeVisible();
@@ -14,7 +14,7 @@ test.describe('Contacts', () => {
     await expect(page.getByRole('button', { name: /add/i })).toBeVisible();
   });
 
-  test('should find seeded contacts via search', async ({ page }) => {
+  test('should find seeded contacts via search @004-US2', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
 
@@ -25,7 +25,7 @@ test.describe('Contacts', () => {
     await expect(page.getByText('Bob Smith')).toBeVisible();
   });
 
-  test('header search text is discarded on navigation and on Escape', async ({ page }) => {
+  test('header search text is discarded on navigation and on Escape @004-US2', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
     const searchInput = page.getByRole('banner').getByPlaceholder(/search/i);
@@ -42,7 +42,7 @@ test.describe('Contacts', () => {
     await expect(searchInput).toHaveValue('');
   });
 
-  test('search ignores accents and case and matches the start of every word', async ({ page, request }) => {
+  test('search ignores accents and case and matches the start of every word @004-US2', async ({ page, request }) => {
     const created = await createTestContact(request, { firstname: 'Zoë', lastname: 'Müllerová' });
     try {
       await page.goto('/contacts');
@@ -58,7 +58,7 @@ test.describe('Contacts', () => {
     }
   });
 
-  test('searching sorts by best match and the sort menu offers it only then', async ({ page }) => {
+  test('searching sorts by best match and the sort menu offers it only then @004-US2', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
     await expect(page.getByLabel(/sort by/i)).not.toContainText('Best match');
@@ -67,7 +67,7 @@ test.describe('Contacts', () => {
     await expect(page.getByLabel(/sort by/i)).toContainText('Best match');
   });
 
-  test('should navigate to contact detail', async ({ page }) => {
+  test('should navigate to contact detail @004-US1', async ({ page }) => {
     await page.goto('/contacts');
     await waitForLoading(page);
 
@@ -78,7 +78,7 @@ test.describe('Contacts', () => {
     await expect(page.getByText('alice@example.com')).toBeVisible();
   });
 
-  test('should create a new contact', async ({ page }) => {
+  test('should create a new contact @004-US3', async ({ page }) => {
     // Unique name per run so repeated runs don't accumulate duplicates.
     const firstname = `E2EFixture${Date.now()}`;
     const lastname = 'Contact';
@@ -101,7 +101,7 @@ test.describe('Contacts', () => {
     await deleteTestContact(page.request, String(contactId));
   });
 
-  test('should edit a contact name', async ({ page }) => {
+  test('should edit a contact name @004-US4', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'Before' });
 
     try {
@@ -120,7 +120,7 @@ test.describe('Contacts', () => {
     }
   });
 
-  test('should delete a contact from the detail page', async ({ page }) => {
+  test('should delete a contact from the detail page @004-US5', async ({ page }) => {
     const contact = await createTestContact(page.request, { lastname: 'ToDelete' });
 
     await openContact(page, contact);

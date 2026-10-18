@@ -1,0 +1,328 @@
+# The use cases of Meerkat CRM. IDs are NNN-USn: the feature, then the story in it.
+# Tests carry the ID: `@001-US1` in an E2E test title, `// @001-US1` above a Go test.
+# `make use-cases` fails on an unknown ID or an E2E test without one and lists the use cases
+# no test covers. Priority: high, medium, low. Status: implemented.
+
+- id: 001-US1
+  title: Register an account
+  actor: visitor
+  priority: high
+  status: implemented
+
+- id: 001-US2
+  title: Log in with a username or e-mail and a password
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 001-US3
+  title: Log out
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 001-US4
+  title: Reset a forgotten password by e-mail
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 001-US5
+  title: Sign in with single sign-on (OIDC)
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 001-US6
+  title: Be sent to the login page when not signed in
+  actor: visitor
+  priority: high
+  status: implemented
+
+- id: 002-US1
+  title: Turn on two-factor authentication and log in with a code or a recovery code
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 002-US2
+  title: Reset the two-factor authentication of a user who lost the phone
+  actor: admin
+  priority: medium
+  status: implemented
+
+- id: 003-US1
+  title: See the signed-in browsers and sign one out
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 003-US2
+  title: Sign out everywhere
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 003-US3
+  title: Read the audit log of security events
+  actor: admin
+  priority: medium
+  status: implemented
+
+- id: 003-US4
+  title: Be refused the audit log as a normal user
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US1
+  title: Browse the contacts list and open a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US2
+  title: Search contacts
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US3
+  title: Create a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US4
+  title: Edit a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US5
+  title: Delete a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 004-US6
+  title: See a contact's picture in the list
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 004-US7
+  title: Archive and unarchive a contact
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 004-US8
+  title: Group contacts in circles and filter the list by circle
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 004-US9
+  title: Upload a profile picture for a contact
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 005-US1
+  title: Add a note to a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 005-US2
+  title: Add an activity to a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 005-US3
+  title: Filter activities by date in the chosen date format
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 005-US4
+  title: Browse and search all notes on the notes page
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 006-US1
+  title: Create and complete reminders for a contact
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 006-US2
+  title: Get a daily e-mail with the reminders that are due
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 007-US1
+  title: Add a relationship between contacts
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 019-US1
+  title: See the relationships between contacts as a network graph
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 008-US1
+  title: Restore a deleted contact from the trash
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 008-US2
+  title: Delete a contact permanently from the trash
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 008-US3
+  title: Not see deleted contacts in the list and in the search
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 009-US1
+  title: Subscribe to birthdays and reminders in a calendar app through a private feed URL
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 010-US1
+  title: See upcoming birthdays, reminders and contacts to get in touch with on the dashboard
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 010-US2
+  title: Move between the pages from the sidebar
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 011-US1
+  title: Create, download and delete backups of the instance
+  actor: admin
+  priority: high
+  status: implemented
+
+- id: 011-US2
+  title: Be refused the backups as a normal user
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 012-US1
+  title: Be warned that outbound features can reach private addresses on a multi-user instance
+  actor: admin
+  priority: medium
+  status: implemented
+
+- id: 013-US1
+  title: See only one's own data
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 014-US1
+  title: Be protected by a strict Content-Security-Policy and the other security headers
+  actor: user
+  priority: high
+  status: implemented
+
+- id: 015-US1
+  title: Import contacts from a CSV or a vCard file
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 015-US2
+  title: Import contacts and their data from Monica
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 016-US1
+  title: Export all data as CSV or vCard
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 017-US1
+  title: Create an API token for scripts
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 017-US2
+  title: Send events to a webhook
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 017-US3
+  title: Import events from a calendar subscription as activities
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 017-US4
+  title: Sync contacts with a CardDAV address book
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 018-US1
+  title: List and change user accounts
+  actor: admin
+  priority: high
+  status: implemented
+
+- id: 018-US2
+  title: Delete a user account with all its data
+  actor: admin
+  priority: high
+  status: implemented
+
+- id: 018-US3
+  title: Send the reminder e-mails now
+  actor: admin
+  priority: low
+  status: implemented
+
+- id: 020-US1
+  title: Use the contacts from a CardDAV client app
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 021-US1
+  title: Choose the language
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 021-US2
+  title: Choose the date format
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 021-US3
+  title: Name custom fields and choose which contact fields to show
+  actor: user
+  priority: low
+  status: implemented

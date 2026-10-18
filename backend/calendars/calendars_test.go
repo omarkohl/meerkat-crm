@@ -219,6 +219,7 @@ func TestDeleteRemovesEventLinksButKeepsImportedActivities(t *testing.T) {
 const ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//t//EN\r\nBEGIN:VEVENT\r\nUID:e1@example.com\r\nDTSTAMP:20260301T000000Z\r\n" +
 	"DTSTART:20260311T100000Z\r\nDTEND:20260311T110000Z\r\nSUMMARY:Standup\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
 
+// @017-US3
 func TestSyncImportsEventsAndRecordsTheStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/calendar")

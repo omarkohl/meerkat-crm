@@ -5,7 +5,7 @@ import { API_BASE_URL } from './global-setup';
 // Authenticated via the shared storageState. This is the only spec that touches the
 // seeded user's calendar feed (one feed per user), so it cannot race with others.
 test.describe('Calendar feed (ICS)', () => {
-  test('generate, subscribe, regenerate and revoke the feed URL', async ({ page }) => {
+  test('generate, subscribe, regenerate and revoke the feed URL @009-US1', async ({ page }) => {
     await page.request.delete(`${API_BASE_URL}/ics-feed`);
     const contact = await createTestContact(page.request, { birthday: '1980-05-17' });
     // Calendar apps send no cookies, so read the feed with a clean context.

@@ -165,6 +165,7 @@ func TestIncomingRelationshipsShowTheSourceContactsName(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, send(e.asB, http.MethodGet, "/contacts/"+sid(alice.ID)+"/incoming-relationships", nil).Code)
 }
 
+// @007-US1
 func TestCreateStoresTheRelationshipForTheContactAndActor(t *testing.T) {
 	e := newEnv(t)
 	alice, bob := e.contact(t, e.a.ID, "Alice"), e.contact(t, e.a.ID, "Bob")
@@ -258,6 +259,7 @@ func TestDeleteRemovesOwnRelationshipOnly(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodDelete, path, nil).Code)
 }
 
+// @019-US1
 func TestGraphDrawsEdgesOnlyBetweenVisibleNodes(t *testing.T) {
 	e := newEnv(t)
 	ann := models.Contact{UserID: e.a.ID, Firstname: "Ann", Circles: []string{"Friends"}, PhotoThumbnailFile: "p_thumb.jpg"}

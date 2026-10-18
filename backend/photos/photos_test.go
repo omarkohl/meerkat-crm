@@ -212,6 +212,7 @@ func TestAThumbnailIsServedForTheOwnersTrashedContactsOnly(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, get(e.asA, pic(mine.ID)).Code, "the full photo stays with live contacts")
 }
 
+// @004-US9
 func TestUploadStoresAJPEGUnderAGeneratedNameAndDropsTheOldPicture(t *testing.T) {
 	e := newEnv(t)
 	c := e.contact(t, e.a.ID, models.Contact{LegacyThumbnail: "data:image/jpeg;base64,anBlZw=="})

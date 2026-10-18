@@ -7,7 +7,7 @@ import { API_BASE_URL } from './global-setup';
 test.describe('Security headers', () => {
   test.use({ storageState: LOGGED_OUT });
 
-  test('the SPA is served with an enforcing, strict Content-Security-Policy', async ({ request }) => {
+  test('the SPA is served with an enforcing, strict Content-Security-Policy @014-US1', async ({ request }) => {
     for (const path of ['/', '/contacts', '/manifest.json']) {
       const headers = (await request.get(path)).headers();
       const csp = headers['content-security-policy'];
@@ -27,7 +27,7 @@ test.describe('Security headers', () => {
     }
   });
 
-  test('API responses carry the backend headers once, with the strict policy', async ({ request }) => {
+  test('API responses carry the backend headers once, with the strict policy @014-US1', async ({ request }) => {
     const response = await request.get(`${API_BASE_URL}/contacts`);
     expect(response.status()).toBe(401);
     const headers = response.headers();
@@ -41,13 +41,13 @@ test.describe('Security headers', () => {
     }
   });
 
-  test('the login page runs without Content-Security-Policy violations', async ({ page }) => {
+  test('the login page runs without Content-Security-Policy violations @014-US1', async ({ page }) => {
     // The guard in fixtures.ts fails the test on any violation.
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /login/i })).toBeVisible();
   });
 
-  test('the policy is enforced and the guard sees violations', async ({ browser, baseURL }) => {
+  test('the policy is enforced and the guard sees violations @014-US1', async ({ browser, baseURL }) => {
     // A plain page (not the guarded fixture): an inline script must be blocked and reported.
     const plain = await browser.newPage({ baseURL });
     try {

@@ -24,7 +24,8 @@ copy it.
 These are limits, not targets.
 
 - Comments: at most one per ~50 new lines of code, two lines each. Adding no comment is a normal,
-  correct outcome. Delete test: cover the comment; if the code says the same, delete it.
+  correct outcome. Delete test: cover the comment; if the code says the same, delete it. Use-case
+  tags (`// @001-US1` above a Go test) are not comments in this sense.
 - Do the step asked, all of it, nothing beyond it. Unrelated findings go to `PROGRESS.md` under
   "Questions" (in a run) or into your report.
 

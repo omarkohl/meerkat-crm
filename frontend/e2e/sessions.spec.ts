@@ -7,7 +7,7 @@ import { API_BASE_URL, TEST_USER } from './global-setup';
 const PROBE_AGENT = 'e2e-session-probe';
 
 test.describe('Sessions', () => {
-  test('a session shows in the settings and can be signed out from there', async ({ page }) => {
+  test('a session shows in the settings and can be signed out from there @003-US1', async ({ page }) => {
     const other = await request.newContext({ extraHTTPHeaders: { 'User-Agent': PROBE_AGENT } });
     try {
       const login = await other.post(`${API_BASE_URL}/login`, {
@@ -30,7 +30,7 @@ test.describe('Sessions', () => {
     }
   });
 
-  test('sign out everywhere ends every session of a user and only theirs', async () => {
+  test('sign out everywhere ends every session of a user and only theirs @003-US2', async () => {
     const user = {
       username: 'e2e_sessions_user',
       email: 'e2e_sessions_user@example.com',
@@ -61,7 +61,7 @@ test.describe('Sessions', () => {
 });
 
 test.describe('Audit log (admin)', () => {
-  test('lists logins and can be filtered by event', async ({ page }) => {
+  test('lists logins and can be filtered by event @003-US3', async ({ page }) => {
     await page.goto('/audit-log');
     await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
     await expect(page.getByRole('row', { name: /testuser.*/ }).first()).toBeVisible();
@@ -72,7 +72,7 @@ test.describe('Audit log (admin)', () => {
     await expect(page.getByRole('cell', { name: 'Login', exact: true })).toHaveCount(0);
   });
 
-  test('is refused for a normal user', async () => {
+  test('is refused for a normal user @003-US4', async () => {
     const ctx = await request.newContext();
     try {
       const user = { username: 'e2e_audit_plain', email: 'e2e_audit_plain@example.com', password: 'AuditPlain123!' };

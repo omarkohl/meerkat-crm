@@ -110,6 +110,7 @@ func TestAPITokensStartEmptyAsAList(t *testing.T) {
 	assert.JSONEq(t, `{"tokens":[]}`, w.Body.String())
 }
 
+// @017-US1
 func TestCreateAPITokenShowsThePlaintextOnceAndStoresOnlyTheHash(t *testing.T) {
 	e := newEnv(t)
 	tok := createToken(t, e.asA, "ci-token")
@@ -246,6 +247,7 @@ func TestCreateFeedReturnsTheTokenOnceAndStoresOnlyTheHash(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"enabled":true`)
 }
 
+// @009-US1
 func TestValidTokenServesTheCalendarWithoutALogin(t *testing.T) {
 	e := newEnv(t)
 	require.NoError(t, e.db.Create(&models.Contact{UserID: e.a.ID, Firstname: "Ada", Birthday: "1815-12-10"}).Error)

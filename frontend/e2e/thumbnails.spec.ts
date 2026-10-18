@@ -9,7 +9,7 @@ const PNG = Buffer.from(
 );
 
 test.describe('Contact thumbnails', () => {
-  test('the list shows a cached thumbnail URL, not an embedded image', async ({ page, request }) => {
+  test('the list shows a cached thumbnail URL, not an embedded image @004-US6', async ({ page, request }) => {
     const created = await createTestContact(request, { firstname: 'Thumbed', lastname: 'Avatar' });
     try {
       const upload = await request.post(`${API_BASE_URL}/contacts/${created.ID}/profile_picture`, {

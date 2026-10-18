@@ -44,6 +44,16 @@ Integration tests:
   reads, then raw rows as a last resort.
 - Scheduler jobs do not run implicitly in tests; tests trigger them, then assert.
 
+Use cases:
+
+- `docs/use-cases.yml` lists the use cases (`NNN-USn`, actor, priority, status). Add one when you
+  add a user-visible capability.
+- Every E2E test title ends with the IDs it covers (`@004-US3`); a Go test carries a `// @004-US3`
+  comment line directly above its function (a tag in a comment, not in the name: Go names cannot
+  hold the ID; stack several tags; a tag anywhere else fails the check). `make use-cases` (part of
+  `make test` and `make precommit`, and a CI step) fails on an unknown ID or an E2E test without
+  one, and lists the use cases no test covers.
+
 E2E tests:
 
 - Act like a user: click visible elements, follow links, type into labelled fields. Use role, label

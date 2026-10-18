@@ -56,6 +56,7 @@ func TestUserEndpointsRefuseAPlainUser(t *testing.T) {
 	assert.False(t, reloaded.IsAdmin, "a plain user cannot promote anyone")
 }
 
+// @018-US1
 func TestListingUsersPagesAndHidesSecrets(t *testing.T) {
 	e := newEnv(t)
 	r := e.asAdmin()
@@ -76,6 +77,7 @@ func TestListingUsersPagesAndHidesSecrets(t *testing.T) {
 	assert.Equal(t, false, got["two_factor_enabled"])
 }
 
+// @018-US1
 func TestUpdatingUsersKeepsAnAdminAndNormalisesNames(t *testing.T) {
 	e := newEnv(t)
 	r := e.asAdmin()
@@ -125,6 +127,7 @@ func TestUpdateAuditDetailIsStructuredAndAPasswordEndsTheSessions(t *testing.T) 
 	assert.Empty(t, live, "a password set by an admin ends the sessions")
 }
 
+// @018-US2
 func TestDeletingAUserRemovesTheirDataButKeepsTheAuditTrailAndOtherUsers(t *testing.T) {
 	e := newEnv(t)
 	victim := models.User{Username: "victim", Email: "victim@example.com", Password: "x"}
@@ -200,6 +203,7 @@ func TestADeletedOIDCUserReleasesTheirIdentity(t *testing.T) {
 	assert.Zero(t, n, "the old account stays soft-deleted")
 }
 
+// @002-US2
 func TestResettingTwoFactorNeedsItToBeOn(t *testing.T) {
 	e := newEnv(t)
 	r := e.asAdmin()
@@ -222,6 +226,7 @@ func TestResettingTwoFactorNeedsItToBeOn(t *testing.T) {
 	assert.Equal(t, false, listed[1].(map[string]any)["two_factor_enabled"], "the list shows who still has it")
 }
 
+// @018-US3
 func TestTriggeringRemindersRunsTheJobWithTheRequestClockAndAuditsIt(t *testing.T) {
 	e := newEnv(t)
 	var got clock.Clock

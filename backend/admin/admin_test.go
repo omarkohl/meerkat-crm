@@ -94,6 +94,8 @@ func decode(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	return m
 }
 
+// @003-US4
+// @011-US2
 func TestEveryRouteRefusesAPlainUserAndTouchesNothing(t *testing.T) {
 	e := newEnv(t)
 	created := do(e.as(e.admin.ID, e.config()), http.MethodPost, "/admin/backups")
@@ -120,6 +122,7 @@ func TestEveryRouteRefusesAPlainUserAndTouchesNothing(t *testing.T) {
 	}
 }
 
+// @011-US1
 func TestBackupsCanBeCreatedListedDownloadedAndDeleted(t *testing.T) {
 	e := newEnv(t)
 	r := e.as(e.admin.ID, e.config())
@@ -243,6 +246,7 @@ func TestCreatingAndDownloadingABackupLiftTheServersWriteTimeout(t *testing.T) {
 	assert.True(t, deadlines[1].IsZero(), "download removes the write deadline")
 }
 
+// @003-US3
 func TestAuditLogListsFiltersAndPagesNewestFirst(t *testing.T) {
 	e := newEnv(t)
 	r := e.as(e.admin.ID, e.config())
@@ -289,6 +293,7 @@ func TestAuditLogListsFiltersAndPagesNewestFirst(t *testing.T) {
 	assert.EqualValues(t, 100, get("?limit=5000")["limit"])
 }
 
+// @012-US1
 func TestSystemStatusWarnsOnMultiUserInstancesThatAllowPrivateAddresses(t *testing.T) {
 	e := newEnv(t)
 	status := func(cfg config.Config) map[string]any {

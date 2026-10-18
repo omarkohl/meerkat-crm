@@ -4,7 +4,7 @@ import { createTestContact, deleteTestContact, openContact } from './fixtures';
 // Authenticated via the shared storageState (see playwright.config.ts).
 // Each test runs against its own throwaway contact
 test.describe('Reminders', () => {
-  test('should create a reminder from a contact detail page', async ({ page }) => {
+  test('should create a reminder from a contact detail page @006-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
 
     try {
@@ -27,7 +27,7 @@ test.describe('Reminders', () => {
     }
   });
 
-  test('should show reminder form fields', async ({ page }) => {
+  test('should show reminder form fields @006-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
 
     try {

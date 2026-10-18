@@ -10,7 +10,7 @@ const USER_B = {
 };
 
 test.describe('Multi-user isolation', () => {
-  test("a user cannot see another user's contacts", async ({ page }) => {
+  test("a user cannot see another user's contacts @013-US1", async ({ page }) => {
     // Sanity: the seeded user (userA, via the shared storageState) can see Alice.
     const ownView = await page.request.get(
       `${API_BASE_URL}/contacts?search=${encodeURIComponent('Alice Johnson')}&limit=10`,
@@ -39,7 +39,7 @@ test.describe('Multi-user isolation', () => {
     }
   });
 
-  test("a calendar feed only contains its owner's birthdays", async ({ page }) => {
+  test("a calendar feed only contains its owner's birthdays @013-US1", async ({ page }) => {
     // userA's contact with a birthday, created through the shared storageState.
     const created = await page.request.post(`${API_BASE_URL}/contacts`, {
       data: { firstname: 'E2E-IcsIsolationA', lastname: 'Owner', birthday: '1980-02-03' },
@@ -86,7 +86,7 @@ test.describe('Multi-user isolation', () => {
     }
   });
 
-  test("a user cannot list, restore or purge another user's trash", async ({ page }) => {
+  test("a user cannot list, restore or purge another user's trash @013-US1", async ({ page }) => {
     const created = await page.request.post(`${API_BASE_URL}/contacts`, {
       data: { firstname: 'E2E-TrashIsolationA', lastname: 'Owner' },
     });
@@ -117,7 +117,7 @@ test.describe('Multi-user isolation', () => {
     }
   });
 
-  test('a normal user cannot list, create, download or delete backups', async ({ page }) => {
+  test('a normal user cannot list, create, download or delete backups @011-US2', async ({ page }) => {
     // The seeded user is the first account and therefore an admin.
     const created = await page.request.post(`${API_BASE_URL}/admin/backups`);
     expect(created.status()).toBe(201);

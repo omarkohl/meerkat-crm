@@ -126,6 +126,7 @@ func links(t *testing.T, e *env, a models.Activity) []uint {
 
 const day = "2026-03-01T12:00:00Z"
 
+// @005-US2
 func TestCreateLinksTheContactsAndAnnouncesTheActivity(t *testing.T) {
 	e := newEnv(t)
 	e.subscribe(t, e.a.ID, "activity.created")

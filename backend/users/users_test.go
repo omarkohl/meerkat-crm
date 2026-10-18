@@ -118,6 +118,7 @@ func message(t *testing.T, w *httptest.ResponseRecorder) string {
 	return b.Error.Message
 }
 
+// @021-US1
 func TestLanguageIsChangedForTheActorOnly(t *testing.T) {
 	e := newEnv(t)
 	w := send(e.asA, http.MethodPatch, "/users/language", `{"language":"de"}`)
@@ -149,6 +150,7 @@ func TestAMalformedBodyIsABadRequest(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "request body is required")
 }
 
+// @021-US2
 func TestDateFormatIsChangedForTheActorOnly(t *testing.T) {
 	e := newEnv(t)
 	w := send(e.asA, http.MethodPatch, "/users/date-format", `{"date_format":"iso"}`)
@@ -163,6 +165,7 @@ func TestDateFormatIsChangedForTheActorOnly(t *testing.T) {
 	assert.Equal(t, "iso", e.reload(t, e.a.ID).DateFormat)
 }
 
+// @021-US3
 func TestCustomFieldNamesDefaultToAnEmptyListAndAreKeptPerUser(t *testing.T) {
 	e := newEnv(t)
 	assert.Equal(t, `[]`, raw(t, send(e.asA, http.MethodGet, "/users/custom-fields", ""), "custom_field_names"))

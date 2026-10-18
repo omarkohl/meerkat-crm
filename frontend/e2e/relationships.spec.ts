@@ -4,7 +4,7 @@ import { createTestContact, deleteTestContact, openContact } from './fixtures';
 // Relationships live on a tab inside the contact information card. Each test
 // uses a throwaway contact and cleans it up afterwards.
 test.describe('Relationships', () => {
-  test('should add a manual relationship to a contact', async ({ page }) => {
+  test('should add a manual relationship to a contact @007-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
     const relName = `E2E Rel ${Date.now()}`;
 

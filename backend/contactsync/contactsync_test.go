@@ -241,6 +241,7 @@ func TestDiscoverRefusesBadAddressesAndPrivateOnes(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "blocked private address")
 }
 
+// @017-US4
 func TestSyncStartsInTheBackgroundAndRefusesASecondRun(t *testing.T) {
 	release := make(chan struct{})
 	entered := make(chan struct{}, 8)

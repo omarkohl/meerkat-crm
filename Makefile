@@ -1,4 +1,4 @@
-.PHONY: help install install-go install-frontend dev seed format format-check lint lint-go lint-frontend typecheck i18n-check test test-scripts test-go test-frontend test-coverage test-coverage-go test-coverage-frontend test-carddav test-e2e test-e2e-docker arch openapi openapi-check vuln-go audit-frontend fuzz precommit build clean clean-all
+.PHONY: help use-cases install install-go install-frontend dev seed format format-check lint lint-go lint-frontend typecheck i18n-check test test-scripts test-go test-frontend test-coverage test-coverage-go test-coverage-frontend test-carddav test-e2e test-e2e-docker arch openapi openapi-check vuln-go audit-frontend fuzz precommit build clean clean-all
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
@@ -50,11 +50,14 @@ i18n-check: ## Locale files: missing/extra keys fail, unused/duplicate keys warn
 test-scripts: ## Tests of the helper scripts in scripts/
 	node --test scripts/*.test.mjs
 
+use-cases: ## Check the use-case catalogue against the tests; lists the uncovered use cases
+	node scripts/use-cases.mjs
+
 GO_TEST_FLAGS ?=
 # Minimum total Go coverage in percent (current value rounded down). Raise it when coverage rises.
 GO_COVERAGE_MIN ?= 71
 
-test: test-scripts test-go test-frontend ## Backend, frontend and script unit tests
+test: test-scripts use-cases test-go test-frontend ## Backend, frontend and script unit tests, and the use-case check
 
 test-go: install-go ## Go tests (GO_TEST_FLAGS="-race" adds flags)
 	cd backend && go test $(GO_TEST_FLAGS) ./...
@@ -108,7 +111,7 @@ arch: install ## Architecture rules: Go depguard layering, frontend dependency-c
 	cd backend && golangci-lint run --enable-only depguard
 	node scripts/arch-frontend.mjs
 
-precommit: format-check lint typecheck i18n-check arch openapi-check test-scripts test-coverage test-e2e ## All checks, including E2E
+precommit: format-check lint typecheck i18n-check arch openapi-check test-scripts use-cases test-coverage test-e2e ## All checks, including E2E
 
 build: install ## Build backend binary and frontend bundle
 	cd backend && go build -o meerkat .

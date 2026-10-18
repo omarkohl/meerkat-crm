@@ -72,6 +72,7 @@ func (e *digestEnv) contact(t *testing.T, owner uint, first, last, birthday stri
 	return c
 }
 
+// @006-US2
 func TestDigestMailsDueRemindersToTheirOwnerAndMarksThemSent(t *testing.T) {
 	e := newDigestEnv(t, true)
 	jane := e.contact(t, e.a.ID, "Jane", "Doe", "")

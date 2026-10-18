@@ -6,7 +6,7 @@ test.use({ storageState: LOGGED_OUT });
 
 test.describe('Authentication', () => {
   test.describe('Login', () => {
-    test('should display login page when not authenticated', async ({ page }) => {
+    test('should display login page when not authenticated @001-US6', async ({ page }) => {
       await page.goto('/');
 
       // Should show login form (app shows login at root when not authenticated)
@@ -16,7 +16,7 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('button', { name: /login/i })).toBeVisible();
     });
 
-    test('should login successfully with valid credentials', async ({ page }) => {
+    test('should login successfully with valid credentials @001-US2', async ({ page }) => {
       await page.goto('/');
 
       await page.getByLabel(/username or email/i).fill(TEST_USER.username);
@@ -27,7 +27,7 @@ test.describe('Authentication', () => {
       await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 });
     });
 
-    test('should show error with invalid credentials', async ({ page }) => {
+    test('should show error with invalid credentials @001-US2', async ({ page }) => {
       await page.goto('/');
 
       await page.getByLabel(/username or email/i).fill('wronguser');
@@ -37,7 +37,7 @@ test.describe('Authentication', () => {
       await expect(page.getByText(/invalid|incorrect|failed/i)).toBeVisible({ timeout: 5000 });
     });
 
-    test('should stay on login page with empty credentials', async ({ page }) => {
+    test('should stay on login page with empty credentials @001-US2', async ({ page }) => {
       await page.goto('/');
 
       // Required fields prevent submission; we should remain on the login page.
@@ -47,7 +47,7 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Logout', () => {
-    test('should logout successfully', async ({ page }) => {
+    test('should logout successfully @001-US3', async ({ page }) => {
       await loginUser(page);
 
       await page.getByRole('button', { name: /logout/i }).click();
@@ -58,7 +58,7 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Registration', () => {
-    test('should navigate to registration page', async ({ page }) => {
+    test('should navigate to registration page @001-US1', async ({ page }) => {
       await page.goto('/');
 
       await page.getByRole('link', { name: /register|account/i }).click();
@@ -68,7 +68,7 @@ test.describe('Authentication', () => {
       await expect(page.getByLabel(/email/i)).toBeVisible();
     });
 
-    test('should register a new account end-to-end', async ({ page }) => {
+    test('should register a new account end-to-end @001-US1', async ({ page }) => {
       // Unique credentials so the test is repeatable across runs.
       const unique = Date.now();
       const username = `e2e_reg_${unique}`;
@@ -93,12 +93,12 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Protected Routes', () => {
-    test('should show login when accessing contacts without auth', async ({ page }) => {
+    test('should show login when accessing contacts without auth @001-US6', async ({ page }) => {
       await page.goto('/contacts');
       await expect(page.getByRole('heading', { name: /login/i })).toBeVisible();
     });
 
-    test('should show login when accessing settings without auth', async ({ page }) => {
+    test('should show login when accessing settings without auth @001-US6', async ({ page }) => {
       await page.goto('/settings');
       await expect(page.getByRole('heading', { name: /login/i })).toBeVisible();
     });

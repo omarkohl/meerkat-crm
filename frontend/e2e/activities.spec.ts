@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 
 test.describe('Activities', () => {
-  test('the date filters use the date format from the settings', async ({ page }) => {
+  test('the date filters use the date format from the settings @005-US3', async ({ page }) => {
     await page.addInitScript(() => window.localStorage.setItem('dateFormat', 'us'));
     await page.goto('/activities');
 

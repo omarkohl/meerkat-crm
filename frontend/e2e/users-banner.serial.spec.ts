@@ -11,7 +11,7 @@ const SECOND_USER = {
 };
 
 test.describe('Private URL warning (admin)', () => {
-  test('shows on the Users page of a multi-user instance and stays dismissed', async ({ page }) => {
+  test('shows on the Users page of a multi-user instance and stays dismissed @012-US1', async ({ page }) => {
     const ctx = await request.newContext();
     try {
       await ctx.post(`${API_BASE_URL}/register`, { data: SECOND_USER }).catch(() => {});

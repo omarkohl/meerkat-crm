@@ -26,6 +26,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// @020-US1
 func TestDeleteAddressObjectTrashesDependants(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
@@ -76,6 +77,7 @@ func photoCard(t *testing.T) vcard.Card {
 	return card
 }
 
+// @020-US1
 func TestPutAddressObjectReplacingAPhotoDeletesTheOldFilesAndTheLegacyCopy(t *testing.T) {
 	b, ctx, db, user, dir := putPhotoBackend(t)
 	for _, n := range []string{"old_photo.jpg", "old_thumb.jpg"} {

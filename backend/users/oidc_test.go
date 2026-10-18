@@ -214,6 +214,7 @@ func TestACallbackThatCannotBeTrustedEndsInTheLoginPageWithNoSession(t *testing.
 	assert.Nil(t, cookieOf(w, "oidc_state"), "a provider error ends the attempt before the cookies are touched")
 }
 
+// @001-US5
 func TestASuccessfulCallbackProvisionsTheAccountStartsASessionAndRedirectsHome(t *testing.T) {
 	e := newEnv(t)
 	e.cfg.CookieDomain, e.cfg.CookieSecure = "example.org", true

@@ -138,6 +138,7 @@ func TestRevokingTheCurrentSessionClearsTheCookie(t *testing.T) {
 	assert.Less(t, cookie.MaxAge, 0)
 }
 
+// @003-US1
 func TestOnlyALiveSessionOfTheActorCanBeRevoked(t *testing.T) {
 	e := newEnv(t)
 	e.session(t, e.a, sid1, 1)
@@ -156,6 +157,7 @@ func TestOnlyALiveSessionOfTheActorCanBeRevoked(t *testing.T) {
 	assert.Empty(t, e.auditEvents(t))
 }
 
+// @003-US2
 func TestSigningOutEverywhereRevokesAllSessionsAndRaisesTheTokenVersion(t *testing.T) {
 	e := newEnv(t)
 	e.session(t, e.a, sid1, 1)

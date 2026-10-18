@@ -110,6 +110,7 @@ func idPath(c models.Contact, suffix string) string {
 	return "/contacts/" + strconv.Itoa(int(c.ID)) + suffix
 }
 
+// @004-US7
 func TestArchiveHidesTheContactAndDeletesItsReminders(t *testing.T) {
 	e := newEnv(t)
 	c := e.contact(t, e.a.ID, "Alice")
@@ -152,6 +153,7 @@ func TestUnarchive(t *testing.T) {
 	assert.False(t, stored.Archived)
 }
 
+// @004-US5
 func TestDeleteMovesTheContactAndItsDependantsToTheTrash(t *testing.T) {
 	e := newEnv(t)
 	c := e.contact(t, e.a.ID, "Alice")
@@ -192,6 +194,7 @@ func TestDeleteKeepsPhotoFilesForTheTrash(t *testing.T) {
 	assert.NoError(t, err, "a restore from the trash must find the photo")
 }
 
+// @004-US8
 func TestCirclesAreDistinctAndOnlyTheActorsLiveContacts(t *testing.T) {
 	e := newEnv(t)
 	e.contact(t, e.a.ID, "Alice", "Friends", "Family")
@@ -218,6 +221,7 @@ func TestCirclesWithoutContactsIsNullLikeBefore(t *testing.T) {
 }
 
 // Isolation: another user's contact is a 404 for every operation, and is left untouched.
+// @013-US1
 func TestOtherUsersContactsAreNotFound(t *testing.T) {
 	e := newEnv(t)
 	victim := e.contact(t, e.a.ID, "Alice")
@@ -262,6 +266,7 @@ func TestWithoutAnAuthenticatedUserTheOperationsRefuse(t *testing.T) {
 	assert.False(t, stored.Archived)
 }
 
+// @004-US3
 func TestCreateStoresTheContactForTheActorAndKeepsPrimaryValuesInSync(t *testing.T) {
 	e := newEnv(t)
 	w := send(e.asA, http.MethodPost, "/contacts", map[string]any{
@@ -316,6 +321,7 @@ func TestCreateAnnouncesTheContactToWebhooks(t *testing.T) {
 	assert.Contains(t, d.Payload, `"firstname":"Alice"`)
 }
 
+// @004-US4
 func TestUpdateReplacesTheEditableFieldsAndKeepsThePhotoAndArchiveState(t *testing.T) {
 	e := newEnv(t)
 	c := models.Contact{UserID: e.a.ID, Firstname: "Alice", Lastname: "Old", Photo: "p.jpg", Archived: true, Note: "old note"}
@@ -465,6 +471,7 @@ func TestListIsPagedSortedAndScopedToTheActor(t *testing.T) {
 	assert.Len(t, names(body), 3)
 }
 
+// @004-US8
 func TestListFiltersArchivedAndCircles(t *testing.T) {
 	e := newEnv(t)
 	e.contact(t, e.a.ID, "Alice", "Friends")
@@ -478,6 +485,7 @@ func TestListFiltersArchivedAndCircles(t *testing.T) {
 	assert.Equal(t, []string{"Alice"}, names(decode(t, do(e.asA, http.MethodGet, "/contacts?circle=Friends"))))
 }
 
+// @004-US2
 func TestListSearchesNamesEmailsAndPhones(t *testing.T) {
 	e := newEnv(t)
 	c := models.Contact{

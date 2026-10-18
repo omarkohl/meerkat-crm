@@ -2,7 +2,7 @@
 
 ## Next step
 
-17 (use-case catalogue).
+18 (test what you ship).
 
 ## Stack
 
@@ -374,6 +374,15 @@
   two-factor spec, `inputValue` assertions, a conditional clean-up. `backups` and `users-banner`
   (instance-wide state) are `*.serial.spec.ts`, each its own project chained after `chromium`.
   `make precommit` green.
+- Step 17: `docs/use-cases.yml` lists 54 use cases of what the app does today (21 features,
+  `NNN-USn`, actor, priority, status `implemented`; nothing planned or invented).
+  `scripts/use-cases.mjs` (tests first, `scripts/use-cases.test.mjs`) fails on an unknown ID and on
+  an E2E test without one, and prints the uncovered use cases (none today); `make use-cases` is in
+  `make test`, `precommit` and the lint workflow. All 53 E2E titles carry an `@ID`; 51 Go tests
+  carry a `// @ID` comment above the function (Go test names cannot hold the ID, so the comment is
+  the tag). `invariants_test.go` accepts the tags after an `isolation.spec.ts` title. A Go tag must
+  be a valid ID directly above a `Test` function (stacked tags allowed), a skipped E2E test covers
+  nothing. Shown red with an unknown ID in a Go test. `make precommit` green.
 
 ## Decisions
 

@@ -162,6 +162,7 @@ func TestCSVUploadAcceptsAnyCaseExtensionAndSuggestsMappings(t *testing.T) {
 	assert.Equal(t, "firstname", resp.SuggestedMappings[0].ContactField)
 }
 
+// @015-US1
 func TestCSVWizardImportsPreviewedRowsForTheUploader(t *testing.T) {
 	e := newEnv(t)
 	require.NoError(t, e.db.Create(&models.Contact{UserID: e.a.ID, Firstname: "Ada", Lastname: "Lovelace"}).Error)
@@ -241,6 +242,7 @@ func TestRequestBodiesAreValidated(t *testing.T) {
 
 const ada = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEMAIL:ada@example.com\r\nEND:VCARD\r\n"
 
+// @015-US1
 func TestVCFWizardPreviewsOnUploadAndImportsOnConfirm(t *testing.T) {
 	e := newEnv(t)
 	assert.Equal(t, http.StatusBadRequest, upload(e.asA, "/contacts/import/vcf/upload", "c.txt", ada).Code)

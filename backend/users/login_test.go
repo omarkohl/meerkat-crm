@@ -43,6 +43,7 @@ func jsonOf(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	return m
 }
 
+// @001-US2
 func TestLoggingInByUsernameEmailOrLegacyEmailFieldSetsTheCookieAndAnswersWithPreferences(t *testing.T) {
 	e := newEnv(t)
 	e.withPassword(t, &e.a, oldPassword)
@@ -255,6 +256,7 @@ func TestWrongSecondFactorCodesLockTheAccountAcrossIdentifiers(t *testing.T) {
 	assert.Nil(t, authCookie(w))
 }
 
+// @001-US3
 func TestLoggingOutEndsTheSessionOfTheCookieAndClearsIt(t *testing.T) {
 	e := newEnv(t)
 	e.withPassword(t, &e.a, oldPassword)

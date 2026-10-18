@@ -234,6 +234,7 @@ func flow(t *testing.T, r http.Handler, url string) (string, preview) {
 	return session, p
 }
 
+// @015-US2
 func TestMonicaImportEndToEnd(t *testing.T) {
 	server := fakeMonicaServer(t)
 	defer server.Close()

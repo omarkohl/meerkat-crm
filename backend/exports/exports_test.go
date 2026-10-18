@@ -77,6 +77,7 @@ func (e *env) seed(t *testing.T) {
 	require.NoError(t, e.db.Create(&models.Reminder{UserID: e.a.ID, ContactID: &alice.ID, Message: "Birthday reminder", RemindAt: now, Recurrence: "yearly"}).Error)
 }
 
+// @016-US1
 func TestCSVExportContainsEverySectionOfTheUsersData(t *testing.T) {
 	e := newEnv(t)
 	e.seed(t)
@@ -118,6 +119,7 @@ func TestExportsNeverContainAnotherUsersData(t *testing.T) {
 	}
 }
 
+// @016-US1
 func TestVCardExportListsEveryContact(t *testing.T) {
 	e := newEnv(t)
 	e.seed(t)

@@ -4,7 +4,7 @@ import { API_BASE_URL } from './global-setup';
 // The seeded user is the first account and therefore an admin. Each test removes the
 // backups it created, by name, so parallel specs are not affected.
 test.describe('Backups (admin)', () => {
-  test('create, download and delete a backup', async ({ page }) => {
+  test('create, download and delete a backup @011-US1', async ({ page }) => {
     await page.goto('/backups');
     await expect(page.getByRole('heading', { name: 'Backups', level: 1 })).toBeVisible();
     await expect(page.getByText(/data of ALL users/)).toBeVisible();
@@ -38,7 +38,7 @@ test.describe('Backups (admin)', () => {
     }
   });
 
-  test('the Backups page is reachable from the settings menu for admins', async ({ page }) => {
+  test('the Backups page is reachable from the settings menu for admins @011-US1', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Settings' }).first().click();
     await page.getByRole('link', { name: 'Backups' }).click();

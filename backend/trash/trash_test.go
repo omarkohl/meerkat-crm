@@ -119,6 +119,7 @@ func TestAnEmptyTrashIsAnEmptyListAndTheRetentionDefaultsTo30Days(t *testing.T) 
 	assert.EqualValues(t, 30, body["retention_days"])
 }
 
+// @008-US1
 func TestRestoreBringsTheContactBackAndAnnouncesIt(t *testing.T) {
 	e := newEnv(t, 30)
 	c := e.trashed(t, e.a.ID, "Alice", now.AddDate(0, 0, -1))
@@ -144,6 +145,7 @@ func TestRestoreBringsTheContactBackAndAnnouncesIt(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, do(e.asA, http.MethodPost, "/trash/contacts/"+sid(c.ID)+"/restore").Code, "a second restore finds nothing")
 }
 
+// @008-US2
 func TestPurgeDeletesOneTrashedContactAndItsFiles(t *testing.T) {
 	e := newEnv(t, 30)
 	c := e.trashed(t, e.a.ID, "Alice", now.AddDate(0, 0, -1))
