@@ -2,6 +2,9 @@
 
 Status: draft, for discussion.
 
+Upstream: [fbuchner/meerkat-crm#185](https://github.com/fbuchner/meerkat-crm/issues/185) (deduce
+relationship).
+
 ## Current state
 
 - A `Relationship` is one directed row: owner `ContactID` → optional `RelatedContactID`.

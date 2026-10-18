@@ -2,6 +2,9 @@
 
 Status: draft, for discussion.
 
+Upstream: [fbuchner/meerkat-crm#184](https://github.com/fbuchner/meerkat-crm/issues/184) (link the
+current user with a contact).
+
 ## Current state
 
 - A `User` has no linked contact. Relationships and activities always connect contacts with
