@@ -161,6 +161,8 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   commit subject check, format, lint, types, i18n key check, architecture check, OpenAPI check,
   use-case, Markdown link and changelog checks, coverage and E2E. Workflows call the same targets.
   Optional `lefthook`.
+- **`make seed`:** adds a demo user (`demo`) and 60 realistic contacts with notes, activities,
+  reminders and relationships to the running `make dev` backend. Safe to run again.
 - **Tests:** coverage thresholds for Go and Vitest, race detector in CI, fuzzing of the vCard, CSV,
   Monica and ICS parsers, migration round-trip tests, upgrade tests on databases made by past
   releases, CardDAV server and client tests through the HTTP handlers and against Radicale, SMTP and
