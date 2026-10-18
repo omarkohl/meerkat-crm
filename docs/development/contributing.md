@@ -58,8 +58,8 @@ Pull requests run these GitHub Actions workflows, and all must pass:
   frontend) without pushing them when a PR touches a Dockerfile, `backend/`, `frontend/` or
   `docker/`, and scans each with Trivy. It fails on fixable HIGH and CRITICAL vulnerabilities;
   unfixed ones are ignored. If a finding cannot be fixed by updating the base image or the
-  dependency, add it to `.trivyignore` with a reason and an expiry date. Also runs on `main` and
-  weekly.
+  dependency, add it to `.trivyignore` with a reason and an expiry date. Also runs on pushes to
+  `main` and `omk` that touch those paths, and weekly.
 - **Docs** (`docs.yml`): builds the Jekyll site on PRs that touch `docs/**` (deploys only from
   `main`). To build locally: `cd docs && bundle install && bundle exec jekyll build`.
 

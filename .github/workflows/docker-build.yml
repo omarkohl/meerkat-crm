@@ -7,6 +7,14 @@ name: Docker build and scan
 on:
   push:
     branches: [main, omk]
+    paths:
+      - "Dockerfile"
+      - "backend/**"
+      - "frontend/**"
+      - "docker/**"
+      - ".dockerignore"
+      - ".trivyignore"
+      - ".github/workflows/docker-build.yml"
   pull_request:
     paths:
       - "Dockerfile"
