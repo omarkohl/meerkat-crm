@@ -104,11 +104,13 @@ the matching field named; it covers every text field of a contact (migration 34)
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and
 Apple labels work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported and
 synced as a contact note (migration 33). Rows with errors are never imported, and an unreadable card
-no longer shifts the cards after it.
+no longer shifts the cards after it. Importing a deleted contact asks whether to restore it. The
+Monica import timeout is longer, and a private Monica URL can be allowed.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
-locale. One placeholder for empty values. The add-activity dialog preselects the contact. Header
-search clears on navigation and Escape.
+locale. One placeholder for empty values. The add-activity dialog preselects the contact and the
+edit-activity contact field searches all contacts. Header search clears on navigation and Escape.
+The sidebar collapses to icons.
 
 **Thumbnails.** Contact thumbnails are files next to the photos, not base64 in the database. The
 database gets smaller and list queries get cheaper. Migration 30; see "Merge impact".
@@ -124,6 +126,7 @@ a separate listener.
 - One definition of security headers; an API CSP; an E2E guard that fails on CSP violations.
 - Private photo permissions, checked close errors, bounded shutdown wait.
 - Dependency bumps for known vulnerabilities; `govulncheck` and a Trivy image scan in CI.
+- Docker images get current Alpine package fixes at build time.
 
 ## Architecture
 
