@@ -1,0 +1,98 @@
+// Copied into a release's checkout by scripts/seed-release-db.sh. It creates a database with
+// that release's own migrations and fills it with rows through plain SQL, which works on every
+// release. A column is only filled when that release has it, so later data migrations (the
+// etag and UID backfills, the vCard property moves) find legacy-looking rows to change.
+package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"meerkat/database"
+)
+
+func fail(what string, err error) {
+	fmt.Fprintln(os.Stderr, what, err)
+	os.Exit(1)
+}
+
+func main() {
+	db, err := database.InitDB(os.Args[1])
+	if err != nil {
+		fail("init", err)
+	}
+	now := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	var version int
+	if err := db.Raw("SELECT version FROM schema_migrations").Scan(&version).Error; err != nil {
+		fail("version", err)
+	}
+	columns := map[string]bool{}
+	var infos []struct{ Name string }
+	if err := db.Raw("SELECT name FROM pragma_table_info('contacts')").Scan(&infos).Error; err != nil {
+		fail("columns", err)
+	}
+	for _, c := range infos {
+		columns[c.Name] = true
+	}
+
+	insert := func(table string, values map[string]any) {
+		var names, marks []string
+		var args []any
+		for k, v := range values {
+			names, marks, args = append(names, k), append(marks, "?"), append(args, v)
+		}
+		sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, strings.Join(names, ", "), strings.Join(marks, ", "))
+		if err := db.Exec(sql, args...).Error; err != nil {
+			fail(sql, err)
+		}
+	}
+	contact := func(values map[string]any) {
+		row := map[string]any{"user_id": 1, "created_at": now, "updated_at": now}
+		for k, v := range values {
+			if columns[k] || k == "firstname" || k == "lastname" {
+				row[k] = v
+			}
+		}
+		insert("contacts", row)
+	}
+
+	insert("users", map[string]any{"username": "release_user", "email": "release@example.com", "password": "x", "created_at": now, "updated_at": now})
+
+	birthday := "1815-12-10"
+	if version < 7 {
+		birthday = "10.12.1815"
+	}
+	// Rows that look as old as the release: no UID before the UID backfills, vCard properties in
+	// the hidden vcard_extra blob before they got columns of their own.
+	adaUID := "uid-ada"
+	if version < 11 {
+		adaUID = ""
+	}
+	extra := `{"properties":{"NOTE":[{"Value":"Wrote the first program"}],"TITLE":[{"Value":"Countess"}],"ROLE":[{"Value":"Mathematician"}],"URL":[{"Value":"https://example.com/ada"}]}}`
+	if version >= 20 {
+		// These releases have columns for the other properties, so only NOTE is left in the blob.
+		extra = `{"properties":{"NOTE":[{"Value":"Wrote the first program"}]}}`
+	}
+	if version >= 33 {
+		extra = "" // NOTE has its own column too
+	}
+	contact(map[string]any{
+		"firstname": "Ada", "lastname": "Lovelace", "nickname": "Countess", "email": "ada@example.com",
+		"phone": "+44 20 7946 0000", "birthday": birthday, "address": "London", "how_we_met": "Maths club",
+		"vcard_uid": adaUID, "etag": "etag-ada",
+		"vcard_extra": extra,
+		"job_title":   "Countess", "role": "Mathematician", "urls": `[{"type":"home","value":"https://example.com/ada"}]`,
+		"note": "Wrote the first program",
+	})
+	contact(map[string]any{"firstname": "Grace", "lastname": "Hopper", "vcard_uid": "uid-grace", "etag": "etag-grace"})
+
+	insert("notes", map[string]any{"user_id": 1, "contact_id": 1, "content": "A note", "date": now, "created_at": now, "updated_at": now})
+	insert("reminders", map[string]any{"user_id": 1, "contact_id": 1, "message": "Call", "remind_at": now, "recurrence": "once", "created_at": now, "updated_at": now})
+
+	sqlDB, _ := db.DB()
+	_, _ = sqlDB.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+	_ = sqlDB.Close()
+}

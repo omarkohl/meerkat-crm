@@ -432,9 +432,29 @@ type remoteBackend struct {
 	create func(t *testing.T) *davRemote
 }
 
-func contactSyncBackends() []remoteBackend {
+// radicaleMode decides whether the scenarios also run against Radicale. It is opt-in locally; on
+// CI (CI=true) it must be switched on or, explicitly, off with MEERKAT_CARDDAV_IT=off, so a job
+// that forgets to configure it fails instead of skipping the scenarios.
+func radicaleMode(ci, it string) (use bool, problem string) {
+	switch {
+	case it == "off":
+		return false, ""
+	case it != "":
+		return true, ""
+	case ci == "true":
+		return false, radicaleEnvVar + " is not set on CI: set it to 1 with a running Radicale (make test-carddav), or to off to run without"
+	}
+	return false, ""
+}
+
+func contactSyncBackends(t *testing.T) []remoteBackend {
+	t.Helper()
 	backends := []remoteBackend{{name: "meerkat", create: newMeerkatRemote}}
-	if os.Getenv(radicaleEnvVar) != "" {
+	use, problem := radicaleMode(os.Getenv("CI"), os.Getenv(radicaleEnvVar))
+	if problem != "" {
+		t.Fatal(problem)
+	}
+	if use {
 		backends = append(backends, remoteBackend{name: "radicale", create: newRadicaleRemote})
 	}
 	return backends
@@ -443,7 +463,7 @@ func contactSyncBackends() []remoteBackend {
 // runContactSync runs a scenario against every available remote backend.
 func runContactSync(t *testing.T, direction string, scenario func(t *testing.T, env *contactSyncEnv)) {
 	t.Helper()
-	for _, backend := range contactSyncBackends() {
+	for _, backend := range contactSyncBackends(t) {
 		t.Run(backend.name, func(t *testing.T) {
 			scenario(t, setupContactSyncEnv(t, direction, backend.create(t)))
 		})

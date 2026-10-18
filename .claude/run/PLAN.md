@@ -173,7 +173,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
 - [x] 17. **Use-case catalogue (§4)**: `docs/use-cases.yml` (ID `NNN-USn`, actor, priority, status).
       Tag E2E titles (`@001-US1`) and Go test names. A script in `make test` fails on unknown IDs
       and on E2E tests without ID, and prints uncovered use cases. Add to CI.
-- [ ] 18. **Test what you ship (§4)**: release-seeded databases in
+- [x] 18. **Test what you ship (§4)**: release-seeded databases in
       `backend/database/testdata/releases/<tag>.db`; a test migrates each to the newest version and
       does basic reads and writes; release doc gets the step to add one. Radicale and other optional
       tests fail when `CI=true` and the service is not configured (no silent skip).

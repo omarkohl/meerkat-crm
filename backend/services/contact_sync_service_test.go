@@ -722,7 +722,7 @@ func TestIsGeneratedAddressBook(t *testing.T) {
 // creates these itself; here one is staged by name so the behaviour is covered
 // without needing a Nextcloud instance.
 func TestDiscoverFiltersGeneratedAddressBooks(t *testing.T) {
-	for _, backend := range contactSyncBackends() {
+	for _, backend := range contactSyncBackends(t) {
 		if backend.name == "meerkat" {
 			continue // serves a single fixed address book, so nothing to filter
 		}

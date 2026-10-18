@@ -5,6 +5,7 @@
 
 # Database files
 *.db
+!backend/database/testdata/releases/*.db
 *.db-shm
 *.db-wal
 meerkat.db

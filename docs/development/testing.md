@@ -44,6 +44,15 @@ Integration tests:
   reads, then raw rows as a last resort.
 - Scheduler jobs do not run implicitly in tests; tests trigger them, then assert.
 
+Releases and optional services:
+
+- `backend/database/testdata/releases/<tag>.db` are databases made by released versions
+  (`scripts/seed-release-db.sh <tag>`, see [contributing](contributing.md#releasing)); a test
+  upgrades each to the newest schema and uses it.
+- The Radicale scenarios are opt-in locally (`make test-carddav`). With `CI=true` and
+  `MEERKAT_CARDDAV_IT` unset the tests fail rather than skip; a job that runs without Radicale sets
+  `MEERKAT_CARDDAV_IT=off` on purpose.
+
 Use cases:
 
 - `docs/use-cases.yml` lists the use cases (`NNN-USn`, actor, priority, status). Add one when you

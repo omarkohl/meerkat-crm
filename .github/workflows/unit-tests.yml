@@ -28,6 +28,9 @@ jobs:
       # -race implies atomic coverage counting.
       - name: Run tests (race detector, coverage)
         run: make test-coverage-go GO_TEST_FLAGS=-race
+        env:
+          # The Radicale scenarios have their own job below; off must be said explicitly on CI.
+          MEERKAT_CARDDAV_IT: "off"
 
       - name: Summarise coverage
         if: ${{ !cancelled() && hashFiles('backend/coverage.out') != '' }}

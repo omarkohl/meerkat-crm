@@ -2,7 +2,7 @@
 
 ## Next step
 
-18 (test what you ship).
+19 (doc link check).
 
 ## Stack
 
@@ -383,6 +383,19 @@
   the tag). `invariants_test.go` accepts the tags after an `isolation.spec.ts` title. A Go tag must
   be a valid ID directly above a `Test` function (stacked tags allowed), a skipped E2E test covers
   nothing. Shown red with an unknown ID in a Go test. `make precommit` green.
+- Step 18: `backend/database/testdata/releases/` holds 13 databases, one per distinct schema version
+  of every release (v0.7.5, v0.8.0, v0.8.3, v0.8.4, v0.9.1, v1.0.0, v1.2.0, v1.3.0, v1.4.0, v1.5.0,
+  v1.6.0, v1.7.0, v1.7.0-omk.2; migrations 6, 9, 10, 11, 12, 16, 17, 18, 19, 21, 22, 23, 33; about
+  3.5 MB; `.gitignore` allows them). `scripts/seed-release-db.sh <tag>` validates the tag, builds
+  its own code from `git archive` in a clean environment (the network was needed for old modules and
+  worked), runs a seeder and writes the file. The seeder fills only the columns a release has and
+  writes rows that look as old as the release (blank UIDs, vCard properties in `vcard_extra`, a
+  DD.MM.YYYY birthday). The test copies each, migrates with `InitDB`, and checks every seeded value
+  after the upgrade (birthday format, etag and UID backfills, TITLE/ROLE/URL/NOTE moved out of
+  `vcard_extra`), a write path and the foreign keys. Shown red: a migration that appended
+  `UPDATE contacts SET lastname=''` failed 24 checks. The Radicale scenarios fail on `CI=true`
+  without `MEERKAT_CARDDAV_IT` (`radicaleMode`, tested); the Go unit job sets it to `off`. The
+  release step is in contributing.md. `make precommit` green.
 
 ## Decisions
 
@@ -753,6 +766,8 @@
 - 14: the "last admin" guards in update and delete stay as they were, but the acting admin is always
   an admin, so the guard can only fire for a race; no HTTP test reaches it. Resetting two-factor for
   an unknown user reports a failed lookup as "get user" (was "query user").
+- 18: the plan's "other optional tests" are only the Radicale scenarios: nothing else in the Go
+  tests skips on a missing service. v1.7.0-omk.1 shares its schema with omk.2 and is not seeded.
 
 ## For review
 

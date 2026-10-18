@@ -87,6 +87,19 @@ is one. Check workflows with [actionlint](https://github.com/rhysd/actionlint).
 Dependabot (`.github/dependabot.yml`) opens weekly update PRs for Go modules, npm, GitHub Actions,
 Docker and the docs' Ruby gems, with minor and patch updates grouped.
 
+## Releasing
+
+Run `make precommit`, tag the release, then add that release's database to the upgrade tests:
+
+```sh
+scripts/seed-release-db.sh vX.Y.Z   # builds the tag's own code, creates and fills a database
+git add backend/database/testdata/releases/vX.Y.Z.db
+```
+
+`TestEveryReleaseDatabaseMigratesToTheNewestVersionAndStillWorks` migrates every file in
+`backend/database/testdata/releases/` to the newest schema and reads and writes through it. The
+script needs the network the first time (old dependencies) and writes one file of a few hundred KB.
+
 ## Pull Requests
 
 - Keep PRs focused with one feature or fix per PR.
