@@ -14,7 +14,8 @@
 > deviates from upstream. The Docker images under `ghcr.io/omarkohl` are built from this fork, not
 > from upstream. The aim is to merge all changes upstream. If that does not work out, the fork may
 > continue under a new name. For now it is only a fork with images in a different namespace. See
-> [`FORK.md`](FORK.md) for branches and versions.
+> [`DIFFERENCES.md`](DIFFERENCES.md) for what changed and [`FORK.md`](FORK.md) for branches and
+> versions.
 
 Meerkat CRM (Contact Relationship Management) is a self-hosted solution to keep track of your
 important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind

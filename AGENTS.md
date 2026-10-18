@@ -14,6 +14,10 @@ copy it.
 - [Decisions (ADRs)](docs/adr/README.md): read them before you re-open a decision. A significant new
   decision gets an ADR in the same commit.
 - Docs change in the same commit as the code they describe.
+- [DIFFERENCES.md](DIFFERENCES.md) lists how the fork differs from upstream. A change that adds to
+  or removes from that difference (feature, migration, API, build, dependency, tooling) updates it
+  in the same commit. Remove an entry when upstream has the change. It describes the current state:
+  no history and no restating of the changelog.
 
 ## Hard limits
 
