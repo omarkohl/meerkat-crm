@@ -97,7 +97,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 6. **Tests: import and export (#107)**: vCard and CSV import through preview and confirm
       (duplicates, invalid rows), Monica import incl. avatars and a failing remote, contact export
       (vCard, CSV) and its content.
-- [ ] 7. **Tests: reminders, birthdays, notifications (#107)**: triggered scheduler runs (injected
+- [x] 7. **Tests: reminders, birthdays, notifications (#107)**: triggered scheduler runs (injected
       clock) send the right reminder and birthday emails once; SMTP delivery against an in-process
       fake SMTP server; outbox retry and expiry.
 - [ ] 8. **Tests: auth (#107)**: OIDC login against an `httptest` fake provider (new user, linked

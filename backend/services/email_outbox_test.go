@@ -332,3 +332,23 @@ func TestEmailRetryIsScheduledFromTheEndOfTheSend(t *testing.T) {
 	require.NoError(t, db.First(&row).Error)
 	assert.WithinDuration(t, fake.Now().Add(outboxBackoff[0]), row.NextAttemptAt, time.Second)
 }
+
+func TestEmailThatExpiresAfterItsClaimAndBeforeTheSendIsNotSent(t *testing.T) {
+	db := emailDB(t)
+	noKick(t)
+	sent := fakeSender(t)
+	clk := clock.NewFake(time.Date(2026, 3, 10, 12, 0, 0, 0, time.UTC))
+	require.NoError(t, QueueEmailUntil(db, emailCfg, nil, EmailMessage{To: "a@example.com", Subject: "s", HTML: "token"}, clk.Now().Add(time.Minute), clk))
+	var row models.EmailOutbox
+	require.NoError(t, db.First(&row).Error)
+	require.True(t, claimEmail(db, row, clk.Now()))
+
+	clk.Advance(2 * time.Minute)
+	sendQueuedEmail(db, emailCfg, row, clk)
+
+	assert.Empty(t, *sent)
+	require.NoError(t, db.First(&row, row.ID).Error)
+	assert.Equal(t, models.OutboxDead, row.Status)
+	assert.Empty(t, row.HTML)
+	assert.Contains(t, row.LastError, "expired")
+}

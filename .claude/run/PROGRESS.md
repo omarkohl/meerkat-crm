@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 7: reminders, birthdays, notifications tests (#107).
+Step 8: auth tests (#107).
 
 ## Stack
 
@@ -53,6 +53,16 @@ Local run: no branches, no PRs.
   first name, unreadable vCard) imported it; such rows are now skipped. Export already has content,
   isolation and audit tests; the `RenderCSV` gap is write-error branches only, so no export test was
   added. Go coverage 83.7%, `GO_COVERAGE_MIN` 82 to 83. `make precommit` green.
+- Step 7: the digest tests (`reminders/digest_test.go`) already cover reminder and birthday mails
+  with an injected clock for reminders (a birthday mail is not limited to once a day, see
+  Questions), mail failures, no channel and webhooks, and `email_outbox_test.go` the retry and batch
+  expiry, so no test was repeated. New: `smtp_delivery_test.go` runs `SendEmail` against an
+  in-process fake SMTP server (message, recipient and body arrive; wrong password, refused
+  recipient, untrusted implicit-TLS certificate and untrusted STARTTLS all reach the caller and
+  deliver nothing; no sleeps), and an outbox test for an e-mail that expires between the claim and
+  the send (`expireEmail`), and Resend delivery through a swapped `http.DefaultTransport`. No bug
+  fixed; one found (see Questions). Go coverage 84.1%; `GO_COVERAGE_MIN` stays 83 (margin 1.1).
+  `make precommit` green.
 
 ## Decisions
 
@@ -113,14 +123,14 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
     rows are listed in step 6). The E2E download comes in step 10.
   - ICS: a calendar subscription that returns an error or an unchanged feed shows the error / keeps
     its events (step 6). The ICS birthday feed has an E2E test; no further step.
-- [ ] **Reminders, birthdays, notifications** - workflows without a test (step 7): a reminder and a
-      birthday mail go out once per due date with an injected clock; an e-mail goes through a real
-      SMTP conversation (an in-process fake server) with TLS/auth failures; a Resend request with a
-      failing API answers with a retry; a rate-limited run sends the rest next time
-      (`SendRemindersWithRateLimit`). The outbox retry, backoff, claim and expiry are well tested.
-      `expireEmail` (0%) is not a gap: the workflow "an expired email is never sent" is covered by
-      `TestExpiredEmailIsNeverSentAndLosesItsBody` through the batch `expireEmails`; `expireEmail`
-      runs only when a row expires between that batch and the claim, a race the user cannot see.
+- [x] **Reminders, birthdays, notifications** (done in step 7) - covered: reminder mails once per
+      due date with an injected clock, mail failures, no channel, webhooks
+      (`reminders/digest_test.go`, e.g. `TestDigestDoesNotMailTheSameReminderTwice`,
+      `TestDigestLeavesAUserWhoseMailFailedUnmarkedAndStillMailsTheOthers`); the job lock
+      (`TestSendRemindersWithRateLimit_RateLimited`, `_AllowsAfterInterval`); outbox retry, backoff,
+      claim and expiry (`email_outbox_test.go`). New in step 7: SMTP delivery and its failures
+      against a fake server, Resend through a swapped transport, and an e-mail that expires after
+      its claim (`expireEmail`). Open, see Questions: the birthday mail is not once per day.
 - [ ] **Auth (password, OIDC, API tokens)** - workflows without a test (step 8): OIDC login creates
       a new user, links an existing one by e-mail, refuses a bad `state` and a provider error, and
       refuses a user without an account when sign-up is off (`oidcLogin` 46%); an API token
@@ -163,5 +173,10 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
 - The CardDAV test router copies `registerCardDAVRoutes` (`backend/routes/routes.go:150`) without
   `CardDAVRateLimitMiddleware`; a shared register function would stop drift.
 - go-webdav does not pass `If-Match` on DELETE to the backend, so a stale DELETE still succeeds.
+- The birthday mail has no sent mark: every digest run on the birthday sends it again. Only the
+  one-hour job lock (`SendRemindersWithRateLimit`) limits repeats, and the startup run (`main.go`)
+  fires it too, so a restart more than an hour after the daily run mails the birthdays a second time
+  (probe: two runs two hours apart sent 2 mails). A fix needs the last-sent date per user (a
+  migration) or a design choice, so no test was added.
 
 ## Blocked
