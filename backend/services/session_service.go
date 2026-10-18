@@ -114,6 +114,17 @@ func PurgeAuditLog(db *gorm.DB, retentionDays int, now time.Time) (int64, error)
 	return res.RowsAffected, res.Error
 }
 
+// WriteUserAudit records an event about a user, with their username, the client address and
+// user agent. Like WriteAudit it never fails the caller.
+func WriteUserAudit(db *gorm.DB, userID uint, event, detail, ip, userAgent string) {
+	entry := models.AuditLog{UserID: &userID, Event: event, IP: ip, UserAgent: userAgent, Detail: detail}
+	var name string
+	if err := db.Model(&models.User{}).Where("id = ?", userID).Limit(1).Pluck("username", &name).Error; err == nil {
+		entry.Username = name
+	}
+	WriteAudit(db, entry)
+}
+
 // WriteAudit stores an audit entry. It never fails the caller: an error is only logged.
 func WriteAudit(db *gorm.DB, entry models.AuditLog) {
 	entry.UserAgent = truncate(entry.UserAgent, maxUserAgentLen)

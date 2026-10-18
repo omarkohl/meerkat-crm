@@ -154,12 +154,5 @@ func NewAudit(db *gorm.DB) *Audit { return &Audit{db: db} }
 var _ app.Audit = (*Audit)(nil)
 
 func (a *Audit) Record(ctx context.Context, actor domain.UserID, event, detail string, client domain.Client) {
-	db := a.db.WithContext(ctx)
-	id := uint(actor)
-	entry := models.AuditLog{UserID: &id, Event: event, IP: client.IP, UserAgent: client.UserAgent, Detail: detail}
-	var name string
-	if err := db.Model(&models.User{}).Where("id = ?", id).Limit(1).Pluck("username", &name).Error; err == nil {
-		entry.Username = name
-	}
-	services.WriteAudit(db, entry)
+	services.WriteUserAudit(a.db.WithContext(ctx), uint(actor), event, detail, client.IP, client.UserAgent)
 }

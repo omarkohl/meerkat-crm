@@ -35,6 +35,7 @@ backend/
   trash/               # hexagonal module for the trash; restore and purge still run in services (shared with the contact sync)
   tokens/              # hexagonal module for API tokens and the calendar feed (the feed itself is a plain Gin handler)
   webhooks/            # hexagonal module for managing webhooks; delivery and retries still run in services (every module's events share them)
+  exports/             # hexagonal module for the CSV and vCard downloads (plain Gin handlers: they send files)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout, plus the daily reminder e-mail job (`SendDailyDigest`; the lock around it and the e-mail outbox are in services)
   models/              # GORM models and input DTOs

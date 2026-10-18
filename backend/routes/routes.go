@@ -7,6 +7,7 @@ import (
 	"meerkat/config"
 	"meerkat/contacts"
 	"meerkat/controllers"
+	"meerkat/exports"
 	"meerkat/metrics"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -36,6 +37,7 @@ type Modules struct {
 	Trash         *trash.Module
 	Tokens        *tokens.Module
 	Webhooks      *webhooks.Module
+	Exports       *exports.Module
 	Users         *users.Module
 }
 
@@ -52,6 +54,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
 		Tokens:        tokens.New(tokens.Deps{DB: db}),
 		Webhooks:      webhooks.New(webhooks.Deps{DB: db, Config: cfg}),
+		Exports:       exports.New(exports.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -80,6 +83,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Trash.Register(a, g.Protected)
 	m.Tokens.Register(a, g.Public, g.Protected)
 	m.Webhooks.Register(a, g.Protected)
+	m.Exports.Register(g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -138,12 +142,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)
-
-			// Export routes
-			protected.GET("/export", controllers.ExportData)
-			protected.GET("/export/vcf", func(c *gin.Context) {
-				controllers.ExportContactsAsVCF(c, cfg.ProfilePhotoDir)
-			})
 
 			// Calendar subscription routes (CalDAV/iCS activity import)
 			protected.GET("/calendars", controllers.ListCalendarSubscriptions)

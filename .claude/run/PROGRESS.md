@@ -2,7 +2,7 @@
 
 ## Next step
 
-13j (import and export).
+13j2 (CSV and VCF import).
 
 ## Stack
 
@@ -268,6 +268,14 @@
   domain and wording tests. `make precommit` green.
 - Step 13i3: no code change. The e-mail outbox engine stays in `services` (see Decisions). Step 13i
   is done. `make precommit` green.
+- Step 13j1: `backend/exports` (domain: the dataset rows and `RenderCSV`, file names; use cases
+  `ExportCSV` and `ExportVCF`; ports `Source`/`Cards`/`Audit`; persistence and http adapters). The
+  two downloads are plain Gin handlers of the http adapter (they send files), registered through
+  `RegisterAPI` on the protected group (nothing in the OpenAPI document, so no frontend type
+  change). depguard rules `exports-*` (shown to fail). Old controller and tests removed; 6 module
+  tests on real SQLite (every section, custom field columns, VCF count, no other user's data in
+  either file, audit with format, 401) plus domain tests. The audit write that three modules now
+  need is `services.WriteUserAudit`, used by users, tokens and exports. `make precommit` green.
 
 ## Decisions
 
@@ -578,6 +586,18 @@
   already reach it through ports (the users `ResetMail` adapter and the reminders mail adapter), so
   the modules do not depend on it directly. If the outbox ever gets an API (for example an admin
   view of dead mail), extract one `outbox` package for both kinds then. Review item.
+- Step 13j is split: **13j1** (done) export; **13j2** CSV and VCF import (upload, preview, confirm
+  with the import session manager); **13j3** Monica import (connect, fetch in the background,
+  status, preview, confirm, cancel). Import is large (about 4,000 lines of services with session
+  managers, fuzz tests and file upload limits) and security sensitive, so each part gets its own
+  review.
+- 13j, earlier notes: `models.FormatAddress` and `Contact.BeforeSave` stay, because CSV, VCF and
+  Monica imports and CardDAV still save the GORM model directly; remove them when 13j3 and 13k are
+  done. `services.addMonths/addYears` stay for the Monica import, same reason (13j3).
+- 13j1, behaviour kept: the same error wording per stage ("Failed to fetch user/contacts/
+  activities/notes/reminders", "Failed to generate export"); an unreadable contact is skipped in the
+  vCard file; the audit entry is written after everything is loaded. The audit duplication noted in
+  13h is gone (`services.WriteUserAudit`).
 
 ## For review
 
@@ -642,5 +662,10 @@
 - `apperrors.ErrNotFound(resource)` appends " not found", so
   `backend/services/import_session.go:96,100,107` and `monica_import_session.go:132,135,149` produce
   "Import session expired or not found not found". Not fixed (out of scope).
+- 13j1: the CSV export's "Related Contact Name" column is always empty, as before: the relationship
+  is loaded without its related contact. Probably unintended; fixing it changes the file, so it was
+  left alone.
+- 13j1: CSV export cells that start with `=`, `+`, `-` or `@` are not neutralised (CSV/formula
+  injection when the file is opened in a spreadsheet). Pre-existing; not fixed in a refactor.
 
 ## Blocked

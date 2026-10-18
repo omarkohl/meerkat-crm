@@ -150,7 +150,10 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
     - [x] 13i2. daily reminder e-mail job (into the reminders module)
     - [x] 13i3. email outbox delivery engine: stays in `services` (decision in PROGRESS, no code
           change)
-  - [ ] 13j. import (CSV, VCF, Monica) and export
+  - [ ] 13j. import (CSV, VCF, Monica) and export (split, see PROGRESS):
+    - [x] 13j1. export (CSV and VCF downloads)
+    - [ ] 13j2. CSV and VCF import (upload, preview, confirm; session manager)
+    - [ ] 13j3. Monica import (connect, fetch, status, preview, confirm, cancel)
   - [ ] 13k. CardDAV sync settings and contact/calendar sync (the CardDAV protocol endpoints stay
         plain Gin: they are not JSON)
   - [ ] 13l. backups, audit log, system status

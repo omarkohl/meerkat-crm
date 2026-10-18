@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -88,22 +87,4 @@ func TestPurgedAuditEntriesKeepOtherYears(t *testing.T) {
 	n, err := services.PurgeAuditLog(e.db, 365, time.Now())
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, n)
-}
-
-func TestExportsAreAudited(t *testing.T) {
-	db, router := setupRouter()
-	require.NoError(t, db.AutoMigrate(&models.AuditLog{}))
-	router.GET("/export", ExportData)
-	router.GET("/export/vcf", func(c *gin.Context) { ExportContactsAsVCF(c, t.TempDir()) })
-	for _, path := range []string{"/export", "/export/vcf"} {
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
-		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	}
-	var got []models.AuditLog
-	require.NoError(t, db.Order("id").Find(&got).Error)
-	require.Len(t, got, 2)
-	assert.Equal(t, []string{"format:csv", "format:vcf"}, []string{got[0].Detail, got[1].Detail})
-	assert.Equal(t, models.AuditExport, got[0].Event)
-	assert.Equal(t, "tester", got[0].Username)
 }
