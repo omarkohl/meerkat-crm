@@ -147,8 +147,8 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
 - **Frontend:** Vite, npm, Node 26, `noUncheckedIndexedAccess` and related flags, ESLint 9 with
   strict type-checked rules, Vitest 4.
 - **Root `Makefile`:** `make dev` runs backend and frontend with no setup; `make precommit` runs
-  format, lint, types, i18n key check, architecture check, OpenAPI check, use-case check, coverage
-  and E2E. Workflows call the same targets. Optional `lefthook`.
+  format, lint, types, i18n key check, architecture check, OpenAPI check, use-case and Markdown link
+  checks, coverage and E2E. Workflows call the same targets. Optional `lefthook`.
 - **Tests:** coverage thresholds for Go and Vitest, race detector in CI, fuzzing of the vCard, CSV,
   Monica and ICS parsers, migration round-trip tests, upgrade tests on databases made by past
   releases, CardDAV tests against Radicale, Playwright E2E that drive the UI by visible names,

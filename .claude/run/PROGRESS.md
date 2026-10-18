@@ -2,7 +2,7 @@
 
 ## Next step
 
-19 (doc link check).
+20 (dependency updates).
 
 ## Stack
 
@@ -396,6 +396,16 @@
   `UPDATE contacts SET lastname=''` failed 24 checks. The Radicale scenarios fail on `CI=true`
   without `MEERKAT_CARDDAV_IT` (`radicaleMode`, tested); the Go unit job sets it to `off`. The
   release step is in contributing.md. `make precommit` green.
+- Step 19: `scripts/check-doc-links.mjs` (tests first, `check-doc-links.test.mjs`; run on a broken
+  link, a missing file and a missing heading) checks the repo-relative links and `#anchors` of all
+  tracked Markdown except `.claude/run` and `.claude/plans`: GitHub heading slugs (repeated headings
+  numbered, code ignored, case-insensitive), `?query` stripped, URL-encoded paths, malformed `%`
+  reported, badges (outer link and image), footnote definitions ignored, and a `page.html` link
+  accepted when `page.md` exists (the published site serves `.html`; upstream uses that spelling
+  between `docs/` pages on purpose, so the five existing links stay). `make doc-links` is in
+  `make lint` and a lint workflow step. `make precommit` green. Not verified: the Jekyll build (no
+  bundler in this environment), which is why I did not switch the links to `.md` with
+  `jekyll-relative-links`.
 
 ## Decisions
 

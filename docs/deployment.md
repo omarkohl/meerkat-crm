@@ -358,7 +358,7 @@ it writes one file, `meerkat-backup-YYYYMMDD-HHMMSS.tar.gz`, into `BACKUP_DIR` (
 `backups` directory next to the database, e.g. `/app/data/backups` in the Docker image, so it is on
 your data volume) and keeps the `BACKUP_RETENTION_COUNT` (default 7) most recent ones. Set
 `BACKUP_ENABLED=false` to turn the schedule off. See
-[Getting started](getting-started.md#environment-variables) for all settings.
+[Getting started](getting-started.html#environment-variables) for all settings.
 
 Each archive holds:
 

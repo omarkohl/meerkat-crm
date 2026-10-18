@@ -177,7 +177,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
       `backend/database/testdata/releases/<tag>.db`; a test migrates each to the newest version and
       does basic reads and writes; release doc gets the step to add one. Radicale and other optional
       tests fail when `CI=true` and the service is not configured (no silent skip).
-- [ ] 19. **Doc link check (§2)**: offline Markdown link check (repo-relative links and anchors) in
+- [x] 19. **Doc link check (§2)**: offline Markdown link check (repo-relative links and anchors) in
       `make lint` and CI.
 - [ ] 20. **Dependency updates (§6)**: ADR. Dependabot `daily`, `cooldown: {default-days: 7}`, one
       group per ecosystem for all update types. Every `ignore` gets a comment with the blocking

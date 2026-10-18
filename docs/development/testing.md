@@ -44,6 +44,12 @@ Integration tests:
   reads, then raw rows as a last resort.
 - Scheduler jobs do not run implicitly in tests; tests trigger them, then assert.
 
+Docs: `make doc-links` (part of `make lint` and a CI step) checks that every repo-relative Markdown
+link points at an existing file and every `#anchor` at a heading of that file. External links are
+not followed. A link to `page.html` is fine when `page.md` exists: the published Jekyll site (plain
+Jekyll, no relative-links plugin) serves pages as `.html`, so links between `docs/` pages use that
+spelling and `.md` is used elsewhere.
+
 Releases and optional services:
 
 - `backend/database/testdata/releases/<tag>.db` are databases made by released versions
