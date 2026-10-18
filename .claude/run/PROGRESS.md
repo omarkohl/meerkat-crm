@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 9: frontend component tests (#107).
+Step 10: E2E main workflows (#107).
 
 ## Stack
 
@@ -69,6 +69,20 @@ Local run: no branches, no PRs.
   sessions test documents), 2FA setup, sessions and admin routes (403), does not change the
   password, and is refused with 401 once revoked. No bug found. Go coverage 84.2%; `GO_COVERAGE_MIN`
   stays 83. `make precommit` green.
+- Step 9: new Vitest tests: `ReminderDialog` (message required, trimmed save with today's date, a
+  recurrence moves the date of a new reminder and offers rescheduling from completion, editing keeps
+  the date, a failed save shows the error and stays open), `AddContactDialog` (first name required,
+  empty rows dropped, success message, invalid birthday refused, the birthday reminder switch
+  appears only with a birthday and the reminder is due on the next birthday, this year or next,
+  circles without duplicates, a server error keeps the dialog open), `ReminderList` (empty state,
+  recurrence, e-mail and flexible chips, complete and edit on the clicked card, delete only after
+  confirming), `MultiValueField` (add, type, delete rows, custom type label), `EditableField`
+  (display value, suffix, formatted value with raw value for editing, empty mark, draft, save,
+  cancel, validation error only while editing) and `useDebouncedValue` (fake timers). They use the
+  injected clock via `vi.setSystemTime` (Date only) and no sleeps. No bug fixed; two found (see
+  Questions). Vitest coverage 31.1% statements, 28.4% branches, 25.8% functions, 31.8% lines;
+  thresholds raised to 30/28/25/31 (margins 1.1, 0.4, 0.8, 0.8 points). IMPROVEMENTS item 2.4
+  removed. `make precommit` green.
 
 ## Decisions
 
@@ -162,10 +176,11 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
       security headers, users banner. Missing: import vCard/CSV, export contacts (step 10);
       register, CardDAV/calendar settings, network graph, notes page stay out with a reason:
       settings pages are thin over API calls the Go tests cover, the graph is visual.
-- [ ] **Frontend: components with logic** - Vitest lines 26.9%. Step 9 takes `AddContactDialog`
-      (0.9%), `ReminderDialog`, `ReminderList`, `EditableField`, `MultiValueField`, `useDebounce`,
-      `useReminderManagement`. The remaining 0% components and pages are under Questions with a
-      reason. API modules at 0% are covered by E2E, not unit tests.
+- [x] **Frontend: components with logic** (done in step 9) - Vitest lines went from 26.9% to 31.8%.
+      Tested now: `AddContactDialog`, `ReminderDialog`, `ReminderList`, `MultiValueField`,
+      `EditableField`, `useDebouncedValue` (see the Log). Not tested, with reasons under Questions:
+      `useReminderManagement` and the other 0% components; the 0% API modules are covered by E2E,
+      not unit tests.
 
 ## For review
 
@@ -197,5 +212,17 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
   fires it too, so a restart more than an hour after the daily run mails the birthdays a second time
   (probe: two runs two hours apart sent 2 mails). A fix needs the last-sent date per user (a
   migration) or a design choice, so no test was added.
+- `contacts.add.requiredFields` says "First name and last name are required" but only the first name
+  is checked in `AddContactDialog`; the text (five locales) or the check is wrong.
+- `useReminderManagement` (94 lines) wraps the reminder API calls and the dialog state of
+  `ContactDetailPage`; it has no branching of its own beyond error reporting, and
+  `e2e/reminders.spec.ts` drives it through the page. A hook test would mostly mock the API. Not
+  added.
+- `AddContactDialog.tsx` (~line 205) compares the birthday at midnight with the current time
+  (`nextBirthday < today`), so a contact added on its birthday gets its first reminder next year.
+  Not fixed.
+- `AddContactDialog.tsx` (~line 159) sends the first name untrimmed (the check uses the trimmed
+  value). Not fixed.
+- The Vitest thresholds are rounded down with a small margin; the lines margin is 0.8 points.
 
 ## Blocked

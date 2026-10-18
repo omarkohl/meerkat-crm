@@ -103,7 +103,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 8. **Tests: auth (#107)**: OIDC login against an `httptest` fake provider (new user, linked
       user, bad state, provider error), API tokens (scope limits, revoked token), password login
       lockout and 2FA paths not yet covered.
-- [ ] 9. **Tests: frontend components with logic (#107)**: Vitest and Testing Library for
+- [x] 9. **Tests: frontend components with logic (#107)**: Vitest and Testing Library for
       `AddContactDialog` and `ReminderDialog` (IMPROVEMENTS 2.4), and other components the audit
       names. Raise the Vitest thresholds. Remove item 2.4 from `IMPROVEMENTS.md`.
 - [ ] 10. **E2E: main workflows (#107)**: the main workflows the audit finds without an E2E test, at

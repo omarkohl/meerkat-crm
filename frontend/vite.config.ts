@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
       reporter: ['text-summary', 'json-summary', 'html'],
       reportsDirectory: 'coverage',
       // Current values rounded down. Raise them when coverage rises; never lower them.
-      thresholds: { statements: 25, branches: 23, functions: 19, lines: 25 },
+      thresholds: { statements: 30, branches: 28, functions: 25, lines: 31 },
     },
   },
 }));

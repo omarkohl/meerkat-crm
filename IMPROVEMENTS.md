@@ -7,7 +7,6 @@ section. Effort: **S** (< 1 day), **M** (days), **L** (week+).
 
 | #    | Item                                                                                          | Effort | Why                                                         |
 | ---- | --------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------- |
-| 2.4  | Frontend component tests (RTL) for dialogs: `AddContactDialog`, `ReminderDialog`              | M      | Few frontend component tests exist.                         |
 | 2.9  | Playwright: add a11y checks (`@axe-core/playwright`) and visual snapshots for dark/light mode | S      | Low cost, catches regressions in themes.                    |
 | 2.10 | Contract tests: generate OpenAPI (see 4.1) and validate responses in Go tests                 | M      | Frontend `types/api.ts` and backend structs drift silently. |
 
