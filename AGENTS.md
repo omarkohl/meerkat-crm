@@ -99,10 +99,12 @@ rename `[Unreleased]` to the version and date and add the compare link at the bo
 
 ## Version control
 
-- Conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`), subject at most
-  72 characters, body says why.
+- Conventional commits (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `build`, `ci`,
+  `style`, `revert`), subject at most 72 characters, body says why.
 - One commit is one coherent change from the user's view (migration, model, controller, API client,
   UI, i18n and tests together). Each commit passes `make precommit`.
+- CI checks subjects and the `[Unreleased]` changelog (`make check-commits`, `make changelog-check`,
+  [ADR 0016](docs/adr/0016-changelog-and-commit-rules.md)).
 - Issue footer: `fixes #N` when the commit resolves the issue, `issue #N` when it is part of it.
 - Review your own diff before you ask for review.
 - Never push without explicit permission, each time.

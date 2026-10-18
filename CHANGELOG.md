@@ -16,6 +16,10 @@ of this fork (see [FORK.md](FORK.md)).
 - **Docker images include current Alpine fixes**: published images now contain package security
   fixes released after the base image.
 
+### Internal
+
+- **API description**: `docs/openapi.json` describes the JSON API and is generated from the code.
+
 ## [1.7.0-omk.2] - 2026-10-17
 
 ### Fixed

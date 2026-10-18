@@ -101,6 +101,21 @@ git add backend/database/testdata/releases/vX.Y.Z.db
 `backend/database/testdata/releases/` to the newest schema and reads and writes through it. The
 script needs the network the first time (old dependencies) and writes one file of a few hundred KB.
 
+## Commits and the changelog
+
+- Conventional commits (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `build`, `ci`,
+  `style`, `revert`; an optional `(scope)` and `!`), subject at most 72 characters (Dependabot's are
+  not measured), the body says why. One commit is one coherent change from the user's view, and each
+  commit passes `make precommit`.
+- Name the issue in a footer: `fixes #N` when the commit resolves it, `issue #N` when it is part of
+  it.
+- A user-facing change adds one bullet to `[Unreleased]` in `CHANGELOG.md`, for users and admins:
+  `- **Lead phrase** (#123): what changed.` at most about 40 words, no file or library names.
+  `Internal` entries are rare and short. See [AGENTS.md](../../AGENTS.md) and
+  [ADR 0016](../adr/0016-changelog-and-commit-rules.md).
+- CI checks the commit subjects of a pull request (`make check-commits RANGE=origin/omk..HEAD`
+  locally) and the changelog entries (`make changelog-check`, part of `make lint`).
+
 ## Pull Requests
 
 - Keep PRs focused with one feature or fix per PR.

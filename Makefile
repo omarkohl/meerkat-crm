@@ -1,4 +1,4 @@
-.PHONY: help doc-links use-cases install install-go install-frontend dev seed format format-check lint lint-go lint-frontend typecheck i18n-check test test-scripts test-go test-frontend test-coverage test-coverage-go test-coverage-frontend test-carddav test-e2e test-e2e-docker arch openapi openapi-check vuln-go audit-frontend fuzz precommit build clean clean-all
+.PHONY: help changelog-check check-commits doc-links use-cases install install-go install-frontend dev seed format format-check lint lint-go lint-frontend typecheck i18n-check test test-scripts test-go test-frontend test-coverage test-coverage-go test-coverage-frontend test-carddav test-e2e test-e2e-docker arch openapi openapi-check vuln-go audit-frontend fuzz precommit build clean clean-all
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
@@ -31,7 +31,7 @@ format-check: install-frontend ## Fail if any file is not gofmt/Prettier-clean
 	if [ -n "$$bad" ]; then echo "Not gofmt-clean:"; echo "$$bad"; exit 1; fi
 	$(PRETTIER) --check --log-level warn .
 
-lint: lint-go lint-frontend doc-links ## go vet + golangci-lint + eslint + Markdown link check
+lint: lint-go lint-frontend doc-links changelog-check ## go vet + golangci-lint + eslint + Markdown link and changelog checks
 
 lint-go: install-go ## go vet + golangci-lint (the golangci-lint binary must be installed)
 	cd backend && go vet ./...
@@ -49,6 +49,12 @@ i18n-check: ## Locale files: missing/extra keys fail, unused/duplicate keys warn
 
 test-scripts: ## Tests of the helper scripts in scripts/
 	node --test scripts/*.test.mjs
+
+changelog-check: ## Check the [Unreleased] entries of CHANGELOG.md against the AGENTS.md rules
+	node scripts/check-changelog.mjs
+
+check-commits: ## Check commit subjects of a range (make check-commits RANGE=origin/omk..HEAD)
+	node scripts/check-commits.mjs $(RANGE)
 
 doc-links: ## Check repo-relative Markdown links and anchors (offline)
 	node scripts/check-doc-links.mjs

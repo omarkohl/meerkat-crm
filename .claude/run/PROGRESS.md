@@ -2,7 +2,7 @@
 
 ## Next step
 
-21 (commit checks and changelog).
+22 (docs).
 
 ## Stack
 
@@ -413,6 +413,16 @@
   Dockerfile base images are pinned to full tags checked against Docker Hub:
   `<image>:<x.y.z>-alpine` (Alpine floats with the tag), `alpine:<x.y.z>` for the runtime. Images
   were not rebuilt here (CI builds them); `make precommit` green.
+- Step 21: ADR 0016. `scripts/check-commits.mjs` (conventional prefix, at most 72 characters; merge
+  and revert commits allowed) runs in a new `commits` job of the lint workflow on pull requests
+  (`make check-commits RANGE=...`). `scripts/check-changelog.mjs` checks the `[Unreleased]` entries
+  (bold lead phrase and colon, `(#N)` digits only, at most 40 words, Internal at most 25 words and 3
+  entries (reported once), no sub-bullet, unindented continuation or second paragraph, known
+  sections) in `make lint` and the lint workflow. Both written test first. Released sections are not
+  checked (their older entries have no colon). The script cannot check issue numbers against commit
+  footers. Dependabot subjects are exempt from the length rule. `[Unreleased]` got one Internal
+  entry (OpenAPI document). contributing.md has a "Commits and the changelog" section; AGENTS.md
+  points to the checks. `make precommit` green.
 
 ## Decisions
 
@@ -863,5 +873,10 @@
   `.github/dependabot.yml`. `docker-compose.carddav-test.yml` uses `nextcloud:latest` (a manual test
   stack, not seen by Dependabot's `docker` ecosystem): pin it, or add the `docker-compose`
   ecosystem?
+- Step 21: two commit subjects of this run, against `omk..HEAD`, are longer than 72 characters and
+  fail the commit check (`make check-commits RANGE=omk..HEAD`; the ids change when they are
+  rebased): `0ec518cf4a22` "test: upgrade databases made by past releases; no silent Radicale skip
+  on CI" (76) and `33d0c69dc25c` "refactor: serve backups, audit log and system status from the
+  admin module" (74). To be reworded by the coordinator before the PR.
 
 ## Blocked

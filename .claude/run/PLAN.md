@@ -182,7 +182,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
 - [x] 20. **Dependency updates (§6)**: ADR. Dependabot `daily`, `cooldown: {default-days: 7}`, one
       group per ecosystem for all update types. Every `ignore` gets a comment with the blocking
       issue. Pin floating Dockerfile base-image tags so Dependabot sees them.
-- [ ] 21. **Commit checks and changelog (§7, §8)**: CI job checks PR commit subjects (conventional
+- [x] 21. **Commit checks and changelog (§7, §8)**: CI job checks PR commit subjects (conventional
       prefix, ≤ 72 chars). `CHANGELOG.md` for users: one bullet per change, issue reference, length
       limit checked by a script. ADR for the changelog; commit rules (§7) in
       `docs/development/contributing.md` and `AGENTS.md`.
