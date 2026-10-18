@@ -10,19 +10,20 @@ nav_order: 5
 
 1. Fork the repository and clone your fork locally.
 2. Follow the setup steps in [Backend](backend.md) and [Frontend](frontend.md).
-3. Create a feature branch from `main`.
+3. Create a feature branch from `omk` (the fork branch, see [FORK.md](../../FORK.md)).
 
 ## Development Workflow
 
 1. Make your changes with tests.
 2. Run `make precommit` from the repository root: checks gofmt and Prettier formatting of all files,
    Markdown and docs included (`make format` fixes it), `go vet`, `golangci-lint` (the binary must
-   be installed), ESLint, `tsc`, the locale check (`make i18n-check`: a key missing in any of
-   en/de/it/es/fr, or not in `en`, fails; unused and duplicate keys only warn) the architecture
-   rules (`make arch`), the unit tests with coverage thresholds (Go, Vitest and the helper scripts)
-   and the Playwright E2E tests (`make test-e2e`, no Docker needed; narrow it with `ARGS=`, see
+   be installed), ESLint, the Markdown link and changelog checks, `tsc`, the locale check
+   (`make i18n-check`: a key missing in any of en/de/it/es/fr, or not in `en`, fails; unused and
+   duplicate keys only warn), the architecture rules (`make arch`), the OpenAPI check, the use-case
+   check, the unit tests with coverage thresholds (Go, Vitest and the helper scripts) and the
+   Playwright E2E tests (`make test-e2e`, no Docker needed; narrow it with `ARGS=`, see
    [testing](testing.md)). `make help` lists all targets.
-3. Open a pull request against `main`.
+3. Open a pull request against `omk`.
 
 Optional: [lefthook](https://lefthook.dev) can run gofmt, Prettier, ESLint and the locale check on
 the staged files before each commit. Install lefthook and run `lefthook install` once; the
@@ -100,6 +101,26 @@ git add backend/database/testdata/releases/vX.Y.Z.db
 `TestEveryReleaseDatabaseMigratesToTheNewestVersionAndStillWorks` migrates every file in
 `backend/database/testdata/releases/` to the newest schema and reads and writes through it. The
 script needs the network the first time (old dependencies) and writes one file of a few hundred KB.
+
+Several checkouts can run side by side (for example parallel worktrees): give each its own ports and
+data directory in `dev.env` (see `scripts/dev.sh`).
+
+## Adding a check
+
+A convention that matters gets a machine check, with a message that says what to do instead and
+links the ADR. When you add one:
+
+1. Write the rule and **show that it fails** on a file that violates it: a rule whose file pattern
+   matches nothing looks exactly like one that works.
+2. Fix the existing violations, or record them as named exemptions with a reason; prefer fixing.
+3. Put the reason in the rule's message, not only in a doc.
+
+Exempt a line, not a file, and give a reason (`//nolint:gosec // reason`,
+`// eslint-disable-next-line rule -- reason`). Generated artifacts (OpenAPI document, API types) are
+committed and checked for drift. Imports that only carry types count in the frontend architecture
+rules. Rules that imports cannot express become tests that enumerate
+(`backend/routes/invariants_test.go`). When someone trips over the same thing twice, add a paragraph
+with the fix to the chapter where it bites.
 
 ## Commits and the changelog
 

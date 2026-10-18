@@ -71,7 +71,7 @@ else with it.
 
 ## Plan for the pilot
 
-Converting all contact endpoints in one commit is too much to review, so step 12 is delivered in
+Converting all contact endpoints in one commit is too much to review, so the pilot was delivered in
 three parts, each green on its own and each leaving the old Gin handlers for the endpoints not yet
 moved:
 

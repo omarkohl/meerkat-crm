@@ -1,7 +1,8 @@
 # The use cases of Meerkat CRM. IDs are NNN-USn: the feature, then the story in it.
 # Tests carry the ID: `@001-US1` in an E2E test title, `// @001-US1` above a Go test.
 # `make use-cases` fails on an unknown ID or an E2E test without one and lists the use cases
-# no test covers. Priority: high, medium, low. Status: implemented.
+# no test covers. Priority: high, medium, low. Status: implemented, or deprecated for a retired
+# use case: keep its ID and never renumber.
 
 - id: 001-US1
   title: Register an account

@@ -12,8 +12,8 @@ nav_order: 10
 ## Context
 
 Controllers query GORM directly and nothing stops a package from reaching up the stack. The run
-towards a hexagonal backend (see the plan) needs a guard first: a wrong-way import must fail the
-build, so each later step can only improve the picture.
+towards a hexagonal backend ([ADR 0012](0012-module-layout.md)) needs a guard first: a wrong-way
+import must fail the build, so each later step can only improve the picture.
 
 ## Decision
 
@@ -28,7 +28,7 @@ build when:
 The rules check direct imports only and include test files. Today there is no Go violation and so no
 Go exemption (`services/reminder_service_test.go` had an unused gin router; it was removed).
 `services` still imports `middleware` in one file; that stays allowed until the layering ADR for the
-pilot module (step 12) decides where `middleware` belongs.
+pilot module ([ADR 0012](0012-module-layout.md)) decides where `middleware` belongs.
 
 **Frontend.** Dependencies point down: pages (`src/*Page.tsx`) > hooks > `src/api` resource
 modules > `src/api/client.ts`. `dependency-cruiser` (`frontend/.dependency-cruiser.cjs`, run by
@@ -52,6 +52,14 @@ Two former cycles were fixed instead of recorded: `types/api.ts` and `types/form
 import `types/index.ts` (`User` and `Relationship` live in `types/entities.ts`).
 `src/react-app-env.d.ts` is excluded from the cruise: it only references the `react-scripts` type
 package.
+
+## Update (2026-10-18)
+
+The Go layering above is the baseline. Every converted module adds its own `depguard` rules in
+`backend/.golangci.yml` (`<module>-domain-stays-pure`, `-use-cases-depend-on-ports`,
+`-repositories-stay-in-persistence`, [ADR 0012](0012-module-layout.md)); `controllers` now holds
+only the health check and the image proxy. The frontend baseline file is the current state of the
+recorded pairs, not the 30 of the day it was introduced.
 
 ## Consequences
 

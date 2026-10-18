@@ -2,7 +2,59 @@
 
 ## Next step
 
-23 (finish).
+23, second part: delete `.claude/run/` and `.claude/plans/engineering-principles*.md` in their own
+commit, after the user confirms.
+
+## Summary
+
+Steps 1 to 22 are done and ticked; step 23 is the verification below and then the deletion commit.
+Every step is one commit on `omk`; `make precommit` (format, lint, types, locales, architecture
+rules, OpenAPI check, script tests, use-case check, Go and Vitest tests with thresholds, E2E) was
+green for each.
+
+What the fork now has, by principle: one `make precommit` gate that CI also calls (1); strict types
+and type-aware lint with every rule an error, `forbidigo` on the ambient clock (2, 5); sixteen
+hexagonal modules under `backend/<module>/` with depguard rules and frontend dependency-cruiser
+rules (3); every JSON route a huma operation, `docs/openapi.json` and the TypeScript types generated
+and checked (3); invariant tests for auth and user isolation of every route and model, a use-case
+catalogue, coverage thresholds, upgrade tests on 13 databases made by past releases, no silent
+Radicale skip on CI (4); an injected clock with `FAKE_NOW` (5); daily Dependabot with a cooldown,
+one group per ecosystem, pinned base images (6); commit-subject and changelog checks (7); ADRs 0001
+to 0016, `AGENTS.md`, a doc link check (8, 9).
+
+### Destination table, checked against the repo
+
+Each row of the plan's table was read against `engineering-principles-reference.md`. Present in the
+destination: the overview and §2 (ADR 0002, `AGENTS.md`, contributing "Adding a check"); §1
+(contributing, `AGENTS.md`, `testing.md` for one test, `scripts/dev.sh` and `dev.env` for
+side-by-side checkouts); §3 (ADR 0010, 0011, 0012, `architecture.md`, `backend.md`); §4 (ADR 0003,
+`testing.md`, `docs/use-cases.yml`); §4 TDD and §9 (`AGENTS.md`, `testing.md`); §5 (ADR 0009, ADR
+0004); §6 (ADR 0015); §7 (`AGENTS.md`, contributing, ADR 0016); §8 (ADR 0001, 0016, `AGENTS.md`).
+
+Gaps found by that read and fixed in the verification commit: ADR 0003 still said "planned" for the
+invariant, upgrade and no-skip tests; ADR 0010 pointed at "the plan" and "step 12" and described
+only the old layering; ADR 0012 said "step 12"; contributing.md named `main` as the PR base and
+lacked the newer checks, the "Adding a check" rules (fail first, exempt a line, generated artifacts,
+type-only imports, invariant tests, record gotchas) and side-by-side checkouts; `docs/use-cases.yml`
+did not say how to retire an ID.
+
+Gaps left (in Questions below): `forbidigo` bans `time.Now` only, not `math/rand` or `os.Getenv`
+(§5); "format dates in the user's time zone" was not audited; the reference's "generated dependency
+graph" tip has no tooling; ADR 0003 and 0010 are amended in place (an Update paragraph), not
+superseded.
+
+### Not verified
+
+- **CI workflows were never run** (no runner here): the `commits` job, the `MEERKAT_CARDDAV_IT=off`
+  env of the Go unit job, the new steps in `lint.yml`, the E2E and image jobs with the pinned
+  Dockerfile tags (the images were not rebuilt; the tags were checked on Docker Hub only).
+- **The Jekyll site build** (no bundler): `.html` links between `docs/` pages are kept as upstream
+  has them and the link check accepts them when the `.md` exists.
+- **Dependabot**: `.github/dependabot.yml` was not validated by GitHub; `cooldown` and the grouped
+  `docker` directories take effect on the first run. The `ignore` blockers were not re-checked
+  against the registries today.
+- `golangci-lint` v2.14 in CI versus the local binary; `scripts/seed-release-db.sh` needs the
+  network for old modules.
 
 ## Stack
 
@@ -812,8 +864,8 @@
   no-deprecated 34). Later steps should shrink it. `no-autofocus` is exempted as a design choice to
   confirm.
 
-- Step 4: CI cannot run locally. Check the first PR run: `install-only` of golangci-lint-action v8,
-  `YARN: yarn`, `make fuzz` env vars.
+- Step 4: CI cannot run locally. Check the first PR run: `install-only` of golangci-lint-action, the
+  `make fuzz` env vars, and the jobs listed under "Not verified" in the Summary.
 
 ## Questions
 
@@ -861,9 +913,6 @@
   default dates in AddNote/AddActivity and the reminder `min` can show the wrong day near midnight.
   Pre-existing; not fixed.
 
-- `frontend/package.json` has no `packageManager` field, so `corepack yarn` (Makefile default) needs
-  CI to set `YARN=yarn`. Adding the field would remove that workaround; not done (out of scope).
-
 - `apperrors.ErrNotFound(resource)` appends " not found", so
   `backend/services/import_session.go:96,100,107` and `monica_import_session.go:132,135,149` produce
   "Import session expired or not found not found". Not fixed (out of scope).
@@ -872,8 +921,6 @@
   left alone.
 - 13j1: CSV export cells that start with `=`, `+`, `-` or `@` are not neutralised (CSV/formula
   injection when the file is opened in a spreadsheet). Pre-existing; not fixed in a refactor.
-- Step 14 must cover the admin user endpoints (`/admin/users*`, `trigger-reminders`): still Gin
-  handlers in `controllers`.
 - The `carddav_sync` table is orphaned: its model `CardDAVSync` was removed in step 15 (unused), but
   no migration drops the table. A drop migration is for the user to decide.
 - Step 20: open tracking issues for the ESLint 10 blocker (jsx-a11y), the TypeScript 6 blocker
@@ -881,5 +928,7 @@
   `.github/dependabot.yml`. `docker-compose.carddav-test.yml` uses `nextcloud:latest` (a manual test
   stack, not seen by Dependabot's `docker` ecosystem): pin it, or add the `docker-compose`
   ecosystem?
+- Step 23: `forbidigo` bans only `time.Now`; the reference also names `math/rand` and `os.Getenv`
+  outside the boundary. Ban them, or accept? Dates in the user's time zone were not audited.
 
 ## Blocked

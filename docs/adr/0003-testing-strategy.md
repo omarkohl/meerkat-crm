@@ -32,10 +32,12 @@ Tests have three tiers.
 Guardrails: a test that breaks on an internal rename without a visible change is rewritten or
 deleted. No assertions on call counts of internal helpers. No shared state between tests. Factories
 build minimal valid entities. Coverage thresholds (Vitest and Go) stop slow erosion;
-`make test-coverage` is part of `make precommit` and CI. Planned (see `.claude/run/PLAN.md`):
-invariant tests that enumerate, for example every model with `user_id` has an isolation test (step
-15), upgrade tests that migrate stored databases of released versions (step 18), and failing instead
-of skipping in CI when an optional service is not configured (step 18).
+`make test-coverage` is part of `make precommit` and CI. Invariant tests enumerate the Gin routes
+and the models with a `user_id` and fail when one has no auth check or isolation test
+(`backend/routes/invariants_test.go`). The use-case catalogue `docs/use-cases.yml` gives every test
+a permanent ID (`make use-cases`). Upgrade tests migrate databases made by past releases
+(`backend/database/testdata/releases/`), and the Radicale scenarios fail instead of skipping on CI
+when the service is not configured.
 
 TDD is mandatory for agents: write the failing test, run it and confirm the failure, implement the
 minimum, confirm green, refactor without touching the test. Exceptions: pure styling changes, and
