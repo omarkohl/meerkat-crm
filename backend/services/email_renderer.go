@@ -56,7 +56,7 @@ type PasswordResetEmailData struct {
 	Footer      string
 }
 
-func renderReminderEmail(data ReminderEmailData) (string, error) {
+func RenderReminderEmail(data ReminderEmailData) (string, error) {
 	var buf bytes.Buffer
 	if err := reminderTmpl.Execute(&buf, data); err != nil {
 		return "", err

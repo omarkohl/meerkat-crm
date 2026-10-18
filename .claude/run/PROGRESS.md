@@ -2,7 +2,7 @@
 
 ## Next step
 
-13i2 (email outbox and the daily reminder e-mail job).
+13i3 (email outbox delivery engine).
 
 ## Stack
 
@@ -254,6 +254,18 @@
   accepted" test became a module test for all twelve events. 12 module tests on real SQLite (secret
   shown once, validation, limit, isolation incl. test and deliveries of foreign webhooks, 401).
   Frontend `Webhook*` types derive from the generated types. `make precommit` green.
+- Step 13i2: the daily reminder e-mail job moved into the reminders module as `SendDailyDigest` (use
+  case `Digest.Run`; ports `DigestSource`, `DigestMail`, `DigestEvents`; domain `DueReminder`,
+  `Birthday`, `Recipient`, `EndOfDay`). Persistence reads across users on purpose (the job mails
+  everyone) and marks reminders with one two-column update; the mail adapter keeps the template,
+  language and date-format wording and queues through the outbox; the webhooks adapter fires
+  `reminder.triggered` / `birthday.occurred` with the same payloads as before.
+  `services.SendReminders`, `sendReminderEmail` and the format helpers are gone;
+  `services.SendRemindersWithRateLimit(db, clk, send)` keeps the lock, metrics and skipping and
+  takes the job as an argument; `main.go` and the admin trigger pass `SendDailyDigest`. 7 module
+  tests on real SQLite with the fake clock (own-data mails, not-due/completed/sent/not-by-mail,
+  reminder time zone, birthday-only mail, no channel keeps reminders, no address, webhooks) plus
+  domain and wording tests. `make precommit` green.
 
 ## Decisions
 
@@ -547,6 +559,14 @@
 - 13i1: update, delete and deliveries look the webhook up once, in the repository (404 before any
   write); a failing lookup during update or delete is reported as "update"/"delete" instead of
   "query". The `events` list and the two list bodies are never null in the schema.
+- Step 13i2 is split again: the digest job moved (13i2); the outbox delivery engine (`QueueEmail`,
+  `ProcessEmailOutbox`, retries, purge, metrics; also used by password reset) is **13i3**, because
+  it is shared infrastructure with its own callers and tests.
+- 13i2: the user's birthdays are read once per user per run (the old code read them again for the
+  webhook); a failed read is logged and the user is mailed without birthdays and fires no birthday
+  event. `main.go` builds its own `reminders` module for the job (the routes' modules are built
+  after the scheduler starts); the module has no state, so the two instances are equivalent. Marking
+  a reminder mailed now updates `email_sent` and `last_sent` only, instead of saving the whole row.
 
 ## For review
 

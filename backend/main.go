@@ -12,6 +12,7 @@ import (
 	"meerkat/logger"
 	"meerkat/metrics"
 	"meerkat/middleware"
+	"meerkat/reminders"
 	"meerkat/routes"
 	"meerkat/services"
 	"net"
@@ -115,8 +116,9 @@ func main() {
 		logger.Warn().Msg("No Mails to be sent since Resend configuration is not set")
 	}
 	// Use rate-limited versions to prevent duplicate work during rapid restarts
+	reminderJob := reminders.New(reminders.Deps{DB: db, Config: cfg})
 	reminderTask := func() {
-		if err := services.SendRemindersWithRateLimit(db, *cfg, clk); err != nil {
+		if err := services.SendRemindersWithRateLimit(db, clk, reminderJob.SendDailyDigest); err != nil {
 			logger.Error().Err(err).Msg("Error sending reminders")
 		}
 	}

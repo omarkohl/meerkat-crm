@@ -101,7 +101,7 @@ func TestRateLimitedJobsCountSkippedNotSuccess(t *testing.T) {
 	}
 	cfg := config.Config{CalDAVSyncIntervalHours: 1, CardDAVSyncIntervalHours: 1}
 	for job, run := range map[string]func(){
-		JobReminders:    func() { _ = SendRemindersWithRateLimit(db, cfg, clock.Real()) },
+		JobReminders:    func() { _ = SendRemindersWithRateLimit(db, clock.Real(), func(clock.Clock) error { return nil }) },
 		JobCalendarSync: func() { SyncCalendarsWithRateLimit(db, cfg, clock.Real()) },
 		JobContactSync:  func() { SyncContactsWithRateLimit(db, cfg, clock.Real()) },
 	} {

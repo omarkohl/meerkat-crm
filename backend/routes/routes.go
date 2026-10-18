@@ -179,7 +179,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 			admin.GET("/backups/:name", controllers.DownloadBackup)
 			admin.DELETE("/backups/:name", controllers.DeleteBackup)
 			admin.POST("/trigger-reminders", func(c *gin.Context) {
-				controllers.TriggerReminders(c, *cfg)
+				controllers.TriggerReminders(c, modules.Reminders.SendDailyDigest)
 			})
 		}
 	}

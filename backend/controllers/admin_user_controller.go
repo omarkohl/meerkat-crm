@@ -3,10 +3,10 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"meerkat/clock"
 	"net/http"
 	"strings"
 
-	"meerkat/config"
 	apperrors "meerkat/errors"
 	"meerkat/idutil"
 	"meerkat/logger"
@@ -19,11 +19,11 @@ import (
 )
 
 // TriggerReminders manually triggers the reminder email job (admin only)
-func TriggerReminders(c *gin.Context, cfg config.Config) {
+func TriggerReminders(c *gin.Context, send func(clock.Clock) error) {
 	log := logger.FromContext(c)
 	db := c.MustGet("db").(*gorm.DB)
 
-	if err := services.SendReminders(db, cfg, middleware.RequestClock(c)); err != nil {
+	if err := send(middleware.RequestClock(c)); err != nil {
 		log.Error().Err(err).Msg("Failed to trigger reminder emails")
 		apperrors.AbortWithError(c, apperrors.ErrInternal("Failed to send reminder emails").WithError(err))
 		return
