@@ -146,6 +146,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/carddav/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The user's CardDAV connection; 404 when none is configured */
+        get: operations["get-carddav-connection"];
+        /** Create or replace the connection; 201 when it is new */
+        put: operations["save-carddav-connection"];
+        post?: never;
+        /** Remove the connection and its link state; contacts stay */
+        delete: operations["delete-carddav-connection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/carddav/connection/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a sync in the background; poll the connection for the outcome */
+        post: operations["sync-carddav-connection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/carddav/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the address books on a CardDAV server */
+        post: operations["discover-carddav-address-books"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/check-password-strength": {
         parameters: {
             query?: never;
@@ -1295,6 +1348,11 @@ export interface components {
             location: string;
             title: string;
         };
+        AddressBook: {
+            description: string;
+            name: string;
+            path: string;
+        };
         AddressInput: {
             city?: string;
             country?: string;
@@ -1364,6 +1422,40 @@ export interface components {
             skipped: number;
             /** Format: int64 */
             updated: number;
+        };
+        CardDAVConnectionBody: {
+            address_book_name?: string;
+            address_book_path: string;
+            base_url: string;
+            clear_password?: boolean;
+            direction?: string;
+            /** @description On update, empty keeps the stored password */
+            password?: string;
+            sync_enabled?: boolean | null;
+            username?: string;
+        };
+        CardDAVConnectionResponse: {
+            address_book_name: string;
+            address_book_path: string;
+            base_url: string;
+            /** Format: date-time */
+            created_at: string;
+            /** @description two_way, pull or push */
+            direction: string;
+            has_password: boolean;
+            /** Format: int64 */
+            id: number;
+            last_sync_error: string;
+            /** @description Counts of the last completed run, null before the first one */
+            last_sync_stats: components["schemas"]["ContactSyncStats"] | null;
+            /** @description Empty, success, partial or error */
+            last_sync_status: string;
+            /** Format: date-time */
+            last_synced_at: string | null;
+            sync_enabled: boolean;
+            /** @description A sync started by the user or the schedule is in flight */
+            sync_running: boolean;
+            username: string;
         };
         ChangePasswordBody: {
             current_password: string;
@@ -1637,6 +1729,26 @@ export interface components {
             urls: components["schemas"]["ContactValue"][] | null;
             work_information: string;
         };
+        ContactSyncStats: {
+            /** Format: int64 */
+            conflicts: number;
+            /** Format: int64 */
+            errors: number;
+            /** Format: int64 */
+            pulled_created: number;
+            /** Format: int64 */
+            pulled_deleted: number;
+            /** Format: int64 */
+            pulled_updated: number;
+            /** Format: int64 */
+            pushed_created: number;
+            /** Format: int64 */
+            pushed_deleted: number;
+            /** Format: int64 */
+            pushed_updated: number;
+            /** Format: int64 */
+            skipped: number;
+        };
         ContactValue: {
             type: string;
             value: string;
@@ -1684,6 +1796,15 @@ export interface components {
             status_code: number | null;
             /** Format: int64 */
             webhook_id: number;
+        };
+        DiscoverBody: {
+            base_url: string;
+            /** @description Empty reuses the stored password, for the stored server only */
+            password?: string;
+            username?: string;
+        };
+        DiscoverOutputBody: {
+            address_books: components["schemas"]["AddressBook"][];
         };
         DuplicateMatch: {
             /** Format: int64 */
@@ -2827,6 +2948,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalendarSyncOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-carddav-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardDAVConnectionResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "save-carddav-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CardDAVConnectionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardDAVConnectionResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "delete-carddav-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "sync-carddav-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "discover-carddav-address-books": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoverBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverOutputBody"];
                 };
             };
             /** @description Error */

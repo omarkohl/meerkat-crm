@@ -7,6 +7,7 @@ import (
 	"meerkat/carddav"
 	"meerkat/config"
 	"meerkat/contacts"
+	"meerkat/contactsync"
 	"meerkat/controllers"
 	"meerkat/exports"
 	"meerkat/imports"
@@ -44,6 +45,7 @@ type Modules struct {
 	Imports       *imports.Module
 	MonicaImport  *monicaimport.Module
 	Calendars     *calendars.Module
+	ContactSync   *contactsync.Module
 	Users         *users.Module
 }
 
@@ -64,6 +66,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Imports:       imports.New(imports.Deps{DB: db, Config: cfg}),
 		MonicaImport:  monicaimport.New(monicaimport.Deps{DB: db, Config: cfg}),
 		Calendars:     calendars.New(calendars.Deps{DB: db, Config: cfg}),
+		ContactSync:   contactsync.New(contactsync.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -96,6 +99,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Imports.Register(a, g.Protected)
 	m.MonicaImport.Register(a, g.Protected)
 	m.Calendars.Register(a, g.Protected)
+	m.ContactSync.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -129,13 +133,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)
-
-			// CardDAV client routes (sync contacts with an external server)
-			protected.GET("/carddav/connection", controllers.GetCardDAVConnection)
-			protected.PUT("/carddav/connection", middleware.ValidateJSONMiddleware(&models.CardDAVConnectionInput{}), controllers.SaveCardDAVConnection)
-			protected.DELETE("/carddav/connection", controllers.DeleteCardDAVConnection)
-			protected.POST("/carddav/discover", middleware.ValidateJSONMiddleware(&models.CardDAVDiscoverInput{}), controllers.DiscoverCardDAVAddressBooks)
-			protected.POST("/carddav/connection/sync", controllers.SyncCardDAVConnection)
 		}
 
 		// Admin routes (admin authentication required)

@@ -39,6 +39,7 @@ backend/
   imports/             # hexagonal module for the CSV and vCard import wizard (the parsing, mapping and merging stay in services, shared with the Monica import)
   monicaimport/        # hexagonal module for the import from Monica (the fetch, mapping and applying stay in services)
   calendars/           # hexagonal module for calendar subscriptions (the sync engine and its job stay in services)
+  contactsync/         # hexagonal module for the CardDAV connection settings (the sync engine and the protocol endpoints are elsewhere)
   users/               # hexagonal module for user preferences, sessions, passwords, two-factor, registration, login and logout, single sign-on (redirects are plain Gin handlers)
   reminders/           # hexagonal module for reminders, same layout, plus the daily reminder e-mail job (`SendDailyDigest`; the lock around it and the e-mail outbox are in services)
   models/              # GORM models and input DTOs

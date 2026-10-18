@@ -1,54 +1,24 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
 export type CardDAVDirection = 'two_way' | 'pull' | 'push';
 
-export interface CardDAVConnection {
-  id: number;
-  base_url: string;
-  address_book_path: string;
-  address_book_name: string;
-  username: string;
-  has_password: boolean;
+type Schemas = components['schemas'];
+
+export type ContactSyncStats = Schemas['ContactSyncStats'];
+export type DiscoveredAddressBook = Schemas['AddressBook'];
+
+export interface CardDAVConnection extends Omit<
+  Schemas['CardDAVConnectionResponse'],
+  'direction' | 'last_sync_status'
+> {
   direction: CardDAVDirection;
-  sync_enabled: boolean;
-  /** True while a sync started via startCardDAVSync is still running. */
-  sync_running: boolean;
-  last_synced_at: string | null;
   last_sync_status: '' | 'success' | 'partial' | 'error';
-  last_sync_error: string;
-  /** Counts from the last completed run, or null before the first one. */
-  last_sync_stats: ContactSyncStats | null;
-  created_at: string;
 }
 
-export interface CardDAVConnectionInput {
-  base_url: string;
-  address_book_path: string;
-  address_book_name?: string;
-  username?: string;
-  password?: string;
-  clear_password?: boolean;
+export interface CardDAVConnectionInput extends Omit<Schemas['CardDAVConnectionBody'], 'direction'> {
   direction?: CardDAVDirection;
-  sync_enabled?: boolean;
-}
-
-export interface DiscoveredAddressBook {
-  path: string;
-  name: string;
-  description: string;
-}
-
-export interface ContactSyncStats {
-  pulled_created: number;
-  pulled_updated: number;
-  pulled_deleted: number;
-  pushed_created: number;
-  pushed_updated: number;
-  pushed_deleted: number;
-  conflicts: number;
-  skipped: number;
-  errors: number;
 }
 
 // Returns null when no connection is configured yet (404).

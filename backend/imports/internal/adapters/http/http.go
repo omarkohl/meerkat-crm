@@ -5,10 +5,8 @@ package httpadapter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
-	"reflect"
 
 	"meerkat/api"
 	apperrors "meerkat/errors"
@@ -58,27 +56,13 @@ type DuplicateMatch struct {
 	ExistingDeleted   bool   `json:"existing_deleted" doc:"The matched contact is in the trash"`
 }
 
-// MatchOrNull is a DuplicateMatch or null: huma cannot mark a referenced schema nullable.
-type MatchOrNull struct{ *DuplicateMatch }
-
-func (MatchOrNull) Schema(r huma.Registry) *huma.Schema {
-	return &huma.Schema{OneOf: []*huma.Schema{r.Schema(reflect.TypeOf(DuplicateMatch{}), true, "DuplicateMatch"), {Type: "null"}}}
-}
-
-func (m MatchOrNull) MarshalJSON() ([]byte, error) {
-	if m.DuplicateMatch == nil {
-		return []byte("null"), nil
-	}
-	return json.Marshal(m.DuplicateMatch)
-}
-
 type RowPreview struct {
-	RowIndex         int            `json:"row_index"`
-	ParsedContact    map[string]any `json:"parsed_contact"`
-	ValidationErrors []string       `json:"validation_errors" nullable:"false"`
-	Warnings         []string       `json:"warnings" nullable:"false" doc:"Values dropped so the row can import"`
-	DuplicateMatch   MatchOrNull    `json:"duplicate_match" doc:"The existing contact this row matches, null when none"`
-	SuggestedAction  string         `json:"suggested_action" doc:"add, skip or update"`
+	RowIndex         int                          `json:"row_index"`
+	ParsedContact    map[string]any               `json:"parsed_contact"`
+	ValidationErrors []string                     `json:"validation_errors" nullable:"false"`
+	Warnings         []string                     `json:"warnings" nullable:"false" doc:"Values dropped so the row can import"`
+	DuplicateMatch   api.Nullable[DuplicateMatch] `json:"duplicate_match" doc:"The existing contact this row matches, null when none"`
+	SuggestedAction  string                       `json:"suggested_action" doc:"add, skip or update"`
 }
 
 type PreviewResponse struct {
@@ -263,7 +247,7 @@ func previewResponse(p domain.Preview) PreviewResponse {
 			SuggestedAction: r.SuggestedAction,
 		}
 		if d := r.DuplicateMatch; d != nil {
-			row.DuplicateMatch.DuplicateMatch = &DuplicateMatch{
+			row.DuplicateMatch.Value = &DuplicateMatch{
 				ExistingContactID: d.ExistingContactID, ExistingFirstname: d.ExistingFirstname, ExistingLastname: d.ExistingLastname,
 				ExistingEmail: d.ExistingEmail, ExistingPhone: d.ExistingPhone, MatchReason: d.MatchReason, ExistingDeleted: d.ExistingDeleted,
 			}

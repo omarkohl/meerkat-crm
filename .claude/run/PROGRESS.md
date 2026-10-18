@@ -2,7 +2,7 @@
 
 ## Next step
 
-13k2 (CardDAV connection settings).
+13l (backups, audit log, system status).
 
 ## Stack
 
@@ -307,6 +307,21 @@
   scope/order, schemes, limit of ten, isolation on every operation, password and URL change, partial
   updates, delete keeps activities, a real ICS sync, sync error wording, blocked private addresses,
   401). Frontend calendar types derive from the generated types. `make precommit` green.
+- Step 13k2: `backend/contactsync` (domain: `Connection`, `Save` with the reset-links and
+  password-does-not-follow-a-new-server rules, URL normalisation, sync error kinds; use cases `Get`,
+  `Save`, `Delete`, `Discover`, `StartSync`; ports `Connections`/`Directory`/`Secrets`; persistence
+  and http adapters) with huma operations for `GET/PUT/DELETE /carddav/connection`,
+  `POST /carddav/discover` and `POST /carddav/connection/sync` (202). `PUT` answers 201 for a new
+  connection and 200 otherwise. The sync engine (`StartContactSync`, the job, its lock) stays in
+  `services`; the stored last-run counts are decoded into a typed `last_sync_stats` (they were
+  passed through as raw JSON). Old controller, DTOs and its tests removed; 9 module tests on a real
+  SQLite file (404 until saved, password handling matrix, links and sync state dropped when the
+  address book changes, delete keeps contacts, discovery reuses the stored password only for the
+  stored server and never for another user, private addresses blocked, background sync with a second
+  run refused and `sync_running`, 401, URL rule agreeing with the sync service). The CardDAV
+  protocol endpoints were not touched. Frontend CardDAV types derive from the generated types. The
+  "struct or null" response schema that the imports and monicaimport modules each had is now
+  `api.Nullable[T]`, used by all three. **Step 13k is done.** `make precommit` green.
 
 ## Decisions
 
@@ -664,6 +679,11 @@
 - 13k1: `domain.CheckURL` repeats the 12-line URL rule of `services.NormalizeCalendarURL`, which the
   sync still needs for the parsed URL; a port for a pure function would be worse. The old create
   checked the limit before the URL and before encrypting; kept.
+- 13k2: `domain.NormalizeBaseURL` repeats the URL rule of `services.NormalizeCardDAVURL` (the sync
+  needs the parsed URL); a test keeps them in agreement. A failing database lookup while saving is
+  reported as "query" and while deleting as "delete", as before; the sync trigger's lookup failure
+  is "query". `controllers/same_server*.go` and the last CardDAV controller code are gone
+  (`httputil.SameServer`).
 
 ## For review
 

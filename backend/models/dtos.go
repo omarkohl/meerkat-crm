@@ -1,51 +1,8 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 )
-
-// CardDAVConnectionInput is the DTO for creating/updating the user's CardDAV
-// connection. On update, an empty password keeps the stored one (set ClearPassword to remove it)
-type CardDAVConnectionInput struct {
-	BaseURL         string `json:"base_url" validate:"required,url,max=2048"`
-	AddressBookPath string `json:"address_book_path" validate:"required,max=2048"`
-	AddressBookName string `json:"address_book_name" validate:"max=200"`
-	Username        string `json:"username" validate:"omitempty,max=200"`
-	Password        string `json:"password" validate:"omitempty,max=500"`
-	ClearPassword   bool   `json:"clear_password"`
-	Direction       string `json:"direction" validate:"omitempty,oneof=two_way pull push"`
-	SyncEnabled     *bool  `json:"sync_enabled"`
-}
-
-// CardDAVDiscoverInput is the DTO for listing address books on a CardDAV server.
-// An empty password reuses the stored connection credentials when present.
-type CardDAVDiscoverInput struct {
-	BaseURL  string `json:"base_url" validate:"required,url,max=2048"`
-	Username string `json:"username" validate:"omitempty,max=200"`
-	Password string `json:"password" validate:"omitempty,max=500"`
-}
-
-// CardDAVConnectionResponse is the DTO returned for a CardDAV connection (no
-// secrets). Syncs run in the background, so this is also the polling target
-// that reports whether one is in flight and how the last one turned out.
-type CardDAVConnectionResponse struct {
-	ID              uint       `json:"id"`
-	BaseURL         string     `json:"base_url"`
-	AddressBookPath string     `json:"address_book_path"`
-	AddressBookName string     `json:"address_book_name"`
-	Username        string     `json:"username"`
-	HasPassword     bool       `json:"has_password"`
-	Direction       string     `json:"direction"`
-	SyncEnabled     bool       `json:"sync_enabled"`
-	SyncRunning     bool       `json:"sync_running"`
-	LastSyncedAt    *time.Time `json:"last_synced_at"`
-	LastSyncStatus  string     `json:"last_sync_status"`
-	LastSyncError   string     `json:"last_sync_error"`
-	// LastSyncStats is a ContactSyncStats object, or null before the first run.
-	LastSyncStats json.RawMessage `json:"last_sync_stats"`
-	CreatedAt     time.Time       `json:"created_at"`
-}
 
 // DiscoveredAddressBook describes one address book found on a CardDAV server.
 type DiscoveredAddressBook struct {

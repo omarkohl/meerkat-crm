@@ -24,10 +24,11 @@ What can hurt when you merge, or when you look at the diff.
   `REACT_APP_API_URL`. Dockerfiles and compose files changed to match.
 - **Go 1.27.** `go.mod` is raised from 1.25. `gocron` v1 to v2, `golang-jwt` v4 to v5, `nfnt/resize`
   (archived) to `x/image/draw`. New: `huma/v2`.
-- **Backend layout.** Fourteen features (contacts, notes, activities, reminders, relationships,
-  photos, trash, users, tokens, webhooks, exports, imports, monicaimport, calendars) moved from
-  `controllers/` and `services/` into modules under `backend/<module>/`. Wire format is unchanged.
-  Error `details` keys of converted endpoints are JSON names (`email`), not Go names (`Email`).
+- **Backend layout.** Fifteen features (contacts, notes, activities, reminders, relationships,
+  photos, trash, users, tokens, webhooks, exports, imports, monicaimport, calendars, contactsync)
+  moved from `controllers/` and `services/` into modules under `backend/<module>/`. Wire format is
+  unchanged. Error `details` keys of converted endpoints are JSON names (`email`), not Go names
+  (`Email`).
 - **New environment variables**, all optional: `BLOCK_PRIVATE_URLS`, `METRICS_ENABLED`,
   `METRICS_TOKEN`, `METRICS_ADDR`, `BACKUP_ENABLED`, `BACKUP_TIME`, `BACKUP_DIR`,
   `BACKUP_RETENTION_COUNT`, `AUDIT_LOG_RETENTION_DAYS`, `PROFILE_PHOTO_DIR`, `FAKE_NOW`. The old
@@ -124,11 +125,11 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
 - **Hexagonal modules** ([ADR 0012](docs/adr/0012-module-layout.md)). Each of `contacts`, `notes`,
   `activities`, `reminders`, `relationships`, `photos`, `trash`, `users` (preferences, sessions,
   two-factor, login, registration, password reset, single sign-on), `tokens`, `webhooks`, `exports`,
-  `imports`, `monicaimport` and `calendars` has `domain`, `app` (use cases and ports),
-  `adapters/persistence` and `adapters/http`. Only the persistence adapter imports GORM. Routes that
-  send bytes or redirect stay Gin handlers inside the module. Sync engines, webhook delivery, the
-  e-mail outbox and the import parsers stay in `services/`. CardDAV connection settings and the
-  CardDAV server are not converted yet.
+  `imports`, `monicaimport`, `calendars` and `contactsync` (CardDAV connection settings) has
+  `domain`, `app` (use cases and ports), `adapters/persistence` and `adapters/http`. Only the
+  persistence adapter imports GORM. Routes that send bytes or redirect stay Gin handlers inside the
+  module. Sync engines, webhook delivery, the e-mail outbox and the import parsers stay in
+  `services/`. The CardDAV server is not converted yet.
 - **API contract** ([ADR 0011](docs/adr/0011-api-contract-with-huma.md)). huma operations are
   mounted on the existing Gin groups, so middleware and the error format stay. `make openapi` writes
   `docs/openapi.json` and `frontend/src/types/generated/api.ts`; a check fails on drift. Only

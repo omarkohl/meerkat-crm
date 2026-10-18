@@ -266,6 +266,26 @@
         ],
         "type": "object"
       },
+      "AddressBook": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "name",
+          "description"
+        ],
+        "type": "object"
+      },
       "AddressInput": {
         "properties": {
           "city": {
@@ -508,6 +528,125 @@
           "created",
           "updated",
           "skipped"
+        ],
+        "type": "object"
+      },
+      "CardDAVConnectionBody": {
+        "properties": {
+          "address_book_name": {
+            "type": "string"
+          },
+          "address_book_path": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "clear_password": {
+            "type": "boolean"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "password": {
+            "description": "On update, empty keeps the stored password",
+            "type": "string"
+          },
+          "sync_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_url",
+          "address_book_path"
+        ],
+        "type": "object"
+      },
+      "CardDAVConnectionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "address_book_name": {
+            "type": "string"
+          },
+          "address_book_path": {
+            "type": "string"
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "direction": {
+            "description": "two_way, pull or push",
+            "type": "string"
+          },
+          "has_password": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "last_sync_error": {
+            "type": "string"
+          },
+          "last_sync_stats": {
+            "description": "Counts of the last completed run, null before the first one",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ContactSyncStats"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_sync_status": {
+            "description": "Empty, success, partial or error",
+            "type": "string"
+          },
+          "last_synced_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sync_enabled": {
+            "type": "boolean"
+          },
+          "sync_running": {
+            "description": "A sync started by the user or the schedule is in flight",
+            "type": "boolean"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "base_url",
+          "address_book_path",
+          "address_book_name",
+          "username",
+          "has_password",
+          "direction",
+          "sync_enabled",
+          "sync_running",
+          "last_synced_at",
+          "last_sync_status",
+          "last_sync_error",
+          "last_sync_stats",
+          "created_at"
         ],
         "type": "object"
       },
@@ -1640,6 +1779,59 @@
         ],
         "type": "object"
       },
+      "ContactSyncStats": {
+        "additionalProperties": false,
+        "properties": {
+          "conflicts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "errors": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pulled_created": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pulled_deleted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pulled_updated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pushed_created": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pushed_deleted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pushed_updated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pulled_created",
+          "pulled_updated",
+          "pulled_deleted",
+          "pushed_created",
+          "pushed_updated",
+          "pushed_deleted",
+          "conflicts",
+          "skipped",
+          "errors"
+        ],
+        "type": "object"
+      },
       "ContactValue": {
         "additionalProperties": false,
         "properties": {
@@ -1821,6 +2013,39 @@
           "status",
           "next_retry_at",
           "created_at"
+        ],
+        "type": "object"
+      },
+      "DiscoverBody": {
+        "properties": {
+          "base_url": {
+            "type": "string"
+          },
+          "password": {
+            "description": "Empty reuses the stored password, for the stored server only",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_url"
+        ],
+        "type": "object"
+      },
+      "DiscoverOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "address_books": {
+            "items": {
+              "$ref": "#/components/schemas/AddressBook"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "address_books"
         ],
         "type": "object"
       },
@@ -4829,6 +5054,177 @@
         "summary": "Import the calendar's events now",
         "tags": [
           "calendars"
+        ]
+      }
+    },
+    "/carddav/connection": {
+      "delete": {
+        "operationId": "delete-carddav-connection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Remove the connection and its link state; contacts stay",
+        "tags": [
+          "carddav-sync"
+        ]
+      },
+      "get": {
+        "operationId": "get-carddav-connection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardDAVConnectionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "The user's CardDAV connection; 404 when none is configured",
+        "tags": [
+          "carddav-sync"
+        ]
+      },
+      "put": {
+        "operationId": "save-carddav-connection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardDAVConnectionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardDAVConnectionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create or replace the connection; 201 when it is new",
+        "tags": [
+          "carddav-sync"
+        ]
+      }
+    },
+    "/carddav/connection/sync": {
+      "post": {
+        "operationId": "sync-carddav-connection",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start a sync in the background; poll the connection for the outcome",
+        "tags": [
+          "carddav-sync"
+        ]
+      }
+    },
+    "/carddav/discover": {
+      "post": {
+        "operationId": "discover-carddav-address-books",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoverBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List the address books on a CardDAV server",
+        "tags": [
+          "carddav-sync"
         ]
       }
     },
