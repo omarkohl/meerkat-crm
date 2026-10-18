@@ -155,7 +155,9 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
     - [x] 13j2. CSV and VCF import (upload, preview, confirm; session manager)
     - [x] 13j3. Monica import (connect, fetch, status, preview, confirm, cancel)
   - [ ] 13k. CardDAV sync settings and contact/calendar sync (the CardDAV protocol endpoints stay
-        plain Gin: they are not JSON)
+        plain Gin: they are not JSON); split, see PROGRESS:
+    - [x] 13k1. calendar subscriptions (list, create, update, delete, sync now)
+    - [ ] 13k2. CardDAV connection settings (get, save, delete, discover, sync now)
   - [ ] 13l. backups, audit log, system status
 - [ ] 14. **Contract complete (§2)**: a test fails if a JSON route under `/api/v1` is not a huma
       operation. Delete the remaining hand-written API types and `ValidateJSONMiddleware`.

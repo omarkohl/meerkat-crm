@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	apperrors "meerkat/errors"
+	"meerkat/httputil"
 	"meerkat/logger"
 	"meerkat/middleware"
 	"meerkat/models"
@@ -78,7 +79,7 @@ func SaveCardDAVConnection(c *gin.Context) {
 
 	// The stored password was entered for the old server and must not follow a change
 	// of host, port or scheme: ask for it again instead of silently dropping it.
-	if !isNew && conn.PasswordEncrypted != "" && input.Password == "" && !input.ClearPassword && !sameServer(conn.BaseURL, baseURL) {
+	if !isNew && conn.PasswordEncrypted != "" && input.Password == "" && !input.ClearPassword && !httputil.SameServer(conn.BaseURL, baseURL) {
 		apperrors.AbortWithError(c, apperrors.ErrInvalidInput("password", "password required when the server address changes"))
 		return
 	}
@@ -191,7 +192,7 @@ func DiscoverCardDAVAddressBooks(c *gin.Context) {
 		// re-discovering against a different server cannot carry it along.
 		var conn models.CardDAVConnection
 		if db.Where("user_id = ?", userID).First(&conn).Error == nil {
-			if sameServer(conn.BaseURL, normalized.String()) {
+			if httputil.SameServer(conn.BaseURL, normalized.String()) {
 				if stored, decErr := services.DecryptCredential(cfg.JWTSecretKey, conn.PasswordEncrypted); decErr == nil {
 					password = stored
 				}

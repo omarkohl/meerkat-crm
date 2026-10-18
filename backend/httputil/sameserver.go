@@ -1,14 +1,14 @@
-package controllers
+package httputil
 
 import (
 	"net/url"
 	"strings"
 )
 
-// sameServer reports whether two URLs point at the same server: same scheme (webcal
+// SameServer reports whether two URLs point at the same server: same scheme (webcal
 // counts as https), same host name (case-insensitive) and same port (the default port
 // of the scheme when none is given). A stored password may only follow such a URL.
-func sameServer(a, b string) bool {
+func SameServer(a, b string) bool {
 	ua, errA := url.Parse(a)
 	ub, errB := url.Parse(b)
 	if errA != nil || errB != nil || ua.Hostname() == "" || ub.Hostname() == "" {

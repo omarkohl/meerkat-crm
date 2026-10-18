@@ -3,6 +3,7 @@ package routes
 import (
 	"meerkat/activities"
 	"meerkat/api"
+	"meerkat/calendars"
 	"meerkat/carddav"
 	"meerkat/config"
 	"meerkat/contacts"
@@ -42,6 +43,7 @@ type Modules struct {
 	Exports       *exports.Module
 	Imports       *imports.Module
 	MonicaImport  *monicaimport.Module
+	Calendars     *calendars.Module
 	Users         *users.Module
 }
 
@@ -61,6 +63,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Exports:       exports.New(exports.Deps{DB: db, Config: cfg}),
 		Imports:       imports.New(imports.Deps{DB: db, Config: cfg}),
 		MonicaImport:  monicaimport.New(monicaimport.Deps{DB: db, Config: cfg}),
+		Calendars:     calendars.New(calendars.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
 	}
 }
@@ -92,6 +95,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Exports.Register(g.Protected)
 	m.Imports.Register(a, g.Protected)
 	m.MonicaImport.Register(a, g.Protected)
+	m.Calendars.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
 }
 
@@ -125,13 +129,6 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 
 			// Image proxy route (for fetching images from external URLs)
 			protected.GET("/proxy/image", controllers.ProxyImage)
-
-			// Calendar subscription routes (CalDAV/iCS activity import)
-			protected.GET("/calendars", controllers.ListCalendarSubscriptions)
-			protected.POST("/calendars", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.CreateCalendarSubscription)
-			protected.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), controllers.UpdateCalendarSubscription)
-			protected.DELETE("/calendars/:id", controllers.DeleteCalendarSubscription)
-			protected.POST("/calendars/:id/sync", controllers.SyncCalendarSubscription)
 
 			// CardDAV client routes (sync contacts with an external server)
 			protected.GET("/carddav/connection", controllers.GetCardDAVConnection)

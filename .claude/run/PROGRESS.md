@@ -2,7 +2,7 @@
 
 ## Next step
 
-13k (CardDAV sync settings and contact/calendar sync).
+13k2 (CardDAV connection settings).
 
 ## Stack
 
@@ -296,6 +296,17 @@
   end, idempotent rerun, bad token, validation, session ownership for every endpoint, required
   `session_id`, cancel, expiry with the fake clock, 401). Frontend Monica types derive from the
   generated types. Step 13j is done. `make precommit` green.
+- Step 13k1: `backend/calendars` (domain: `Subscription`, `Input`, `New`/`Change` with the
+  password-does-not-follow-a-new-server rule, URL check, sync error kinds; use cases; ports
+  `Subscriptions`/`Secrets`; persistence and http adapters) with huma operations for the five
+  calendar subscription endpoints. The sync engine (`CalendarSyncService`, `SyncAllCalendars`, the
+  job and its lock) stays in `services`; the adapter's `Sync` calls it and maps its sentinel errors
+  to `SyncError` kinds the HTTP adapter words as before. `SameServer` moved to `httputil` (the
+  CardDAV controller still uses it). depguard rules `calendars-*` (shown to fail). Old controller,
+  DTOs and its three tests removed; 13 module tests on real SQLite (encryption at rest, list
+  scope/order, schemes, limit of ten, isolation on every operation, password and URL change, partial
+  updates, delete keeps activities, a real ICS sync, sync error wording, blocked private addresses,
+  401). Frontend calendar types derive from the generated types. `make precommit` green.
 
 ## Decisions
 
@@ -641,6 +652,18 @@
   sync; remove them with 13k, when the sync goes through the contacts module (or never, if the sync
   stays on models). `services.addMonths/addYears` **stay**: the Monica mapping
   (`nextRecurrenceOnOrAfter`) uses them. The reminders module keeps its own copy in the domain.
+- Step 13k is split: **13k1** (done) calendar subscriptions; **13k2** the CardDAV connection
+  settings (`GET/PUT/DELETE /carddav/connection`, `POST /carddav/discover`,
+  `POST /carddav/connection/sync`). The CardDAV _protocol_ endpoints (`/carddav/...`, `.well-known`)
+  stay plain Gin by plan. The sync engines (`contact_sync_service.go`, 1,363 lines;
+  `calendar_sync_service.go`) stay in `services`: they are scheduled jobs with locks and metrics,
+  and the contact sync restores trashed contacts through `restoreTrashedContactTx` (13f note), so
+  moving it means the contacts and trash modules first. That, and removing
+  `models.FormatAddress`/`Contact.BeforeSave` (the sync saves the GORM model), are left as they are:
+  the plan's goal for 13k is the API contract.
+- 13k1: `domain.CheckURL` repeats the 12-line URL rule of `services.NormalizeCalendarURL`, which the
+  sync still needs for the parsed URL; a port for a pure function would be worse. The old create
+  checked the limit before the URL and before encrypting; kept.
 
 ## For review
 

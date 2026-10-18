@@ -1,38 +1,16 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders } from './client';
 import { handleResponse } from './errorHandling';
+import type { components } from '../types/generated/api';
 
-export interface CalendarSubscription {
-  id: number;
-  name: string;
-  url: string;
-  username: string;
-  has_password: boolean;
-  sync_enabled: boolean;
-  past_days: number;
-  future_days: number;
-  last_synced_at: string | null;
+type Schemas = components['schemas'];
+
+export interface CalendarSubscription extends Omit<Schemas['CalendarSubscriptionResponse'], 'last_sync_status'> {
   last_sync_status: '' | 'success' | 'error';
-  last_sync_error: string;
-  created_at: string;
 }
 
-export interface CalendarSubscriptionInput {
-  name: string;
-  url: string;
-  username?: string;
-  password?: string;
-  clear_password?: boolean;
-  sync_enabled?: boolean;
-  past_days?: number;
-  future_days?: number;
-}
+export type CalendarSubscriptionInput = Schemas['CalendarSubscriptionBody'];
 
-export interface CalendarSyncResult {
-  message: string;
-  created: number;
-  updated: number;
-  skipped: number;
-}
+export type CalendarSyncResult = Schemas['CalendarSyncOutputBody'];
 
 export async function getCalendarSubscriptions(): Promise<CalendarSubscription[]> {
   const response = await apiFetch(`${API_BASE_URL}/calendars`, {

@@ -93,6 +93,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calendars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The user's calendar subscriptions, oldest first */
+        get: operations["list-calendar-subscriptions"];
+        put?: never;
+        /** Subscribe to a CalDAV or iCS calendar */
+        post: operations["create-calendar-subscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendars/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a subscription; a stored password does not follow a new server address */
+        put: operations["update-calendar-subscription"];
+        post?: never;
+        /** Delete a subscription; the activities it imported stay */
+        delete: operations["delete-calendar-subscription"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendars/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the calendar's events now */
+        post: operations["sync-calendar-subscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/check-password-strength": {
         parameters: {
             query?: never;
@@ -1263,6 +1316,54 @@ export interface components {
         };
         BirthdaysOutputBody: {
             birthdays: components["schemas"]["BirthdayResponse"][] | null;
+        };
+        CalendarListOutputBody: {
+            calendars: components["schemas"]["CalendarSubscriptionResponse"][];
+        };
+        CalendarMessageOutputBody: {
+            message: string;
+        };
+        CalendarSubscriptionBody: {
+            clear_password?: boolean;
+            /** Format: int64 */
+            future_days?: number | null;
+            name: string;
+            /** @description On update, empty keeps the stored password */
+            password?: string;
+            /** Format: int64 */
+            past_days?: number | null;
+            sync_enabled?: boolean | null;
+            url: string;
+            username?: string;
+        };
+        CalendarSubscriptionResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int64 */
+            future_days: number;
+            has_password: boolean;
+            /** Format: int64 */
+            id: number;
+            last_sync_error: string;
+            /** @description Empty, success or error */
+            last_sync_status: string;
+            /** Format: date-time */
+            last_synced_at: string | null;
+            name: string;
+            /** Format: int64 */
+            past_days: number;
+            sync_enabled: boolean;
+            url: string;
+            username: string;
+        };
+        CalendarSyncOutputBody: {
+            /** Format: int64 */
+            created: number;
+            message: string;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            updated: number;
         };
         ChangePasswordBody: {
             current_password: string;
@@ -2564,6 +2665,168 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OIDCConfigOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-calendar-subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarListOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "create-calendar-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarSubscriptionBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSubscriptionResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "update-calendar-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The subscription's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarSubscriptionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSubscriptionResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "delete-calendar-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The subscription's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "sync-calendar-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The subscription's ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSyncOutputBody"];
                 };
             };
             /** @description Error */

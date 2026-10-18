@@ -1,4 +1,4 @@
-package controllers
+package httputil
 
 import (
 	"testing"
@@ -23,6 +23,6 @@ func TestSameServer(t *testing.T) {
 		{"://bad", "://bad", false},
 	}
 	for _, tt := range tests {
-		assert.Equal(t, tt.want, sameServer(tt.a, tt.b), "%s vs %s", tt.a, tt.b)
+		assert.Equal(t, tt.want, SameServer(tt.a, tt.b), "%s vs %s", tt.a, tt.b)
 	}
 }

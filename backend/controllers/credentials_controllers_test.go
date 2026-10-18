@@ -23,84 +23,10 @@ func credentialRouter(t *testing.T) (*gorm.DB, *gin.Engine, models.User) {
 	router.Use(func(c *gin.Context) { c.Set("cfg", config.Config{JWTSecretKey: testJWTSecret}); c.Next() })
 	var me models.User
 	require.NoError(t, db.First(&me).Error)
-	router.POST("/calendars", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), CreateCalendarSubscription)
-	router.PUT("/calendars/:id", middleware.ValidateJSONMiddleware(&models.CalendarSubscriptionInput{}), UpdateCalendarSubscription)
-	router.GET("/calendars", ListCalendarSubscriptions)
-	router.DELETE("/calendars/:id", DeleteCalendarSubscription)
 	router.PUT("/carddav/connection", middleware.ValidateJSONMiddleware(&models.CardDAVConnectionInput{}), SaveCardDAVConnection)
 	router.GET("/carddav/connection", GetCardDAVConnection)
 	router.DELETE("/carddav/connection", DeleteCardDAVConnection)
 	return db, router, me
-}
-
-func TestCalendarSubscriptionPasswordIsEncryptedAndNeverReturned(t *testing.T) {
-	db, router, me := credentialRouter(t)
-	w := doJSON(router, "POST", "/calendars", map[string]any{"name": "Work", "url": "https://cal.example.com/a.ics", "username": "u", "password": "hunter2"})
-	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
-	assert.NotContains(t, w.Body.String(), "hunter2")
-
-	var sub models.CalendarSubscription
-	require.NoError(t, db.Where("user_id = ?", me.ID).First(&sub).Error)
-	assert.NotContains(t, sub.PasswordEncrypted, "hunter2")
-	plain, err := services.DecryptCredential(testJWTSecret, sub.PasswordEncrypted)
-	require.NoError(t, err)
-	assert.Equal(t, "hunter2", plain)
-
-	list := doJSON(router, "GET", "/calendars", nil)
-	assert.NotContains(t, list.Body.String(), "hunter2")
-	assert.NotContains(t, list.Body.String(), sub.PasswordEncrypted)
-}
-
-func TestCalendarSubscriptionRejectsOtherSchemesAndOtherUsersRows(t *testing.T) {
-	db, router, _ := credentialRouter(t)
-	for _, u := range []string{"file:///etc/passwd", "ftp://example.com/x.ics", "gopher://x"} {
-		w := doJSON(router, "POST", "/calendars", map[string]any{"name": "x", "url": u})
-		assert.Equal(t, http.StatusBadRequest, w.Code, u)
-	}
-
-	other := models.User{Username: "other", Email: "o@example.com", Password: "x"}
-	require.NoError(t, db.Create(&other).Error)
-	theirs := models.CalendarSubscription{UserID: other.ID, Name: "T", URL: "https://t.example.com/x.ics"}
-	require.NoError(t, db.Create(&theirs).Error)
-	assert.Equal(t, http.StatusNotFound, doJSON(router, "PUT", "/calendars/"+itoa(theirs.ID), map[string]any{"name": "mine now", "url": "https://evil.example.com/x.ics"}).Code)
-	assert.Equal(t, http.StatusNotFound, doJSON(router, "DELETE", "/calendars/"+itoa(theirs.ID), nil).Code)
-	var reloaded models.CalendarSubscription
-	require.NoError(t, db.First(&reloaded, theirs.ID).Error)
-	assert.Equal(t, "T", reloaded.Name)
-}
-
-// A stored password belongs to the server it was entered for. Pointing the subscription at another
-// host without entering a password must not send the old one there.
-func TestCalendarSubscriptionPasswordDoesNotFollowAUrlChangeToAnotherServer(t *testing.T) {
-	db, router, me := credentialRouter(t)
-	require.Equal(t, http.StatusCreated, doJSON(router, "POST", "/calendars",
-		map[string]any{"name": "Work", "url": "https://cal.example.com/a.ics", "username": "u", "password": "hunter2"}).Code)
-	var sub models.CalendarSubscription
-	require.NoError(t, db.Where("user_id = ?", me.ID).First(&sub).Error)
-
-	// Same host, other path: the password stays.
-	require.Equal(t, http.StatusOK, doJSON(router, "PUT", "/calendars/"+itoa(sub.ID),
-		map[string]any{"name": "Work", "url": "https://CAL.example.com/b.ics", "username": "u"}).Code)
-	require.NoError(t, db.First(&sub, sub.ID).Error)
-	assert.NotEmpty(t, sub.PasswordEncrypted)
-
-	// Other host, scheme downgrade or other port: refused, the stored password is kept untouched.
-	for _, target := range []string{"https://attacker.example.net/b.ics", "http://cal.example.com/b.ics", "https://cal.example.com:8443/b.ics"} {
-		w := doJSON(router, "PUT", "/calendars/"+itoa(sub.ID),
-			map[string]any{"name": "Work", "url": target, "username": "u"})
-		require.Equal(t, http.StatusBadRequest, w.Code, target)
-		assert.Contains(t, w.Body.String(), "password required")
-		require.NoError(t, db.First(&sub, sub.ID).Error)
-		assert.Equal(t, "https://CAL.example.com/b.ics", sub.URL)
-		assert.NotEmpty(t, sub.PasswordEncrypted)
-	}
-	// With a new password (or clearing it) the change goes through.
-	require.Equal(t, http.StatusOK, doJSON(router, "PUT", "/calendars/"+itoa(sub.ID),
-		map[string]any{"name": "Work", "url": "https://other.example.net/b.ics", "username": "u", "password": "new"}).Code)
-	require.Equal(t, http.StatusOK, doJSON(router, "PUT", "/calendars/"+itoa(sub.ID),
-		map[string]any{"name": "Work", "url": "http://third.example.net/b.ics", "username": "u", "clear_password": true}).Code)
-	require.NoError(t, db.First(&sub, sub.ID).Error)
-	assert.Empty(t, sub.PasswordEncrypted)
 }
 
 func TestCardDAVConnectionPasswordHandling(t *testing.T) {
