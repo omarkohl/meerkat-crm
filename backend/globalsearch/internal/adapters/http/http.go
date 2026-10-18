@@ -54,7 +54,8 @@ type ContactResult struct {
 	Lastname     string            `json:"lastname"`
 	Nickname     string            `json:"nickname"`
 	Name         []SegmentResponse `json:"name" doc:"The display name with the match marked"`
-	MatchedField string            `json:"matched_field" doc:"Where the text was found: name, email or phone" enum:"name,email,phone,"`
+	MatchedField string            `json:"matched_field" doc:"Where the text was found; custom_field has its name in matched_field_name" enum:"name,email,phone,organization,job_title,department,role,middle_name,address,circles,how_we_met,food_preference,work_information,contact_information,note,custom_field,"`
+	FieldName    string            `json:"matched_field_name" doc:"The name of the custom field that matched, otherwise empty"`
 	Snippet      []SegmentResponse `json:"snippet" doc:"The matching value when it is not the name"`
 }
 
@@ -151,7 +152,7 @@ func (h *handlers) search(ctx context.Context, in *SearchInput) (*SearchOutput, 
 		for i, c := range g.Items {
 			group.Items[i] = ContactResult{
 				ID: c.ID, Firstname: c.Firstname, Lastname: c.Lastname, Nickname: c.Nickname,
-				Name: segments(c.Name), MatchedField: c.Field, Snippet: segments(c.Snippet),
+				Name: segments(c.Name), MatchedField: c.Field, FieldName: c.FieldName, Snippet: segments(c.Snippet),
 			}
 		}
 		out.Body.Contacts = group

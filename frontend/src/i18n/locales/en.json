@@ -32,7 +32,8 @@
     "noResults": "No results for “{{query}}”",
     "showAll": "Show all results for “{{query}}”",
     "submit": "Search",
-    "clear": "Clear search"
+    "clear": "Clear search",
+    "noteField": "CardDAV note"
   },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",

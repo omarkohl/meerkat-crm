@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 12: search all contact fields (#118).
+Step 13: search results page (#118).
 
 ## Stack
 
@@ -102,8 +102,23 @@ Local run: no branches, no PRs.
   results" last); Vitest for it; E2E `search.spec.ts` (a word from a note shows under Notes with the
   word marked and opens the contact). Mutation checks: dropping the name-first order or the bm25
   order fails Go tests. `make precommit` green.
+- Step 12: migration 34 recreates `contacts_fts` with the free-text fields (middle name,
+  organization, department, job title, role, how we met, food, work and contact information, the
+  CardDAV note, addresses and the legacy address, circles, custom field values) and fills it from
+  the existing contacts; the down migration restores the 29 index and refills it. Triggers cover
+  insert, update of any indexed column and delete; trash and restore need nothing because the index
+  holds deleted rows too. The contact list keeps searching names, e-mail addresses and phone numbers
+  through a column filter (`search.ContactBasics`). Each contact result names the matched field
+  (`matched_field`, `matched_field_name` for a custom field); the LIKE fallback covers the same
+  fields. Tests: migration round trip, triggers and JSON kinds in `database`, every field kind, the
+  fallback, edit/trash/restore, isolation and the list search in `globalsearch` (dropping the column
+  filter fails a test). `make precommit` green.
 
 ## Decisions
+
+- Step 12: a custom field is found by its value, not its name; the legacy `address` is reported as
+  `address` unless it equals a structured address; the field label in the header uses the existing
+  `contacts.*` labels, plus `search.noteField` ("CardDAV note").
 
 - Step 11: `type` returns only the requested group (the others are omitted); the UI asks for
   `limit=5` and shows 3 notes and 3 activities by slicing, since the API has one `limit`.

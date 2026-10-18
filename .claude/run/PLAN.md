@@ -115,7 +115,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
       tests: ranking, highlight, fallback, trash, isolation. E2E: type a word from a note, see the
       note under "Notes" with the word marked, open it. New use case in `docs/use-cases.yml`;
       `make openapi`; `docs/api-reference.md`; i18n in five locales; changelog `Added`.
-- [ ] 12. **Search all contact fields (#118)** (`feat:`, `issue #118`): migration 000034 with the
+- [x] 12. **Search all contact fields (#118)** (`feat:`, `issue #118`): migration 000034 with the
       fields settled above; each contact result names the matched field. Go tests: one per field
       kind (plain column, JSON array, JSON objects, custom fields), the update triggers, the
       contacts list search still ignores the new fields, migration round trip. Update the changelog

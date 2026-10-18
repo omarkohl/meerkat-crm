@@ -1,5 +1,5 @@
 // Package search builds SQLite FTS5 queries for contacts, notes and activities. The indexes
-// are created and kept in sync by migration 29; when they are missing (a database that was
+// are created and kept in sync by migrations 29 and 34; when they are missing (a database that was
 // not migrated, or an SQLite build without FTS5) callers fall back to LIKE.
 package search
 
@@ -98,4 +98,10 @@ func Hits(table string) string {
 // ContactNames limits a contacts_fts expression to the name columns.
 func ContactNames(match string) string {
 	return "{firstname lastname nickname} : (" + match + ")"
+}
+
+// ContactBasics limits a contacts_fts expression to names, e-mail addresses and phone numbers
+// (the contact list and the pickers); the other columns are for the global search.
+func ContactBasics(match string) string {
+	return "{firstname lastname nickname email phone emails phones} : (" + match + ")"
 }

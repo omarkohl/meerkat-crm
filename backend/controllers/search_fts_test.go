@@ -20,15 +20,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// ftsRouter is setupRouter plus the FTS indexes, built by the real migration file.
+// ftsRouter is setupRouter plus the FTS indexes, built by the real migration files.
 func ftsRouter(t *testing.T) (*gorm.DB, *gin.Engine, models.User) {
 	t.Helper()
 	db, router := setupRouter()
-	sql, err := os.ReadFile("../database/migrations/000029_add_fts_search.up.sql")
-	require.NoError(t, err)
 	sqlDB, _ := db.DB()
-	_, err = sqlDB.Exec(string(sql))
-	require.NoError(t, err)
+	for _, file := range []string{"000029_add_fts_search.up.sql", "000034_search_all_contact_fields.up.sql"} {
+		sql, err := os.ReadFile("../database/migrations/" + file)
+		require.NoError(t, err)
+		_, err = sqlDB.Exec(string(sql))
+		require.NoError(t, err)
+	}
 	var user models.User
 	require.NoError(t, db.First(&user).Error)
 	mountContacts(router, db, &config.Config{})

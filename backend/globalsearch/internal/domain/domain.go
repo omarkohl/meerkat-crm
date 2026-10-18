@@ -27,6 +27,14 @@ type Contact struct {
 	Nickname  string
 	Emails    []string
 	Phones    []string
+	Others    []Field // looked at in this order after the name, e-mails and phones
+}
+
+// Field is one searchable value; Name is the custom field's name when Key is "custom_field".
+type Field struct {
+	Key   string
+	Name  string
+	Value string
 }
 
 type Note struct {
@@ -48,10 +56,10 @@ type Activity struct {
 type ContactHit struct {
 	Contact
 	Name []Segment
-	// Field is "name", "email" or "phone": where the term was found. Snippet is the matching
-	// value when it is not the name.
-	Field   string
-	Snippet []Segment
+	// Field is "name", "email", "phone" or the Key of a Field; Snippet is the matching value.
+	Field     string
+	FieldName string
+	Snippet   []Segment
 }
 
 type NoteHit struct {
@@ -92,6 +100,12 @@ func HitContact(c Contact, term string, substring bool) ContactHit {
 				hit.Field, hit.Snippet = f.field, segs
 				return hit
 			}
+		}
+	}
+	for _, f := range c.Others {
+		if segs := Excerpt(f.Value, term, substring); hasMatch(segs) {
+			hit.Field, hit.FieldName, hit.Snippet = f.Key, f.Name, segs
+			return hit
 		}
 	}
 	return hit

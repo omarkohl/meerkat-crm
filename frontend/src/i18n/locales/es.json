@@ -32,7 +32,8 @@
     "noResults": "Sin resultados para «{{query}}»",
     "showAll": "Mostrar todos los resultados de «{{query}}»",
     "submit": "Buscar",
-    "clear": "Borrar la búsqueda"
+    "clear": "Borrar la búsqueda",
+    "noteField": "Nota de CardDAV"
   },
   "dashboard": {
     "welcome": "Bienvenido al Panel de Meerkat CRM",

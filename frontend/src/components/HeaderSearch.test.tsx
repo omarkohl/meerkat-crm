@@ -15,7 +15,16 @@ const found = (name: string, id = 7): searchApi.SearchResults => ({
   contacts: {
     total: 1,
     items: [
-      { id, firstname: name, lastname: '', nickname: '', name: [seg(name, true)], matched_field: 'name', snippet: [] },
+      {
+        id,
+        firstname: name,
+        lastname: '',
+        nickname: '',
+        name: [seg(name, true)],
+        matched_field: 'name',
+        matched_field_name: '',
+        snippet: [],
+      },
     ],
   },
   notes: none,
@@ -189,5 +198,66 @@ describe('HeaderSearch', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('No results for “zzzy”')).toBeTruthy();
+  });
+
+  test('names the field a contact matched in, also a custom one @022-US1', async () => {
+    const hit = (id: number, field: string, fieldName: string, value: string) => ({
+      id,
+      firstname: 'Ada',
+      lastname: '',
+      nickname: '',
+      name: [seg('Ada')],
+      matched_field: field as 'organization',
+      matched_field_name: fieldName,
+      snippet: [seg(value, true)],
+    });
+    vi.mocked(searchApi.searchAll).mockResolvedValue({
+      ...empty,
+      contacts: {
+        total: 3,
+        items: [
+          hit(1, 'organization', '', 'Engines'),
+          hit(2, 'custom_field', 'Favourite bird', 'Pelican'),
+          hit(3, 'note', '', 'tea'),
+        ],
+      },
+    });
+    renderSearch();
+
+    type('e');
+    type('en');
+    await settle();
+
+    expect(screen.getByText(/^Organization:/)).toBeTruthy();
+    expect(screen.getByText(/^Favourite bird:/)).toBeTruthy();
+    expect(screen.getByText(/^CardDAV note:/)).toBeTruthy();
+  });
+
+  test('shows the match without a label for a field it does not know @022-US1', async () => {
+    vi.mocked(searchApi.searchAll).mockResolvedValue({
+      ...empty,
+      contacts: {
+        total: 1,
+        items: [
+          {
+            id: 1,
+            firstname: 'Ada',
+            lastname: '',
+            nickname: '',
+            name: [seg('Ada')],
+            matched_field: 'something_new' as 'note',
+            matched_field_name: '',
+            snippet: [seg('hit', true)],
+          },
+        ],
+      },
+    });
+    renderSearch();
+
+    type('hit');
+    await settle();
+
+    expect(screen.getByText('hit').tagName).toBe('MARK');
+    expect(screen.queryByText(/Note:/)).toBeNull();
   });
 });

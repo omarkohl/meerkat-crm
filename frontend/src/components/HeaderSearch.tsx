@@ -23,6 +23,23 @@ type Option =
 const optionKey = (o: Option) =>
   o.kind === 'status' || o.kind === 'all' ? o.kind : `${o.kind}-${String(o.result.id)}`;
 
+const FIELD_LABELS: Record<string, string> = {
+  email: 'contacts.email',
+  phone: 'contacts.phone',
+  organization: 'contacts.organization',
+  job_title: 'contacts.jobTitle',
+  department: 'contacts.department',
+  role: 'contacts.role',
+  middle_name: 'contacts.middleName',
+  address: 'contacts.address',
+  circles: 'contacts.circles',
+  how_we_met: 'contacts.howWeMet',
+  food_preference: 'contacts.foodPreference',
+  work_information: 'contacts.workInformation',
+  contact_information: 'contacts.contactInformation',
+  note: 'search.noteField',
+};
+
 function Marked({ segments }: { segments: Segment[] | null }) {
   return (
     <>
@@ -249,6 +266,11 @@ export default function HeaderSearch({ enabled }: HeaderSearchProps) {
 
 function OptionBody({ option }: { option: Option }) {
   const { t } = useTranslation();
+  const fieldLabel = (field: string, name: string) => {
+    if (field === 'custom_field') return name;
+    const key = FIELD_LABELS[field];
+    return key ? t(key) : '';
+  };
   switch (option.kind) {
     case 'contact': {
       const c = option.result;
@@ -259,7 +281,9 @@ function OptionBody({ option }: { option: Option }) {
           </Typography>
           {c.matched_field && c.matched_field !== 'name' && (
             <Typography variant="caption" color="text.secondary">
-              {t(`contacts.${c.matched_field}`)}: <Marked segments={c.snippet} />
+              {fieldLabel(c.matched_field, c.matched_field_name) &&
+                `${fieldLabel(c.matched_field, c.matched_field_name)}: `}
+              <Marked segments={c.snippet} />
             </Typography>
           )}
         </Box>

@@ -1,9 +1,10 @@
 // Package persistence finds the actor's contacts, notes and activities with the FTS5 indexes
-// (migration 29), and with LIKE where the index is the wrong tool (docs/adr/0012-module-layout.md).
+// (migrations 29 and 34), and with LIKE where the index is the wrong tool (docs/adr/0012-module-layout.md).
 package persistence
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -81,6 +82,14 @@ func (r *Repository) Contacts(ctx context.Context, actor domain.UserID, term str
 			" OR EXISTS (SELECT 1 FROM " + emails + " WHERE LOWER(json_extract(j.value, '$.value')) LIKE ? ESCAPE '\\')" +
 			" OR EXISTS (SELECT 1 FROM " + phones + " WHERE LOWER(json_extract(j.value, '$.value')) LIKE ? ESCAPE '\\')"
 		args := []any{like, like, like, like, like}
+		for _, col := range []string{"middle_name", "organization", "department", "job_title", "role", "how_we_met", "food_preference", "work_information", "contact_information", "note", "address"} {
+			cond += " OR LOWER(contacts." + col + ") LIKE ? ESCAPE '\\'"
+			args = append(args, like)
+		}
+		cond += " OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(contacts.addresses) AND json_type(contacts.addresses) = 'array' THEN contacts.addresses ELSE '[]' END) AS j WHERE LOWER(COALESCE(json_extract(j.value, '$.street'), '') || ' ' || COALESCE(json_extract(j.value, '$.city'), '') || ' ' || COALESCE(json_extract(j.value, '$.region'), '') || ' ' || COALESCE(json_extract(j.value, '$.postal'), '') || ' ' || COALESCE(json_extract(j.value, '$.country'), '')) LIKE ? ESCAPE '\\')" +
+			" OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(contacts.circles) AND json_type(contacts.circles) = 'array' THEN contacts.circles ELSE '[]' END) AS j WHERE LOWER(j.value) LIKE ? ESCAPE '\\')" +
+			" OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(contacts.custom_fields) AND json_type(contacts.custom_fields) = 'object' THEN contacts.custom_fields ELSE '{}' END) AS j WHERE LOWER(j.value) LIKE ? ESCAPE '\\')"
+		args = append(args, like, like, like)
 		if phoneLike(term) {
 			digits := "%" + digitsOf(term) + "%"
 			cond += " OR " + withoutPunctuation("contacts.phone") + " LIKE ?" +
@@ -104,16 +113,7 @@ func (r *Repository) Contacts(ctx context.Context, actor domain.UserID, term str
 	}
 	page := app.Page[domain.Contact]{Total: int(total), Substring: !indexed}
 	for _, c := range found {
-		hit := domain.Contact{ID: c.ID, Firstname: c.Firstname, Lastname: c.Lastname, Nickname: c.Nickname}
-		hit.Emails = append(hit.Emails, c.Email)
-		for _, e := range c.Emails {
-			hit.Emails = append(hit.Emails, e.Value)
-		}
-		hit.Phones = append(hit.Phones, c.Phone)
-		for _, p := range c.Phones {
-			hit.Phones = append(hit.Phones, p.Value)
-		}
-		page.Items = append(page.Items, hit)
+		page.Items = append(page.Items, toDomain(c))
 	}
 	return page, nil
 }
@@ -206,4 +206,49 @@ func (r *Repository) Activities(ctx context.Context, actor domain.UserID, term s
 		page.Items = append(page.Items, domain.Activity{ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date})
 	}
 	return page, nil
+}
+
+func toDomain(c models.Contact) domain.Contact {
+	hit := domain.Contact{ID: c.ID, Firstname: c.Firstname, Lastname: c.Lastname, Nickname: c.Nickname}
+	hit.Emails = append(hit.Emails, c.Email)
+	for _, e := range c.Emails {
+		hit.Emails = append(hit.Emails, e.Value)
+	}
+	hit.Phones = append(hit.Phones, c.Phone)
+	for _, p := range c.Phones {
+		hit.Phones = append(hit.Phones, p.Value)
+	}
+	add := func(key, value string) {
+		if value != "" {
+			hit.Others = append(hit.Others, domain.Field{Key: key, Value: value})
+		}
+	}
+	add("organization", c.Organization)
+	add("job_title", c.JobTitle)
+	add("department", c.Department)
+	add("role", c.Role)
+	add("middle_name", c.MiddleName)
+	for _, a := range c.Addresses {
+		add("address", models.FormatAddress(a))
+	}
+	add("address", c.Address)
+	for _, circle := range c.Circles {
+		add("circles", circle)
+	}
+	add("how_we_met", c.HowWeMet)
+	add("food_preference", c.FoodPreference)
+	add("work_information", c.WorkInformation)
+	add("contact_information", c.ContactInformation)
+	add("note", c.Note)
+	names := make([]string, 0, len(c.CustomFields))
+	for name := range c.CustomFields {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if v := c.CustomFields[name]; v != "" {
+			hit.Others = append(hit.Others, domain.Field{Key: "custom_field", Name: name, Value: v})
+		}
+	}
+	return hit
 }

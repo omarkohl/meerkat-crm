@@ -59,8 +59,11 @@ activities stay newest first. Search terms are cut at 200 characters and 32 word
 
 The **search box in the header** searches contacts, notes and activities at once, from two
 characters on. It shows the best contacts first, then notes and activities, each group with its
-total and the matching text marked. A contact matched by name ranks above one matched by e-mail or
-phone. Trashed contacts and their notes are not found.
+total and the matching text marked. It searches every text field of a contact, not only the name,
+e-mail addresses and phone numbers: the note, addresses, circles, organization, job title, how you
+met, custom field values and so on, and tells which field matched. The contact list's search box
+still covers only names, e-mail addresses and phone numbers. A contact matched by name ranks above
+one matched by anything else. Trashed contacts and their notes are not found.
 
 ## Notes
 

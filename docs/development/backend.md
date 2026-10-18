@@ -69,22 +69,25 @@ a separate connection without foreign key enforcement because they may recreate 
 
 ### Search index (FTS5)
 
-Search uses SQLite FTS5 tables `contacts_fts`, `notes_fts` and `activities_fts` (migration 29). Each
-has the id of the indexed row as its rowid and is kept in sync by `AFTER INSERT/UPDATE/DELETE`
-triggers on the real table; the tokenizer is `unicode61 remove_diacritics 2`. The index is not
-scoped by user: queries always join back to the real table and filter `user_id` and `deleted_at`
-there. `search.MatchQuery` quotes every typed word as a prefix term, so user input can never be FTS5
-syntax, caps the input (200 characters, 32 words) and hands phone-like digits and CJK text back to
-the LIKE code (`ok == false`). `search.Available` remembers per database whether an index exists, so
+Search uses SQLite FTS5 tables `contacts_fts`, `notes_fts` and `activities_fts` (migrations 29 and
+34). Each has the id of the indexed row as its rowid and is kept in sync by
+`AFTER INSERT/UPDATE/DELETE` triggers on the real table; the tokenizer is
+`unicode61 remove_diacritics 2`. The index is not scoped by user: queries always join back to the
+real table and filter `user_id` and `deleted_at` there. `search.MatchQuery` quotes every typed word
+as a prefix term, so user input can never be FTS5 syntax, caps the input (200 characters, 32 words)
+and hands phone-like digits and CJK text back to the LIKE code (`ok == false`). `contacts_fts` has a
+column for every free-text field of a contact; the contact list and the pickers wrap the expression
+in `search.ContactBasics` (names, e-mail addresses, phone numbers), the global search
+(`GET /search`) does not. `search.Available` remembers per database whether an index exists, so
 create the tables before the first search on a database.
 
 - **Changing an indexed column** (the list in the trigger's `UPDATE OF`) or **recreating `contacts`,
   `notes` or `activities`** (SQLite drops triggers with the table) means the migration must recreate
   the triggers and rebuild the index: `DELETE FROM contacts_fts;` followed by the
-  `INSERT ... SELECT` from migration 29.
+  `INSERT ... SELECT` from migration 34 (contacts) or 29 (notes, activities).
 - When the tables do not exist (for example the in-memory test databases built with `AutoMigrate`)
   the search code falls back to the old `LIKE` search, so both paths stay covered by tests;
-  `controllers/search_fts_test.go` builds the index from the migration file.
+  `controllers/search_fts_test.go` builds the index from the migration files.
 
 ### Running Migrations
 

@@ -1975,10 +1975,12 @@ export interface components {
             id: number;
             lastname: string;
             /**
-             * @description Where the text was found: name, email or phone
+             * @description Where the text was found; custom_field has its name in matched_field_name
              * @enum {string}
              */
-            matched_field: "name" | "email" | "phone" | "";
+            matched_field: "name" | "email" | "phone" | "organization" | "job_title" | "department" | "role" | "middle_name" | "address" | "circles" | "how_we_met" | "food_preference" | "work_information" | "contact_information" | "note" | "custom_field" | "";
+            /** @description The name of the custom field that matched, otherwise empty */
+            matched_field_name: string;
             /** @description The display name with the match marked */
             name: components["schemas"]["SegmentResponse"][] | null;
             nickname: string;

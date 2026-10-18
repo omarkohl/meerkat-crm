@@ -32,7 +32,8 @@
     "noResults": "Keine Ergebnisse für „{{query}}“",
     "showAll": "Alle Ergebnisse für „{{query}}“ anzeigen",
     "submit": "Suchen",
-    "clear": "Suche leeren"
+    "clear": "Suche leeren",
+    "noteField": "CardDAV-Notiz"
   },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",

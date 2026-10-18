@@ -188,7 +188,7 @@ func sortColumn(sort string) string {
 // searchFilter uses the FTS index when there is a match expression, else a LIKE search.
 func searchFilter(query *gorm.DB, term, match string) *gorm.DB {
 	if match != "" {
-		return query.Joins("JOIN "+search.Hits("contacts_fts")+" AS hits ON hits.hit_id = contacts.id", match)
+		return query.Joins("JOIN "+search.Hits("contacts_fts")+" AS hits ON hits.hit_id = contacts.id", search.ContactBasics(match))
 	}
 	like := "%" + term + "%"
 	return query.Where(
