@@ -271,3 +271,21 @@ func TestPasswordChangesAreRefusedInDemoModeAndToAPITokens(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Password changes are disabled in demo mode")
 	assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(e.reload(t, e.a.ID).Password), []byte(oldPassword)))
 }
+
+func TestChangingOnePasswordLeavesTheOtherUsersPasswordAndSessionsAlone(t *testing.T) {
+	e := newEnv(t)
+	e.withPassword(t, &e.a, oldPassword)
+	e.withPassword(t, &e.b, oldPassword)
+	e.session(t, e.a, sid1, 1)
+	e.session(t, e.b, sid2, 1)
+	before := e.reload(t, e.b.ID)
+
+	w := send(e.engine(&e.a, map[string]any{"sessionID": sid1}), http.MethodPost, "/users/change-password",
+		`{"current_password":"`+oldPassword+`","new_password":"`+newPassword+`"}`)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	after := e.reload(t, e.b.ID)
+	assert.Equal(t, before.Password, after.Password)
+	assert.Equal(t, 0, e.tokenVersion(t, e.b.ID))
+	assert.EqualValues(t, 1, e.liveSessions(t, e.b.ID), "the other user stays signed in")
+}

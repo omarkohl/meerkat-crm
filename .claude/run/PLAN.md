@@ -162,7 +162,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
 - [x] 14. **Contract complete (§2)**: a test fails if a JSON route under `/api/v1` is not a huma
       operation. Delete the remaining hand-written API types and `ValidateJSONMiddleware`.
       `docs/api-reference.md` links to the spec.
-- [ ] 15. **Invariant tests (§3, §4)**: a Go test enumerates every route from the Gin engine and
+- [x] 15. **Invariant tests (§3, §4)**: a Go test enumerates every route from the Gin engine and
       fails if a mutating route has no auth middleware or no entry in the isolation test table. A
       test enumerates every model with `user_id` and fails if `isolation.spec.ts` or a Go isolation
       test does not cover it.

@@ -307,3 +307,21 @@ func TestCalendarEndpointsNeedAUser(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, do(e.anon, c[0], c[1], body).Code, c[0]+" "+c[1])
 	}
 }
+
+func TestDeletingOneUsersSubscriptionKeepsTheOtherUsersEventLinks(t *testing.T) {
+	e := newEnv(t)
+	mine := e.create(t, e.asA, map[string]any{"name": "Work", "url": "https://cal.example.com/a.ics"})
+	theirs := e.create(t, e.asB, map[string]any{"name": "Home", "url": "https://cal.example.com/b.ics"})
+	for owner, sub := range map[uint]uint{e.a.ID: mine, e.b.ID: theirs} {
+		activity := models.Activity{UserID: owner, Title: "Imported", Date: now}
+		require.NoError(t, e.db.Create(&activity).Error)
+		require.NoError(t, e.db.Create(&models.CalendarEventLink{SubscriptionID: sub, UserID: owner, UID: "u", ActivityID: activity.ID, ContentHash: "h"}).Error)
+	}
+	assert.Equal(t, http.StatusNotFound, do(e.asA, "DELETE", idPath(theirs, ""), nil).Code)
+	require.Equal(t, http.StatusOK, do(e.asA, "DELETE", idPath(mine, ""), nil).Code)
+
+	var links []models.CalendarEventLink
+	require.NoError(t, e.db.Find(&links).Error)
+	require.Len(t, links, 1)
+	assert.Equal(t, e.b.ID, links[0].UserID, "only the other user's link is left")
+}

@@ -71,6 +71,21 @@ E2E tests:
 Exceptions: pure styling changes, and refactors that tests already cover fully. Write no test for
 those (no tests that assert layout or spacing).
 
+## Invariant tests
+
+`backend/routes/invariants_test.go` enforces three rules from the Gin engine and the model files:
+
+- A mutating route answers `401` to an anonymous request unless it is in `publicRoutes` (with a
+  reason).
+- Every mutating route that needs a login is in `isolation`, with the test that shows another user
+  (or a non-admin) cannot use it. Public routes are exempt. The test is checked to be a top-level
+  `Test*` function in the named file.
+- Every struct in `models/*.go` with a `UserID` is in `covered`, with a Go test or a running title
+  in `frontend/e2e/isolation.spec.ts` (a `test.skip` does not count), or in `noAPI` with the reason
+  no endpoint reaches it.
+
+A new route or model fails these until you add its entry and the test behind it.
+
 ## Backend Tests
 
 ### Running Tests

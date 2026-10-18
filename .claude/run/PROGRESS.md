@@ -2,7 +2,7 @@
 
 ## Next step
 
-15 (invariant tests).
+16 (E2E quality).
 
 ## Stack
 
@@ -350,6 +350,20 @@
   types. **Leftovers**: `models.Birthday`, `models.DiscoveredAddressBook` and the import/Monica
   structs in `models/` are internal service types, not wire types, and stay; the CardDAV server,
   `/health` and `/metrics` are outside `/api/v1` and stay Gin. `make precommit` green.
+- Step 15: `backend/routes/invariants_test.go`: (1) every mutating route in the Gin engine answers
+  an anonymous request with 401 unless listed in `publicRoutes` (six, with reasons; the CardDAV
+  protocol routes are included); (2) every mutating route is in the `isolation` table, with the Go
+  test (file and name, checked to exist) that shows another user cannot use it; (3) every model with
+  a `UserID` (found by parsing `models/*.go`) is in `covered`, with a Go test or an
+  `isolation.spec.ts` title. Each test was run red first (empty tables listed every route and
+  model). Gaps found: CardDAV had no isolation test (added
+  `TestACardDAVUserCannotOverwriteOrDeleteAnotherUsersContact`, shown to fail with the `user_id`
+  condition removed). The dead `models.CardDAVSync` (unused anywhere) was removed so the model test
+  holds. Entries cite tests that really cross users: new ones for CardDAV (get, delete, put, other
+  WebDAV methods), CardDAV sync and links, calendar event links, VCF import sessions,
+  change-password and two-factor; `EmailOutbox` is an explicit `noAPI` exemption. Per-user
+  singletons (preferences, CardDAV connection) cite the existing tests that use two users.
+  Documented in testing.md. `make precommit` green.
 
 ## Decisions
 
@@ -791,5 +805,7 @@
   injection when the file is opened in a spreadsheet). Pre-existing; not fixed in a refactor.
 - Step 14 must cover the admin user endpoints (`/admin/users*`, `trigger-reminders`): still Gin
   handlers in `controllers`.
+- The `carddav_sync` table is orphaned: its model `CardDAVSync` was removed in step 15 (unused), but
+  no migration drops the table. A drop migration is for the user to decide.
 
 ## Blocked

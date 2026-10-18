@@ -294,3 +294,22 @@ func TestNormalizeBaseURLAgreesWithTheSyncServicesURLRule(t *testing.T) {
 		}
 	}
 }
+
+func TestAnotherUsersConnectionCannotBeSyncedAndKeepsItsLinks(t *testing.T) {
+	e := newEnv(t)
+	require.Equal(t, http.StatusCreated, do(e.asA, "PUT", "/carddav/connection", map[string]any{"base_url": "https://dav.example.com", "address_book_path": "/a/"}).Code)
+	require.Equal(t, http.StatusCreated, do(e.asB, "PUT", "/carddav/connection", map[string]any{"base_url": "https://dav.example.com", "address_book_path": "/b/"}).Code)
+	for _, owner := range []uint{e.a.ID, e.b.ID} {
+		contact := models.Contact{UserID: owner, Firstname: "Ada"}
+		require.NoError(t, e.db.Create(&contact).Error)
+		require.NoError(t, e.db.Create(&models.CardDAVContactLink{ConnectionID: e.stored(t, owner).ID, UserID: owner, ContactID: contact.ID, RemoteUID: "u", RemotePath: "/1.vcf"}).Error)
+	}
+	// Deleting one's own connection leaves the other's connection and links alone.
+	require.Equal(t, http.StatusOK, do(e.asA, "DELETE", "/carddav/connection", nil).Code)
+	assert.Equal(t, http.StatusNotFound, do(e.asA, "POST", "/carddav/connection/sync", nil).Code, "a user without a connection cannot start the other's sync")
+	var links []models.CardDAVContactLink
+	require.NoError(t, e.db.Find(&links).Error)
+	require.Len(t, links, 1)
+	assert.Equal(t, e.b.ID, links[0].UserID)
+	assert.Empty(t, e.stored(t, e.b.ID).LastSyncStatus, "no sync ran for the other user")
+}

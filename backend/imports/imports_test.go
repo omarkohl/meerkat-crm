@@ -278,3 +278,18 @@ func TestImportEndpointsNeedAUser(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, post(e.anon, "/contacts/import/confirm", map[string]any{"session_id": "x", "actions": []map[string]any{}}).Code)
 	assert.Equal(t, http.StatusUnauthorized, post(e.anon, "/contacts/import/vcf/confirm", map[string]any{"session_id": "x", "actions": []map[string]any{}}).Code)
 }
+
+func TestAVCFImportSessionBelongsToItsUploader(t *testing.T) {
+	e := newEnv(t)
+	w := upload(e.asA, "/contacts/import/vcf/upload", "c.vcf", ada)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var pv previewResp
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
+
+	confirm := map[string]any{"session_id": pv.SessionID, "actions": []map[string]any{{"row_index": 0, "action": "add"}}}
+	assert.Equal(t, http.StatusNotFound, post(e.asB, "/contacts/import/vcf/confirm", confirm).Code)
+	var n int64
+	e.db.Model(&models.Contact{}).Count(&n)
+	assert.Zero(t, n, "nothing was imported for the other user")
+	assert.Equal(t, http.StatusOK, post(e.asA, "/contacts/import/vcf/confirm", confirm).Code, "the uploader's session is still there")
+}

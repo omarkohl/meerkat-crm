@@ -271,3 +271,32 @@ func TestEnablingWithoutASetupAndRefusedDialogsChangeNothing(t *testing.T) {
 	e.db.Model(&models.RecoveryCode{}).Where("user_id = ?", e.a.ID).Count(&left)
 	assert.Zero(t, left, "disabling removes the recovery codes")
 }
+
+func TestOneUsersTwoFactorCannotBeSeenOrChangedByAnotherUser(t *testing.T) {
+	e := newEnv(t)
+	e.withPassword(t, &e.a, oldPassword)
+	e.withPassword(t, &e.b, oldPassword)
+	resetLockout(t, e.a.ID)
+	resetLockout(t, e.b.ID)
+	secret, codes := e.enrol(t, e.asA, oldPassword)
+	storedBefore := e.reload(t, e.a.ID).TOTPSecret
+	var codesBefore int64
+	e.db.Model(&models.RecoveryCode{}).Where("user_id = ?", e.a.ID).Count(&codesBefore)
+	require.EqualValues(t, services.RecoveryCodeCount, codesBefore)
+
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true}`, send(e.asB, http.MethodGet, "/users/me/2fa", "").Body.String())
+	assert.GreaterOrEqual(t, send(e.asB, http.MethodPost, "/users/me/2fa/recovery-codes", `{"password":"`+oldPassword+`","code":"`+services.TOTPCode(secret, clock.Real().Now())+`"}`).Code, 400)
+	assert.GreaterOrEqual(t, send(e.asB, http.MethodPost, "/users/me/2fa/disable", `{"password":"`+oldPassword+`","recovery_code":"`+codes[0]+`"}`).Code, 400)
+	w := send(e.asB, http.MethodPost, "/users/me/2fa/setup", "")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.NotContains(t, w.Body.String(), secret, "the other user's secret is not shown")
+	assert.GreaterOrEqual(t, send(e.asB, http.MethodPost, "/users/me/2fa/enable", `{"password":"`+oldPassword+`","code":"`+services.TOTPCode(secret, clock.Real().Now())+`"}`).Code, 400,
+		"a code for another user's secret does not enable it")
+
+	assert.Equal(t, storedBefore, e.reload(t, e.a.ID).TOTPSecret)
+	assert.True(t, e.reload(t, e.a.ID).TOTPEnabled)
+	var codesAfter int64
+	e.db.Model(&models.RecoveryCode{}).Where("user_id = ?", e.a.ID).Count(&codesAfter)
+	assert.Equal(t, codesBefore, codesAfter)
+	assert.False(t, e.reload(t, e.b.ID).TOTPEnabled)
+}
