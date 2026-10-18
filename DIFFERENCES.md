@@ -24,7 +24,8 @@ What can hurt when you merge, or when you look at the diff.
   `REACT_APP_API_URL`. Dockerfiles and compose files changed to match.
 - **Go 1.27.** `go.mod` is raised from 1.25. `gocron` v1 to v2, `golang-jwt` v4 to v5, `nfnt/resize`
   (archived) to `x/image/draw`. New: `huma/v2`.
-- **Backend layout.** Contacts, notes, activities, reminders and relationships moved from
+- **Backend layout.** Fourteen features (contacts, notes, activities, reminders, relationships,
+  photos, trash, users, tokens, webhooks, exports, imports, monicaimport, calendars) moved from
   `controllers/` and `services/` into modules under `backend/<module>/`. Wire format is unchanged.
   Error `details` keys of converted endpoints are JSON names (`email`), not Go names (`Email`).
 - **New environment variables**, all optional: `BLOCK_PRIVATE_URLS`, `METRICS_ENABLED`,
@@ -121,9 +122,13 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
 ([ADR 0002](docs/adr/0002-rules-are-machine-checks.md)).
 
 - **Hexagonal modules** ([ADR 0012](docs/adr/0012-module-layout.md)). Each of `contacts`, `notes`,
-  `activities`, `reminders`, `relationships` has `domain`, `app` (use cases and ports),
-  `adapters/persistence` and `adapters/http`. Only the persistence adapter imports GORM. The rest of
-  the backend is still in the old layout and converts module by module.
+  `activities`, `reminders`, `relationships`, `photos`, `trash`, `users` (preferences, sessions,
+  two-factor, login, registration, password reset, single sign-on), `tokens`, `webhooks`, `exports`,
+  `imports`, `monicaimport` and `calendars` has `domain`, `app` (use cases and ports),
+  `adapters/persistence` and `adapters/http`. Only the persistence adapter imports GORM. Routes that
+  send bytes or redirect stay Gin handlers inside the module. Sync engines, webhook delivery, the
+  e-mail outbox and the import parsers stay in `services/`. CardDAV connection settings and the
+  CardDAV server are not converted yet.
 - **API contract** ([ADR 0011](docs/adr/0011-api-contract-with-huma.md)). huma operations are
   mounted on the existing Gin groups, so middleware and the error format stay. `make openapi` writes
   `docs/openapi.json` and `frontend/src/types/generated/api.ts`; a check fails on drift. Only
