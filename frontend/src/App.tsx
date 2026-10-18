@@ -14,7 +14,8 @@ import DataSettingsPage from './DataSettingsPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import { getToken, logoutAndRedirect, isAdmin, fetchAndCacheUserInfo } from './auth';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import HeaderSearch from './components/HeaderSearch';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AppBar,
@@ -32,17 +33,11 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-  TextField,
-  Autocomplete,
-  InputAdornment,
   Collapse,
   Tooltip,
   Menu,
   MenuItem,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import ClearIcon from '@mui/icons-material/Clear';
-import { getContacts, Contact } from './api/contacts';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ContactsIcon from '@mui/icons-material/Contacts';
@@ -85,7 +80,6 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
   const { t } = useTranslation();
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -93,9 +87,6 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true',
   );
   const [settingsFlyoutAnchor, setSettingsFlyoutAnchor] = useState<HTMLElement | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Contact[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
 
   const drawerWidth = sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : EXPANDED_DRAWER_WIDTH;
 
@@ -111,47 +102,8 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
     });
   };
 
-  // Debounced search for contacts
-  useEffect(() => {
-    if (!token || searchQuery.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const result = await getContacts({ search: searchQuery, limit: 10 });
-        setSearchResults(result.contacts || []);
-      } catch (err) {
-        console.error('Search error:', err);
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchQuery, token]);
-
-  // The header search is a quick jump, not a page filter: leaving the page discards it
-  useEffect(() => {
-    setSearchQuery('');
-    setSearchResults([]);
-  }, [location.pathname]);
-
   const handleLogout = async () => {
     await logoutAndRedirect();
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      navigate(`/contacts?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      setSearchResults([]);
-    }
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- token changes trigger admin status recalculation
@@ -356,10 +308,6 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
             variant="h6"
             component={Link}
             to="/"
-            onClick={() => {
-              setSearchQuery('');
-              setSearchResults([]);
-            }}
             sx={{
               flexGrow: 1,
               textDecoration: 'none',
@@ -369,107 +317,7 @@ function AppContent({ token, setToken }: { token: string | null; setToken: (toke
           >
             {t('app.title')}
           </Typography>
-          <Autocomplete
-            freeSolo
-            clearOnEscape
-            size="small"
-            options={searchResults}
-            getOptionLabel={(option) =>
-              typeof option === 'string' ? option : `${option.firstname} ${option.lastname}`
-            }
-            loading={searchLoading}
-            onInputChange={(_, value) => {
-              setSearchQuery(value);
-            }}
-            onChange={(_, value) => {
-              if (value && typeof value !== 'string') {
-                navigate(`/contacts/${value.ID}`);
-                setSearchQuery('');
-                setSearchResults([]);
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                handleSearchSubmit();
-              }
-            }}
-            inputValue={searchQuery}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder={t('contacts.search')}
-                variant="outlined"
-                sx={{
-                  width: { xs: 150, sm: 200, md: 250 },
-                  mr: 2,
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                    },
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.7)',
-                    },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'white',
-                  },
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    opacity: 1,
-                  },
-                }}
-                InputProps={{
-                  ...params.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton
-                        size="small"
-                        onClick={handleSearchSubmit}
-                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSearchResults([]);
-                        }}
-                        sx={{ color: 'rgba(255, 255, 255, 0.7)', p: 0.5 }}
-                      >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-              />
-            )}
-            renderOption={(props, option) => (
-              <li {...props} key={option.ID}>
-                <Box>
-                  <Typography variant="body1">
-                    {option.firstname} {option.lastname}
-                  </Typography>
-                  {option.email && (
-                    <Typography variant="caption" color="text.secondary">
-                      {option.email}
-                    </Typography>
-                  )}
-                </Box>
-              </li>
-            )}
-          />
+          <HeaderSearch enabled={Boolean(token)} />
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
             {t('app.logout')}
           </Button>

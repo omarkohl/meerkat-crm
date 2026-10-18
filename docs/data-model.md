@@ -57,6 +57,11 @@ substrings instead, as before: text that is only digits and phone punctuation (`
 contact list ranks by relevance (the page offers "Best match" while you search); notes and
 activities stay newest first. Search terms are cut at 200 characters and 32 words.
 
+The **search box in the header** searches contacts, notes and activities at once, from two
+characters on. It shows the best contacts first, then notes and activities, each group with its
+total and the matching text marked. A contact matched by name ranks above one matched by e-mail or
+phone. Trashed contacts and their notes are not found.
+
 ## Notes
 
 Notes let you capture free-text information. All notes attached to a specific contact appear in that

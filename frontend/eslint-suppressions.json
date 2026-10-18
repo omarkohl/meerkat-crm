@@ -25,20 +25,14 @@
     }
   },
   "src/App.tsx": {
-    "@typescript-eslint/no-deprecated": {
+    "@typescript-eslint/no-floating-promises": {
       "count": 1
     },
-    "@typescript-eslint/no-floating-promises": {
-      "count": 3
-    },
     "@typescript-eslint/no-misused-promises": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unnecessary-condition": {
       "count": 1
     },
     "@typescript-eslint/restrict-template-expressions": {
-      "count": 4
+      "count": 3
     }
   },
   "src/AppThemeProvider.tsx": {

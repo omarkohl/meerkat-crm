@@ -1049,6 +1049,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search contacts, notes and activities at once, best matches first
+         * @description Without type the answer has the three groups, each with its total and the first `limit` results. With type only that group is answered, and offset pages through it. Trashed contacts and their notes are never found. The matched text comes as segments, never as HTML.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -1459,6 +1479,11 @@ export interface components {
             activity: components["schemas"]["ActivityResponse"];
             message: string;
         };
+        ActivityGroup: {
+            items: components["schemas"]["ActivityResult"][] | null;
+            /** Format: int64 */
+            total: number;
+        };
         ActivityListOutputBody: {
             activities: components["schemas"]["ActivityResponse"][] | null;
             /** Format: int64 */
@@ -1486,6 +1511,14 @@ export interface components {
             description: string;
             location: string;
             title: string;
+        };
+        ActivityResult: {
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            id: number;
+            snippet: components["schemas"]["SegmentResponse"][] | null;
+            title: components["schemas"]["SegmentResponse"][] | null;
         };
         AddressBook: {
             description: string;
@@ -1764,6 +1797,11 @@ export interface components {
             contact: components["schemas"]["ContactResponse"];
             message: string;
         };
+        ContactGroup: {
+            items: components["schemas"]["ContactResult"][] | null;
+            /** Format: int64 */
+            total: number;
+        };
         ContactListItem: {
             /** Format: date-time */
             CreatedAt: string;
@@ -1930,6 +1968,22 @@ export interface components {
             suffix: string;
             urls: components["schemas"]["ContactValue"][] | null;
             work_information: string;
+        };
+        ContactResult: {
+            firstname: string;
+            /** Format: int64 */
+            id: number;
+            lastname: string;
+            /**
+             * @description Where the text was found: name, email or phone
+             * @enum {string}
+             */
+            matched_field: "name" | "email" | "phone" | "";
+            /** @description The display name with the match marked */
+            name: components["schemas"]["SegmentResponse"][] | null;
+            nickname: string;
+            /** @description The matching value when it is not the name */
+            snippet: components["schemas"]["SegmentResponse"][] | null;
         };
         ContactSyncStats: {
             /** Format: int64 */
@@ -2297,6 +2351,11 @@ export interface components {
             /** Format: date-time */
             date: string;
         };
+        NoteGroup: {
+            items: components["schemas"]["NoteResult"][] | null;
+            /** Format: int64 */
+            total: number;
+        };
         NoteListOutputBody: {
             /** Format: int64 */
             limit: number;
@@ -2323,6 +2382,19 @@ export interface components {
             content: string;
             /** Format: date-time */
             date: string;
+        };
+        NoteResult: {
+            /**
+             * Format: int64
+             * @description Null for a note without a contact
+             */
+            contact_id: number | null;
+            contact_name: string;
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            id: number;
+            snippet: components["schemas"]["SegmentResponse"][] | null;
         };
         NoteSavedOutputBody: {
             message: string;
@@ -2532,6 +2604,17 @@ export interface components {
             validation_errors: string[];
             /** @description Values dropped so the row can import */
             warnings: string[];
+        };
+        SearchOutputBody: {
+            activities?: components["schemas"]["ActivityGroup"];
+            contacts?: components["schemas"]["ContactGroup"];
+            notes?: components["schemas"]["NoteGroup"];
+            query: string;
+        };
+        SegmentResponse: {
+            /** @description The searched text was found here */
+            match: boolean;
+            text: string;
         };
         SessionListOutputBody: {
             sessions: components["schemas"]["SessionResponse"][] | null;
@@ -5596,6 +5679,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderCompletedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                /** @description What to search for, at most 200 characters */
+                q?: string;
+                /** @description Only this group: contacts, notes or activities */
+                type?: "contacts" | "notes" | "activities" | "";
+                /** @description Results per group, 1 to 50, default 5 */
+                limit?: string;
+                /** @description Results to skip in the group named by type, default 0; needs type */
+                offset?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchOutputBody"];
                 };
             };
             /** @description Error */

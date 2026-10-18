@@ -11,6 +11,7 @@ import (
 	"meerkat/contactsync"
 	"meerkat/controllers"
 	"meerkat/exports"
+	"meerkat/globalsearch"
 	"meerkat/imports"
 	"meerkat/metrics"
 	"meerkat/middleware"
@@ -48,6 +49,7 @@ type Modules struct {
 	Calendars     *calendars.Module
 	ContactSync   *contactsync.Module
 	Users         *users.Module
+	Search        *globalsearch.Module
 }
 
 // NewModules builds every converted module on db. db may be nil when only the operations'
@@ -71,6 +73,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Calendars:     calendars.New(calendars.Deps{DB: db, Config: cfg}),
 		ContactSync:   contactsync.New(contactsync.Deps{DB: db, Config: cfg}),
 		Users:         users.New(users.Deps{DB: db, Config: cfg, OIDC: oidcProvider}),
+		Search:        globalsearch.New(globalsearch.Deps{DB: db}),
 	}
 }
 
@@ -106,6 +109,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Calendars.Register(a, g.Protected)
 	m.ContactSync.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
+	m.Search.Register(a, g.Protected)
 	m.Admin.Register(a, g.Admin)
 }
 

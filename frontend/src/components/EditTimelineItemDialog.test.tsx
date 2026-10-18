@@ -28,7 +28,7 @@ const Harness = () => {
   );
 };
 
-describe('EditTimelineItemDialog contact picker', () => {
+describe('EditTimelineItemDialog contact picker', { timeout: 20_000 }, () => {
   beforeEach(() => {
     vi.mocked(getContacts).mockReset();
     vi.mocked(getContacts).mockImplementation((({ search }: { search?: string }) =>

@@ -23,6 +23,17 @@
     "expandSidebar": "Seitenleiste ausklappen",
     "auditLog": "Prüfprotokoll"
   },
+  "search": {
+    "placeholder": "Kontakte, Notizen, Aktivitäten suchen",
+    "contacts": "Kontakte",
+    "notes": "Notizen",
+    "activities": "Aktivitäten",
+    "searching": "Suche läuft…",
+    "noResults": "Keine Ergebnisse für „{{query}}“",
+    "showAll": "Alle Ergebnisse für „{{query}}“ anzeigen",
+    "submit": "Suchen",
+    "clear": "Suche leeren"
+  },
   "dashboard": {
     "welcome": "Willkommen zum Meerkat CRM Dashboard",
     "title": "Dashboard",

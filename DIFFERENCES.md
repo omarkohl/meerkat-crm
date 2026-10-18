@@ -95,7 +95,8 @@ contact or another user's address book answers `404`.
 `BACKUP_RETENTION_COUNT` times. Admins can create, download and delete backups in the UI. Migration
 31 (last-success time of jobs).
 
-**Full-text search.** Contact search uses SQLite FTS5. Migration 29.
+**Full-text search.** Contact search uses SQLite FTS5. Migration 29. The header search finds
+contacts, notes and activities at once (`GET /search`), grouped, ranked, with the match marked.
 
 **Import.** The preview can filter, sort and set a value on many rows at once, and the result lists
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and

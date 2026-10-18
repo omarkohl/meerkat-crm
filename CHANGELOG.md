@@ -11,6 +11,11 @@ of this fork (see [FORK.md](FORK.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **Search contacts, notes and activities from the header** (#118): the results come in groups with
+  the matching text marked, and the best matches first.
+
 ### Fixed
 
 - **Imports skip invalid rows and survive broken vCards** (#107): rows without a first name were

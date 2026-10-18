@@ -109,7 +109,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 - [x] 10. **E2E: main workflows (#107)**: the main workflows the audit finds without an E2E test, at
       least import a vCard file and export contacts. Few, solid tests (ADR 0003). Final audit update
       in PROGRESS.md: every #107 box checked or with a reason.
-- [ ] 11. **Global search: grouped quick results (#118)** (`feat:`, `issue #118`): the search API
+- [x] 11. **Global search: grouped quick results (#118)** (`feat:`, `issue #118`): the search API
       settled above over the existing indexes, with highlight segments and the LIKE fallback; the
       header search box shows the groups (UX settled above; "Show all results" comes in step 13). Go
       tests: ranking, highlight, fallback, trash, isolation. E2E: type a word from a note, see the

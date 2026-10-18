@@ -23,6 +23,17 @@
     "expandSidebar": "Développer la barre latérale",
     "auditLog": "Journal d'audit"
   },
+  "search": {
+    "placeholder": "Rechercher des contacts, notes, activités",
+    "contacts": "Contacts",
+    "notes": "Notes",
+    "activities": "Activités",
+    "searching": "Recherche en cours…",
+    "noResults": "Aucun résultat pour « {{query}} »",
+    "showAll": "Afficher tous les résultats pour « {{query}} »",
+    "submit": "Rechercher",
+    "clear": "Effacer la recherche"
+  },
   "dashboard": {
     "welcome": "Bienvenue sur le tableau de bord Meerkat CRM",
     "title": "Tableau de bord",

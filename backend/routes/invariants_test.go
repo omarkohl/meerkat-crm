@@ -282,3 +282,25 @@ func TestEveryModelWithAUserIDHasIsolationCoverage(t *testing.T) {
 		requireTest(t, m, p)
 	}
 }
+
+// readIsolation maps the read routes that search across a user's rows to the test that shows
+// another user's rows are never found. (Routes that take an ID are covered by their module's
+// tests; see the audit in docs/development/testing.md.)
+var readIsolation = map[string]proof{
+	"GET /api/v1/search": {"globalsearch/globalsearch_test.go", "TestOneUserNeverFindsAnotherUsersData"},
+}
+
+func TestEverySearchRouteHasIsolationCoverage(t *testing.T) {
+	r := engine(t)
+	routes := map[string]bool{}
+	for _, route := range r.Routes() {
+		routes[route.Method+" "+route.Path] = true
+	}
+	for key, p := range readIsolation {
+		assert.True(t, routes[key], "readIsolation lists a route that does not exist: %s", key)
+		requireTest(t, key, p)
+	}
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/search?q=x", nil))
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "the search needs a login")
+}

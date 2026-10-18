@@ -23,6 +23,17 @@
     "expandSidebar": "Expand sidebar",
     "auditLog": "Audit log"
   },
+  "search": {
+    "placeholder": "Search contacts, notes, activities",
+    "contacts": "Contacts",
+    "notes": "Notes",
+    "activities": "Activities",
+    "searching": "Searching…",
+    "noResults": "No results for “{{query}}”",
+    "showAll": "Show all results for “{{query}}”",
+    "submit": "Search",
+    "clear": "Clear search"
+  },
   "dashboard": {
     "welcome": "Welcome to Meerkat CRM Dashboard",
     "title": "Dashboard",

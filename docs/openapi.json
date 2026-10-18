@@ -163,6 +163,29 @@
         ],
         "type": "object"
       },
+      "ActivityGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityResult"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object"
+      },
       "ActivityListOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -263,6 +286,45 @@
           "description",
           "location",
           "date"
+        ],
+        "type": "object"
+      },
+      "ActivityResult": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "snippet": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "title": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "date",
+          "snippet"
         ],
         "type": "object"
       },
@@ -1247,6 +1309,29 @@
         ],
         "type": "object"
       },
+      "ContactGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContactResult"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object"
+      },
       "ContactListItem": {
         "additionalProperties": false,
         "properties": {
@@ -1984,6 +2069,65 @@
           "note",
           "custom_fields",
           "archived"
+        ],
+        "type": "object"
+      },
+      "ContactResult": {
+        "additionalProperties": false,
+        "properties": {
+          "firstname": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "lastname": {
+            "type": "string"
+          },
+          "matched_field": {
+            "description": "Where the text was found: name, email or phone",
+            "enum": [
+              "name",
+              "email",
+              "phone",
+              ""
+            ],
+            "type": "string"
+          },
+          "name": {
+            "description": "The display name with the match marked",
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "snippet": {
+            "description": "The matching value when it is not the name",
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "firstname",
+          "lastname",
+          "nickname",
+          "name",
+          "matched_field",
+          "snippet"
         ],
         "type": "object"
       },
@@ -3162,6 +3306,29 @@
         ],
         "type": "object"
       },
+      "NoteGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NoteResult"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "type": "object"
+      },
       "NoteListOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -3254,6 +3421,49 @@
           "content",
           "date",
           "contact_id"
+        ],
+        "type": "object"
+      },
+      "NoteResult": {
+        "additionalProperties": false,
+        "properties": {
+          "contact_id": {
+            "description": "Null for a note without a contact",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "contact_name": {
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "snippet": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "contact_id",
+          "contact_name",
+          "date",
+          "snippet"
         ],
         "type": "object"
       },
@@ -4010,6 +4220,44 @@
           "warnings",
           "duplicate_match",
           "suggested_action"
+        ],
+        "type": "object"
+      },
+      "SearchOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "activities": {
+            "$ref": "#/components/schemas/ActivityGroup"
+          },
+          "contacts": {
+            "$ref": "#/components/schemas/ContactGroup"
+          },
+          "notes": {
+            "$ref": "#/components/schemas/NoteGroup"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "SegmentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "match": {
+            "description": "The searched text was found here",
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "match"
         ],
         "type": "object"
       },
@@ -8692,6 +8940,87 @@
         "summary": "Complete a reminder, or skip it with skip=true; a recurring one is scheduled again",
         "tags": [
           "reminders"
+        ]
+      }
+    },
+    "/search": {
+      "get": {
+        "description": "Without type the answer has the three groups, each with its total and the first `limit` results. With type only that group is answered, and offset pages through it. Trashed contacts and their notes are never found. The matched text comes as segments, never as HTML.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "description": "What to search for, at most 200 characters",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "What to search for, at most 200 characters",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this group: contacts, notes or activities",
+            "explode": false,
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "description": "Only this group: contacts, notes or activities",
+              "enum": [
+                "contacts",
+                "notes",
+                "activities",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Results per group, 1 to 50, default 5",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "Results per group, 1 to 50, default 5",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Results to skip in the group named by type, default 0; needs type",
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "description": "Results to skip in the group named by type, default 0; needs type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Search contacts, notes and activities at once, best matches first",
+        "tags": [
+          "search"
         ]
       }
     },

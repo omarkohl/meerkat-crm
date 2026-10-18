@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 11: global search, quick results (#118).
+Step 12: search all contact fields (#118).
 
 ## Stack
 
@@ -92,8 +92,28 @@ Local run: no branches, no PRs.
   chooser, review, import, contact found in the list by its name) and export all contacts as vCard
   and CSV from Settings > Data (download content checked). Ran `make test-e2e` three times. No bug
   found. This closes #107; the final audit below is meant for the issue. `make precommit` green.
+- Step 11: new module `backend/globalsearch` (domain: highlight and excerpt as segments; app: one
+  use case over a port; persistence: FTS5 with bm25 and name-first ranking, LIKE for digits, CJK and
+  a missing index; http: `GET /search`), wired in `routes`, with the three depguard layering rules
+  like the other modules and a read-isolation entry in `invariants_test.go`. `make openapi`,
+  `docs/api-reference.md`, `docs/data-model.md`, use case 022-US1, five locales, changelog.
+  Frontend: the header search moved from `App.tsx` into `components/HeaderSearch.tsx` (groups,
+  debounce 300 ms, 2 characters, stale-response guard, loading and no-results rows, "Show all
+  results" last); Vitest for it; E2E `search.spec.ts` (a word from a note shows under Notes with the
+  word marked and opens the contact). Mutation checks: dropping the name-first order or the bm25
+  order fails Go tests. `make precommit` green.
 
 ## Decisions
+
+- Step 11: `type` returns only the requested group (the others are omitted); the UI asks for
+  `limit=5` and shows 3 notes and 3 activities by slicing, since the API has one `limit`.
+- Step 11: Enter with no option highlighted still opens the contacts list for the term (until step
+  13); note and activity results open the contact, `/notes?search=` or `/activities?search=` as
+  settled, but those pages read `?search=` only in step 13.
+- Step 11: archived contacts are found; a note is hidden when its contact is trashed, a note without
+  a contact is found.
+- Step 11: `offset` without `type` is refused with 400 (only one group can be paged); `q` is at most
+  200 characters. module).
 
 - Step 1: the E2E test cannot reproduce the 100-contact cap (few seeded contacts); the Vitest test
   covers the server search.
@@ -199,5 +219,11 @@ later card (panic on confirm).
 - The Vitest thresholds are rounded down with a small margin; the lines margin is 0.8 points.
 - `ImportContactsDialog.tsx` (~line 341): the drop zone is a clickable `Box` with no role or
   `tabIndex`, so keyboard users cannot open the file chooser.
+- Known gap until step 13: the header's "Show all results for …" option (and Enter without a
+  highlighted option) opens the contacts list filtered by the term, which shows only contacts, while
+  the label promises all results. Settled in PLAN.md for step 11; step 13 adds the results page.
+- The search fallback (LIKE, used for digits, Han/Kana/Hangul text and a missing index) lower-cases
+  with SQLite's `LOWER`, which is ASCII only, so a mixed-case non-ASCII term (for example `Ü`) can
+  miss in the fallback; the index path folds correctly.
 
 ## Blocked

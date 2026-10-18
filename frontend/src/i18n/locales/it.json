@@ -23,6 +23,17 @@
     "expandSidebar": "Espandi barra laterale",
     "auditLog": "Registro di controllo"
   },
+  "search": {
+    "placeholder": "Cerca contatti, note, attività",
+    "contacts": "Contatti",
+    "notes": "Note",
+    "activities": "Attività",
+    "searching": "Ricerca in corso…",
+    "noResults": "Nessun risultato per “{{query}}”",
+    "showAll": "Mostra tutti i risultati per “{{query}}”",
+    "submit": "Cerca",
+    "clear": "Cancella la ricerca"
+  },
   "dashboard": {
     "welcome": "Benvenuto nel Cruscotto di Meerkat CRM",
     "title": "Cruscotto",

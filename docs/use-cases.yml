@@ -327,3 +327,9 @@
   actor: user
   priority: low
   status: implemented
+
+- id: 022-US1
+  title: Search contacts, notes and activities at once from the header
+  actor: user
+  priority: high
+  status: implemented

@@ -23,6 +23,17 @@
     "expandSidebar": "Expandir barra lateral",
     "auditLog": "Registro de auditoría"
   },
+  "search": {
+    "placeholder": "Buscar contactos, notas, actividades",
+    "contacts": "Contactos",
+    "notes": "Notas",
+    "activities": "Actividades",
+    "searching": "Buscando…",
+    "noResults": "Sin resultados para «{{query}}»",
+    "showAll": "Mostrar todos los resultados de «{{query}}»",
+    "submit": "Buscar",
+    "clear": "Borrar la búsqueda"
+  },
   "dashboard": {
     "welcome": "Bienvenido al Panel de Meerkat CRM",
     "title": "Panel",
