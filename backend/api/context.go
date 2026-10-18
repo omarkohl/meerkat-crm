@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -107,4 +108,19 @@ func Clock(ctx context.Context) clock.Clock {
 		return middleware.RequestClock(c)
 	}
 	return clock.Real()
+}
+
+// LiftWriteDeadline removes the server's write timeout for this request, for a response that
+// can take longer than it to produce or send. Writers without deadlines (tests) are left alone.
+func LiftWriteDeadline(ctx context.Context) {
+	if c := ginContext(ctx); c != nil {
+		LiftWriteDeadlineOn(c)
+	}
+}
+
+// LiftWriteDeadlineOn is LiftWriteDeadline for a plain Gin handler.
+func LiftWriteDeadlineOn(c *gin.Context) {
+	if err := http.NewResponseController(c.Writer).SetWriteDeadline(time.Time{}); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		logger.FromContext(c).Warn().Err(err).Msg("Failed to lift the write deadline")
+	}
 }

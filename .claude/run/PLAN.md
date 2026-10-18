@@ -126,7 +126,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
         contact types; delete the hand-written ones. Tests through the HTTP handler on real SQLite
         stay green. Tighten `depguard` for the migrated module (`domain-stays-pure`,
         `use-cases-depend-on-ports`, `repositories-stay-in-persistence`).
-- [ ] 13. **Hexagonal: remaining modules (§3)**, one commit per module, same pattern as step 12
+- [x] 13. **Hexagonal: remaining modules (§3)**, one commit per module, same pattern as step 12
       (huma handlers, generated frontend types); remove each module's exemptions from the arch
       rules:
   - [x] 13a. notes
@@ -158,7 +158,7 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
         plain Gin: they are not JSON); split, see PROGRESS:
     - [x] 13k1. calendar subscriptions (list, create, update, delete, sync now)
     - [x] 13k2. CardDAV connection settings (get, save, delete, discover, sync now)
-  - [ ] 13l. backups, audit log, system status
+  - [x] 13l. backups, audit log, system status
 - [ ] 14. **Contract complete (§2)**: a test fails if a JSON route under `/api/v1` is not a huma
       operation. Delete the remaining hand-written API types and `ValidateJSONMiddleware`.
       `docs/api-reference.md` links to the spec.

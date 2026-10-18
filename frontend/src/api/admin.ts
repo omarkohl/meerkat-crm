@@ -1,6 +1,8 @@
 // Admin API calls for user management
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 import type { User, UsersListResponse, UserUpdateInput } from '../types';
+import type { components } from '../types/generated/api';
+import type { WithoutNull } from '../types/utils';
 
 // Get current authenticated user's information
 export async function getCurrentUser(): Promise<User> {
@@ -90,13 +92,7 @@ export async function deleteUser(id: number): Promise<void> {
   }
 }
 
-export interface SystemStatus {
-  private_urls_allowed: boolean;
-  user_count: number;
-  private_url_warning: boolean;
-  setting: string;
-  features: string[];
-}
+export type SystemStatus = WithoutNull<components['schemas']['SystemStatusOutputBody']>;
 
 // Operational warnings for admins (admin only)
 export async function getSystemStatus(): Promise<SystemStatus> {
@@ -120,25 +116,11 @@ export function ssrfBannerSignature(status: { setting: string; features?: string
   return [status.setting, [...(status.features ?? [])].sort().join(','), bucket].join('|');
 }
 
-export interface AuditEntry {
-  id: number;
-  created_at: string;
-  user_id: number | null;
-  username: string;
-  event: string;
-  ip: string;
-  user_agent: string;
-  detail: string;
-}
+export type AuditEntry = components['schemas']['AuditEntryResponse'];
 
-export interface AuditLogPage {
+export type AuditLogPage = WithoutNull<Omit<components['schemas']['AuditLogOutputBody'], 'entries'>> & {
   entries: AuditEntry[];
-  total: number;
-  page: number;
-  limit: number;
-  events: string[];
-  retention_days: number;
-}
+};
 
 export interface AuditLogQuery {
   page: number;

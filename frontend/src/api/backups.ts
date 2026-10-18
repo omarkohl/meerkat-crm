@@ -1,23 +1,14 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 import { handleResponse } from './errorHandling';
 import { downloadFileFromResponse } from './export';
+import type { components } from '../types/generated/api';
+import type { WithoutNull } from '../types/utils';
 
-export interface Backup {
-  name: string;
-  size: number;
-  created_at: string;
-}
+type Schemas = components['schemas'];
 
-export interface BackupList {
-  backups: Backup[];
-  /** Whether the scheduled backup runs. Admins can always create one by hand. */
-  enabled: boolean;
-  /** Time of day (HH:MM, reminder timezone) of the scheduled backup. */
-  time: string;
-  retention_count: number;
-  /** Where the backups are stored on the server. */
-  directory: string;
-}
+export type Backup = Schemas['BackupResponse'];
+
+export type BackupList = WithoutNull<Schemas['BackupListOutputBody']>;
 
 export async function getBackups(): Promise<BackupList> {
   const response = await apiFetch(`${API_BASE_URL}/admin/backups`, {

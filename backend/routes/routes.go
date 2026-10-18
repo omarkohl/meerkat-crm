@@ -2,6 +2,7 @@ package routes
 
 import (
 	"meerkat/activities"
+	"meerkat/admin"
 	"meerkat/api"
 	"meerkat/calendars"
 	"meerkat/carddav"
@@ -32,6 +33,7 @@ import (
 
 // Modules are the converted modules (docs/adr/0012-module-layout.md), built by main.go.
 type Modules struct {
+	Admin         *admin.Module
 	Contacts      *contacts.Module
 	Notes         *notes.Module
 	Activities    *activities.Module
@@ -53,6 +55,7 @@ type Modules struct {
 // descriptions are needed.
 func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProvider) Modules {
 	return Modules{
+		Admin:         admin.New(admin.Deps{DB: db, Config: cfg}),
 		Contacts:      contacts.New(contacts.Deps{DB: db, Config: cfg}),
 		Notes:         notes.New(notes.Deps{DB: db, Config: cfg}),
 		Activities:    activities.New(activities.Deps{DB: db, Config: cfg}),
@@ -78,6 +81,8 @@ type Groups struct {
 	Public gin.IRoutes
 	// Protected carries authentication and the general rate limit.
 	Protected gin.IRoutes
+	// Admin is Protected plus the admin check, which also refuses API tokens.
+	Admin gin.IRoutes
 }
 
 // RegisterAPI registers every huma operation on a. It is also what cmd/openapi calls to
@@ -101,6 +106,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Calendars.Register(a, g.Protected)
 	m.ContactSync.Register(a, g.Protected)
 	m.Users.Register(a, g.Public, g.Protected)
+	m.Admin.Register(a, g.Admin)
 }
 
 func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules Modules) {
@@ -126,37 +132,24 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 		protected := v1.Group("/")
 		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
-		{
-
-			// Contact routes
-			RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected})
-
-			// Image proxy route (for fetching images from external URLs)
-			protected.GET("/proxy/image", controllers.ProxyImage)
-		}
+		protected.GET("/proxy/image", controllers.ProxyImage)
 
 		// Admin routes (admin authentication required)
-		admin := v1.Group("/admin")
-		admin.Use(middleware.APIRateLimitMiddleware())
-		admin.Use(middleware.AuthMiddleware(cfg))
-		admin.Use(middleware.AdminMiddleware())
-		{
-			admin.GET("/system-status", controllers.SystemStatus)
-			admin.GET("/audit-log", controllers.ListAuditLog)
-			admin.GET("/users", controllers.ListUsers)
-			admin.GET("/users/:id", controllers.GetUser)
-			admin.PATCH("/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), controllers.UpdateUser)
-			admin.DELETE("/users/:id", controllers.DeleteUser)
-			admin.POST("/users/:id/2fa/reset", controllers.ResetUserTOTP)
-			// Backups contain every user's data: admin only (API tokens are refused too).
-			admin.GET("/backups", controllers.ListBackups)
-			admin.POST("/backups", controllers.CreateBackup)
-			admin.GET("/backups/:name", controllers.DownloadBackup)
-			admin.DELETE("/backups/:name", controllers.DeleteBackup)
-			admin.POST("/trigger-reminders", func(c *gin.Context) {
-				controllers.TriggerReminders(c, modules.Reminders.SendDailyDigest)
-			})
-		}
+		adminGroup := v1.Group("/")
+		adminGroup.Use(middleware.APIRateLimitMiddleware())
+		adminGroup.Use(middleware.AuthMiddleware(cfg))
+		adminGroup.Use(middleware.AdminMiddleware())
+
+		RegisterAPI(humaAPI, cfg, modules, Groups{Public: v1, Protected: protected, Admin: adminGroup})
+
+		adminGroup.GET("/admin/users", controllers.ListUsers)
+		adminGroup.GET("/admin/users/:id", controllers.GetUser)
+		adminGroup.PATCH("/admin/users/:id", middleware.ValidateJSONMiddleware(&models.AdminUserUpdateInput{}), controllers.UpdateUser)
+		adminGroup.DELETE("/admin/users/:id", controllers.DeleteUser)
+		adminGroup.POST("/admin/users/:id/2fa/reset", controllers.ResetUserTOTP)
+		adminGroup.POST("/admin/trigger-reminders", func(c *gin.Context) {
+			controllers.TriggerReminders(c, modules.Reminders.SendDailyDigest)
+		})
 	}
 
 	// CardDAV routes (optional, enabled via CARDDAV_ENABLED)

@@ -44,6 +44,8 @@ func TestBackupRoutesRefuseAdminAPIToken(t *testing.T) {
 	RegisterRoutes(r, cfg, db, NewModules(db, cfg, nil))
 
 	for _, tc := range []struct{ method, path string }{
+		{"GET", "/api/v1/admin/audit-log"},
+		{"GET", "/api/v1/admin/system-status"},
 		{"GET", "/api/v1/admin/backups"},
 		{"POST", "/api/v1/admin/backups"},
 		{"GET", "/api/v1/admin/backups/meerkat-backup-20260101-000000.tar.gz"},

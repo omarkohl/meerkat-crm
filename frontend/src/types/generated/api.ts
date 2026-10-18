@@ -41,6 +41,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Security events, newest first */
+        get: operations["list-audit-log"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The server backups, newest first, with the schedule settings */
+        get: operations["list-backups"];
+        put?: never;
+        /** Make a backup now and prune old ones down to the retention count */
+        post: operations["create-backup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/backups/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one backup */
+        delete: operations["delete-backup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/system-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operational warnings for administrators */
+        get: operations["get-system-status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api-tokens": {
         parameters: {
             query?: never;
@@ -1361,6 +1430,54 @@ export interface components {
             street?: string;
             type?: string;
         };
+        AuditEntryResponse: {
+            /** Format: date-time */
+            created_at: string;
+            /** @description Machine-readable ;-separated key:value segments */
+            detail: string;
+            event: string;
+            /** Format: int64 */
+            id: number;
+            ip: string;
+            user_agent: string;
+            /** Format: int64 */
+            user_id: number | null;
+            username: string;
+        };
+        AuditLogOutputBody: {
+            entries: components["schemas"]["AuditEntryResponse"][] | null;
+            /** @description Every event, in the order the UI shows them */
+            events: string[] | null;
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            /**
+             * Format: int64
+             * @description Entries older than this are purged daily; 0 keeps them
+             */
+            retention_days: number;
+            /** Format: int64 */
+            total: number;
+        };
+        BackupListOutputBody: {
+            backups: components["schemas"]["BackupResponse"][] | null;
+            /** @description Where the backups are stored on the server */
+            directory: string;
+            /** @description Whether the scheduled backup runs */
+            enabled: boolean;
+            /** Format: int64 */
+            retention_count: number;
+            /** @description Time of day of the scheduled backup */
+            time: string;
+        };
+        BackupResponse: {
+            /** Format: date-time */
+            created_at: string;
+            name: string;
+            /** Format: int64 */
+            size: number;
+        };
         BirthdayResponse: {
             associated_contact_name?: string;
             birthday: string;
@@ -2367,6 +2484,17 @@ export interface components {
             firstname: string;
             lastname: string;
         };
+        SystemStatusOutputBody: {
+            /** @description The outbound features that still allow private addresses */
+            features: string[] | null;
+            /** @description Outbound features may reach private addresses on an instance with more than one user */
+            private_url_warning: boolean;
+            private_urls_allowed: boolean;
+            /** @description The setting that fixes the warning */
+            setting: string;
+            /** Format: int64 */
+            user_count: number;
+        };
         TrashEmptiedOutputBody: {
             message: string;
             /** Format: int64 */
@@ -2663,6 +2791,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityMessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-audit-log": {
+        parameters: {
+            query?: {
+                /** @description Page number, from 1 */
+                page?: string;
+                /** @description Page size, 1 to 100, default 25 */
+                limit?: string;
+                /** @description Only this event, exact match */
+                event?: string;
+                /** @description Only usernames containing this, case-insensitive */
+                username?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "list-backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupListOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "create-backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupResponse"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "delete-backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The backup's file name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "get-system-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStatusOutputBody"];
                 };
             };
             /** @description Error */

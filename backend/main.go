@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"meerkat/clock"
 	"meerkat/config"
-	"meerkat/controllers"
 	"meerkat/database"
 	apperrors "meerkat/errors"
 	"meerkat/i18n"
@@ -83,13 +82,6 @@ func main() {
 		logger.Error().Err(err).Msg("Could not move contact thumbnails out of the database; thumbnails stay hidden until this works (is PROFILE_PHOTO_DIR writable?)")
 	} else if n > 0 {
 		logger.Info().Int("thumbnails", n).Msg("Moved contact thumbnails from the database into files")
-	}
-
-	if warn, users, err := controllers.PrivateURLWarning(db, cfg.PrivateURLsAllowed()); err != nil {
-		logger.Warn().Err(err).Msg("Could not check the private URL setting")
-	} else if warn {
-		logger.Warn().Int64("users", users).Msg("Webhooks, calendar/contact sync and Monica import may reach private and loopback addresses " +
-			"on an instance with several users. Set BLOCK_PRIVATE_URLS=true to block them (see docs/deployment.md)")
 	}
 
 	var metricsSrv *http.Server
@@ -284,6 +276,14 @@ func main() {
 	modules := routes.NewModules(db, cfg, oidcProvider)
 	modules.Imports.SetClock(clk)
 	modules.MonicaImport.SetClock(clk)
+
+	if warn, users, err := modules.Admin.PrivateURLWarning(context.Background()); err != nil {
+		logger.Warn().Err(err).Msg("Could not check the private URL setting")
+	} else if warn {
+		logger.Warn().Int64("users", users).Msg("Webhooks, calendar/contact sync and Monica import may reach private and loopback addresses " +
+			"on an instance with several users. Set BLOCK_PRIVATE_URLS=true to block them (see docs/deployment.md)")
+	}
+
 	routes.RegisterRoutes(r, cfg, db, modules)
 
 	// Create HTTP server with timeout configuration

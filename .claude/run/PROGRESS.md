@@ -2,7 +2,7 @@
 
 ## Next step
 
-13l (backups, audit log, system status).
+14 (contract complete).
 
 ## Stack
 
@@ -322,6 +322,19 @@
   protocol endpoints were not touched. Frontend CardDAV types derive from the generated types. The
   "struct or null" response schema that the imports and monicaimport modules each had is now
   `api.Nullable[T]`, used by all three. **Step 13k is done.** `make precommit` green.
+- Step 13l: `backend/admin` (domain: `AuditFilter` normalising, `PrivateURLWarning`, backup
+  vocabulary; use cases `ListBackups`, `CreateBackup`, `OpenBackup`, `DeleteBackup`, `ListAuditLog`,
+  `SystemStatus`; ports `Backups`/`AuditLog`/`Audit`/`Users`; persistence and http adapters) with
+  huma operations for `GET /admin/system-status`, `/admin/audit-log`, `GET/POST /admin/backups` and
+  `DELETE /admin/backups/{name}`, on a new `Groups.Admin` (behind the admin middleware, which still
+  refuses API tokens). The download stays a plain Gin handler in the module. The backup engine and
+  its job stay in `services`. `api.LiftWriteDeadline(On)` added for the long backup requests.
+  `controllers` lost the three controllers and their tests (`models.Backup*` DTOs too); the startup
+  private-URL warning in `main.go` now asks the module. 9 module tests on real SQLite (plain user
+  refused everywhere and nothing changes, 401, create/list/download/delete, retention, path
+  traversal, audit entries, write timeout lifted, audit filters and paging, status warning matrix).
+  Frontend backup, system-status and audit-log types derive from the generated types. **Step 13 is
+  done.** `make precommit` green.
 
 ## Decisions
 
@@ -684,6 +697,11 @@
   reported as "query" and while deleting as "delete", as before; the sync trigger's lookup failure
   is "query". `controllers/same_server*.go` and the last CardDAV controller code are gone
   (`httputil.SameServer`).
+- 13l: one module `admin` for the three, not three modules (small, same admin group). The admin
+  _user_ endpoints (`/admin/users...`, `trigger-reminders`) are not part of it and stay Gin handlers
+  in `controllers`; step 14 must cover them. `auditValue` (the `;` escape) is not applied to backup
+  names any more: a name that passes the backup name pattern cannot contain one. A backup download
+  that fails the name or file check answers 404 before it is audited, as before.
 
 ## For review
 
@@ -753,5 +771,7 @@
   left alone.
 - 13j1: CSV export cells that start with `=`, `+`, `-` or `@` are not neutralised (CSV/formula
   injection when the file is opened in a spreadsheet). Pre-existing; not fixed in a refactor.
+- Step 14 must cover the admin user endpoints (`/admin/users*`, `trigger-reminders`): still Gin
+  handlers in `controllers`.
 
 ## Blocked
