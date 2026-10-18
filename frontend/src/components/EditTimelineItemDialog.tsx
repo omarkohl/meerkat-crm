@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DialogTitle,
@@ -9,10 +10,12 @@ import {
   Autocomplete,
   Chip,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import DateField from './DateField';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { Contact, getContacts } from '../api/contacts';
 
 export interface TimelineItemValues {
   noteContent?: string;
@@ -32,7 +35,6 @@ interface EditTimelineItemDialogProps {
   type: 'note' | 'activity';
   values: TimelineItemValues;
   onChange: (values: TimelineItemValues) => void;
-  allContacts: { ID: number; firstname: string; lastname: string; nickname?: string }[];
 }
 
 export default function EditTimelineItemDialog({
@@ -43,9 +45,33 @@ export default function EditTimelineItemDialog({
   type,
   values,
   onChange,
-  allContacts,
 }: EditTimelineItemDialogProps) {
   const { t } = useTranslation();
+  const [contactOptions, setContactOptions] = useState<Contact[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [loadingContacts, setLoadingContacts] = useState(false);
+
+  useEffect(() => {
+    if (!open || type !== 'activity') return;
+    let stale = false;
+    const timeoutId = setTimeout(() => {
+      setLoadingContacts(true);
+      getContacts({ limit: 100, search: searchInput })
+        .then((response) => {
+          if (!stale) setContactOptions(response.contacts);
+        })
+        .catch((err: unknown) => {
+          console.error('Failed to fetch contacts:', err);
+        })
+        .finally(() => {
+          if (!stale) setLoadingContacts(false);
+        });
+    }, 300);
+    return () => {
+      stale = true;
+      clearTimeout(timeoutId);
+    };
+  }, [open, type, searchInput]);
 
   const handleSave = () => {
     onSave();
@@ -125,7 +151,7 @@ export default function EditTimelineItemDialog({
             />
             <Autocomplete
               multiple
-              options={allContacts}
+              options={contactOptions}
               getOptionLabel={(contact) =>
                 `${contact.firstname}${contact.nickname ? ` "${contact.nickname}"` : ''} ${contact.lastname}`
               }
@@ -133,11 +159,29 @@ export default function EditTimelineItemDialog({
               onChange={(_, newValue) => {
                 onChange({ ...values, activityContacts: newValue });
               }}
+              onInputChange={(_, value) => {
+                setSearchInput(value);
+              }}
+              inputValue={searchInput}
+              loading={loadingContacts}
+              filterOptions={(x) => x}
+              isOptionEqualToValue={(option, value) => option.ID === value.ID}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label={t('activityDialog.contacts')}
                   placeholder={t('activityDialog.selectContacts')}
+                  slotProps={{
+                    input: {
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingContacts ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    },
+                  }}
                 />
               )}
               renderTags={(value, getTagProps) =>

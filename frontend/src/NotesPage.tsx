@@ -286,7 +286,6 @@ const NotesPage: React.FC = () => {
           type="note"
           values={editValues}
           onChange={setEditValues}
-          allContacts={[]}
         />
       )}
     </Box>

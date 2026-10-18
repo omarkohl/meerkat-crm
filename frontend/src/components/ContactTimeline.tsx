@@ -153,6 +153,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                   <IconButton
                     className="action-icon"
                     size="small"
+                    aria-label={t('contactDetail.edit')}
                     onClick={() => {
                       onEditItem(item.type as 'note' | 'activity', item.data as Note | Activity);
                     }}

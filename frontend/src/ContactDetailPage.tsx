@@ -157,7 +157,6 @@ export default function ContactDetailPage() {
   const {
     editingTimelineItem,
     editTimelineValues,
-    allContacts,
     handleStartEditTimelineItem,
     handleCancelEditTimelineItem,
     handleUpdateNote,
@@ -831,7 +830,6 @@ export default function ContactDetailPage() {
           type={editingTimelineItem.type}
           values={editTimelineValues}
           onChange={setEditTimelineValues}
-          allContacts={allContacts}
         />
       )}
 

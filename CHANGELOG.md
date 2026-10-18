@@ -11,6 +11,11 @@ of this fork (see [FORK.md](FORK.md)).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Editing an activity finds every contact** (#140): the contact field only offered some contacts
+  when you had many. It now searches all of them as you type.
+
 ### Security
 
 - **Docker images include current Alpine fixes**: published images now contain package security

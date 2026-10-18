@@ -4,10 +4,7 @@
       "count": 3
     },
     "@typescript-eslint/no-misused-promises": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
+      "count": 2
     },
     "@typescript-eslint/restrict-template-expressions": {
       "count": 1
@@ -73,7 +70,7 @@
       "count": 6
     },
     "@typescript-eslint/no-misused-promises": {
-      "count": 11
+      "count": 10
     },
     "@typescript-eslint/no-non-null-assertion": {
       "count": 6
@@ -143,9 +140,6 @@
     },
     "@typescript-eslint/no-misused-promises": {
       "count": 3
-    },
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
     }
   },
   "src/NotesPage.tsx": {
@@ -700,11 +694,6 @@
   "src/hooks/useRelationships.ts": {
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 2
-    }
-  },
-  "src/hooks/useTimelineEditing.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
     }
   },
   "src/hooks/useTrash.ts": {

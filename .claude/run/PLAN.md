@@ -66,9 +66,9 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
 
 ## Steps
 
-- [ ] 0. **Environment check** (no own commit; record in PROGRESS.md with step 1): `make precommit`
+- [x] 0. **Environment check** (no own commit; record in PROGRESS.md with step 1): `make precommit`
       green, whether `make test-e2e` runs. A failure that blocks every step goes under `## Blocked`.
-- [ ] 1. **Activity edit finds every contact (#140)** (`fix:`, `fixes #140`): server-side search in
+- [x] 1. **Activity edit finds every contact (#140)** (`fix:`, `fixes #140`): server-side search in
       `EditTimelineItemDialog` as settled above; remove `allContacts`. Tests: a Vitest test that the
       dialog offers a contact the API returns for the typed term; extend `e2e/activities.spec.ts`:
       edit an activity, add a second contact by typing its name, save, see both names. Changelog

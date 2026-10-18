@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { getContacts } from '../api/contacts';
 import { updateNote, deleteNote, Note } from '../api/notes';
 import { updateActivity, deleteActivity, Activity } from '../api/activities';
-import { handleError, handleFetchError, ErrorNotifier } from '../utils/errorHandler';
+import { handleError, ErrorNotifier } from '../utils/errorHandler';
 import { now } from '../utils/now';
 
 export function useTimelineEditing(
@@ -22,11 +21,8 @@ export function useTimelineEditing(
     activityDate?: string;
     activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
   }>({});
-  const [allContacts, setAllContacts] = useState<
-    { ID: number; firstname: string; lastname: string; nickname?: string }[]
-  >([]);
 
-  const handleStartEditTimelineItem = async (type: 'note' | 'activity', item: Note | Activity) => {
+  const handleStartEditTimelineItem = (type: 'note' | 'activity', item: Note | Activity) => {
     setEditingTimelineItem({ type, id: item.ID });
 
     if (type === 'note') {
@@ -37,16 +33,6 @@ export function useTimelineEditing(
       });
     } else {
       const activity = item as Activity;
-
-      // Fetch all contacts for the autocomplete if not already loaded
-      if (allContacts.length === 0) {
-        try {
-          const data = await getContacts({ page: 1, limit: 1000 });
-          setAllContacts(data.contacts || []);
-        } catch (err) {
-          handleFetchError(err, 'fetching contacts for autocomplete');
-        }
-      }
 
       setEditTimelineValues({
         activityTitle: activity.title || '',
@@ -122,7 +108,6 @@ export function useTimelineEditing(
   return {
     editingTimelineItem,
     editTimelineValues,
-    allContacts,
     handleStartEditTimelineItem,
     handleCancelEditTimelineItem,
     handleUpdateNote,

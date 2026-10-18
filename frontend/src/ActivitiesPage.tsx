@@ -17,7 +17,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useActivities } from './hooks/useActivities';
 import { useDebouncedValue } from './hooks/useDebounce';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
-import { Contact, getContacts } from './api/contacts';
+import { Contact } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import DateField from './components/DateField';
@@ -59,7 +59,6 @@ const ActivitiesPage: React.FC = () => {
     activityDate?: string;
     activityContacts?: Contact[];
   }>({});
-  const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
   const infoOpen = Boolean(infoAnchorEl);
   const infoPopoverId = infoOpen ? 'activities-info-popover' : undefined;
@@ -111,18 +110,8 @@ const ActivitiesPage: React.FC = () => {
     }
   };
 
-  const handleEditClick = async (activity: Activity) => {
+  const handleEditClick = (activity: Activity) => {
     setEditingActivity(activity);
-
-    // Fetch all contacts if not already loaded
-    if (allContacts.length === 0) {
-      try {
-        const data = await getContacts({ page: 1, limit: 1000 });
-        setAllContacts(data.contacts || []);
-      } catch (err) {
-        console.error('Failed to fetch contacts:', err);
-      }
-    }
 
     setEditValues({
       activityTitle: activity.title || '',
@@ -292,7 +281,12 @@ const ActivitiesPage: React.FC = () => {
                         className="edit-actions"
                         sx={{ opacity: 0, transition: 'opacity 0.2s', display: 'flex', gap: 1 }}
                       >
-                        <IconButton size="small" onClick={() => handleEditClick(activity)}>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            handleEditClick(activity);
+                          }}
+                        >
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Box>
@@ -350,7 +344,6 @@ const ActivitiesPage: React.FC = () => {
           type="activity"
           values={editValues}
           onChange={setEditValues}
-          allContacts={allContacts}
         />
       )}
     </Box>

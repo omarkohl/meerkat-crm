@@ -25,7 +25,7 @@ import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import { useGraph } from './hooks/useGraph';
 import { GraphNode } from './types/graph';
 import { Activity, getActivity, updateActivity, deleteActivity } from './api/activities';
-import { Contact, getContacts } from './api/contacts';
+import { Contact } from './api/contacts';
 import { NetworkFilters, loadNetworkFilters, saveNetworkFilters } from './networkFilters';
 import { now } from './utils/now';
 
@@ -49,7 +49,6 @@ export default function NetworkPage() {
     activityDate?: string;
     activityContacts?: Contact[];
   }>({});
-  const [allContacts, setAllContacts] = useState<Contact[]>([]);
 
   const updateFilters = useCallback((patch: Partial<NetworkFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -115,10 +114,6 @@ export default function NetworkPage() {
     try {
       const activity = await getActivity(id);
       setEditingActivity(activity);
-      if (allContacts.length === 0) {
-        const contactsResponse = await getContacts({ page: 1, limit: 1000 });
-        setAllContacts(contactsResponse.contacts || []);
-      }
       setEditValues({
         activityTitle: activity.title || '',
         activityDescription: activity.description || '',
@@ -316,7 +311,6 @@ export default function NetworkPage() {
           type="activity"
           values={editValues}
           onChange={setEditValues}
-          allContacts={allContacts}
         />
       )}
     </Box>
