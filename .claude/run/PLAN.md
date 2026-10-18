@@ -73,7 +73,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
       dialog offers a contact the API returns for the typed term; extend `e2e/activities.spec.ts`:
       edit an activity, add a second contact by typing its name, save, see both names. Changelog
       `Fixed`.
-- [ ] 2. **Coverage audit (#107)** (`chore:`, `issue #107`): run `make test-coverage`, read the
+- [x] 2. **Coverage audit (#107)** (`chore:`, `issue #107`): run `make test-coverage`, read the
       per-package and per-function numbers and the test files per area of #107. Write
       `## Coverage audit (#107)` in PROGRESS.md: per checkbox the status, the gaps (user workflows
       that no test would catch), and which of steps 3-10 covers each gap. Known low spots to check
