@@ -88,7 +88,7 @@ Read first: `.claude/AUTONOMOUS-RUNS.md`, `AGENTS.md`, `docs/development/*.md`,
       HTTP handler: `.well-known/carddav` redirect, principal, address-book home set, address-book
       list; Basic auth with password, with API token, wrong password, and one user who asks for the
       address book of another user.
-- [ ] 4. **Tests: CardDAV server writes (#107)**: PUT create and update, `If-Match` /
+- [x] 4. **Tests: CardDAV server writes (#107)**: PUT create and update, `If-Match` /
       `If-None-Match` conflicts (412), DELETE (contact goes to trash and leaves the address book), a
       vCard with a photo. Check the result through GET/REPORT or the REST API.
 - [ ] 5. **Tests: CardDAV client sync (#107)**: discovery (well-known, probe, errors the user sees),

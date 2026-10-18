@@ -87,6 +87,10 @@ Migration 25.
 **ICS feed.** A private URL that calendar apps subscribe to for birthdays and reminders. The
 settings page shows when the feed was last fetched. Migrations 24 and 26.
 
+**CardDAV server.** Conditional writes work: a stale `If-Match`, an `If-None-Match` on an existing
+contact and an `If-Match` on a missing one answer `412`; ETags change on every save; a missing
+contact or another user's address book answers `404`.
+
 **Scheduled backups.** A daily tarball with a consistent SQLite snapshot and the photo files, kept
 `BACKUP_RETENTION_COUNT` times. Admins can create, download and delete backups in the UI. Migration
 31 (last-success time of jobs).

@@ -2,7 +2,7 @@
 
 ## Next step
 
-Step 4: CardDAV server writes tests (#107).
+Step 5: CardDAV client sync tests (#107).
 
 ## Stack
 
@@ -27,6 +27,12 @@ Local run: no branches, no PRs.
   limiter is reset after each test), another user's address book. Found and fixed: that request
   answered 500, now 404 (`fix:`, changelog `Fixed`). `BasicAuthMiddleware` 16% to 100%.
   `GO_COVERAGE_MIN` 71 to 82 (total 82.3%, a margin of 0.3 points). `make precommit` green.
+- Step 4: `server_test.go` now covers PUT create and update (ETag changes), `If-Match` and
+  `If-None-Match` conflicts (412), a missing contact (404), DELETE (leaves the address book, lands
+  in the trash), and a vCard with a photo. Four bugs fixed with it: ETags used whole seconds, so a
+  stale `If-Match` passed after two saves in one second (now nanoseconds); `If-None-Match` was
+  ignored; `If-Match` on a missing contact created it; GET/DELETE of a missing contact answered 500
+  (now 404). `make precommit` green.
 
 ## Decisions
 
@@ -135,8 +141,6 @@ function coverage of `Error()`/`Unwrap()` types, `main()` and logger set-up is l
 - The edit `IconButton` at `ActivitiesPage.tsx` (~line 284) has no accessible name.
 - The CardDAV test router copies `registerCardDAVRoutes` (`backend/routes/routes.go:150`) without
   `CardDAVRateLimitMiddleware`; a shared register function would stop drift.
-- `GetAddressObject` and `DeleteAddressObject` return a plain "contact not found" error, which
-  go-webdav probably answers with 500 instead of 404 (unverified). Left for step 4, which tests
-  those paths.
+- go-webdav does not pass `If-Match` on DELETE to the backend, so a stale DELETE still succeeds.
 
 ## Blocked

@@ -13,6 +13,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Fixed
 
+- **CardDAV clients no longer overwrite newer changes** (#107): a quick second save could replace
+  newer changes, "create only" saves replaced existing contacts, and missing contacts gave an error.
 - **Asking CardDAV for another user's address book answers "not found"**: it answered with a server
   error.
 - **Editing an activity finds every contact** (#140): the contact field only offered some contacts

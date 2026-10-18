@@ -171,7 +171,7 @@ func (b *Backend) GetAddressObject(ctx context.Context, urlPath string, req *car
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("contact not found")
+		return nil, webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
 	}
 
 	return b.contactToAddressObject(ctx, &contact), nil
@@ -239,11 +239,20 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		isNew = true
 	}
 
-	// Check ETag for conflict detection on updates (If-Match header)
-	if !isNew && opts != nil && opts.IfMatch.IsSet() {
-		matched, err := opts.IfMatch.MatchETag(contact.ETag)
-		if err != nil || !matched {
-			return nil, webdav.NewHTTPError(http.StatusPreconditionFailed, fmt.Errorf("ETag mismatch: resource has been modified"))
+	if opts != nil {
+		if isNew && opts.IfMatch.IsSet() {
+			return nil, webdav.NewHTTPError(http.StatusPreconditionFailed, fmt.Errorf("resource does not exist"))
+		}
+		if !isNew && opts.IfMatch.IsSet() {
+			matched, err := opts.IfMatch.MatchETag(contact.ETag)
+			if err != nil || !matched {
+				return nil, webdav.NewHTTPError(http.StatusPreconditionFailed, fmt.Errorf("ETag mismatch: resource has been modified"))
+			}
+		}
+		if !isNew && opts.IfNoneMatch.IsSet() {
+			if matched, _ := opts.IfNoneMatch.MatchETag(contact.ETag); matched || opts.IfNoneMatch.IsWildcard() {
+				return nil, webdav.NewHTTPError(http.StatusPreconditionFailed, fmt.Errorf("resource already exists"))
+			}
 		}
 	}
 
@@ -335,7 +344,7 @@ func (b *Backend) DeleteAddressObject(ctx context.Context, urlPath string) error
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("contact not found")
+		return webdav.NewHTTPError(http.StatusNotFound, fmt.Errorf("contact not found"))
 	}
 
 	// Soft delete, with the dependants, like deleting in the UI
