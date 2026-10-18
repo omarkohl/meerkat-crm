@@ -15,14 +15,14 @@ nav_order: 5
 ## Development Workflow
 
 1. Make your changes with tests.
-2. Run `make precommit` from the repository root: checks gofmt and Prettier formatting of all files,
-   Markdown and docs included (`make format` fixes it), `go vet`, `golangci-lint` (the binary must
-   be installed), ESLint, the Markdown link and changelog checks, `tsc`, the locale check
-   (`make i18n-check`: a key missing in any of en/de/it/es/fr, or not in `en`, fails; unused and
-   duplicate keys only warn), the architecture rules (`make arch`), the OpenAPI check, the use-case
-   check, the unit tests with coverage thresholds (Go, Vitest and the helper scripts) and the
-   Playwright E2E tests (`make test-e2e`, no Docker needed; narrow it with `ARGS=`, see
-   [testing](testing.md)). `make help` lists all targets.
+2. Run `make precommit` from the repository root: checks the commit subjects, gofmt and Prettier
+   formatting of all files, Markdown and docs included (`make format` fixes it), `go vet`,
+   `golangci-lint` (the binary must be installed), ESLint, the Markdown link and changelog checks,
+   `tsc`, the locale check (`make i18n-check`: a key missing in any of en/de/it/es/fr, or not in
+   `en`, fails; unused and duplicate keys only warn), the architecture rules (`make arch`), the
+   OpenAPI check, the use-case check, the unit tests with coverage thresholds (Go, Vitest and the
+   helper scripts) and the Playwright E2E tests (`make test-e2e`, no Docker needed; narrow it with
+   `ARGS=`, see [testing](testing.md)). `make help` lists all targets.
 3. Open a pull request against `omk`.
 
 Optional: [lefthook](https://lefthook.dev) can run gofmt, Prettier, ESLint and the locale check on
@@ -52,6 +52,8 @@ the check. TypeScript strict mode and MUI for all UI components. All user-facing
 Pull requests run these GitHub Actions workflows, and all must pass:
 
 - **Lint** (`lint.yml`): golangci-lint, ESLint, `tsc`, and a gofmt/Prettier check of all files.
+- **Commits** (`commits.yml`): the commit subjects; also reruns when the PR is edited, e.g.
+  retargeted.
 - **Unit tests** and **E2E tests** (`unit-tests.yml`, `e2e-tests.yml`).
 - **Security** (`security.yml`): `govulncheck` and `npm audit` for production dependencies; also
   runs weekly.
@@ -134,8 +136,10 @@ with the fix to the chapter where it bites.
   `- **Lead phrase** (#123): what changed.` at most about 40 words, no file or library names.
   `Internal` entries are rare and short. See [AGENTS.md](../../AGENTS.md) and
   [ADR 0016](../adr/0016-changelog-and-commit-rules.md).
-- CI checks the commit subjects of a pull request (`make check-commits RANGE=origin/omk..HEAD`
-  locally) and the changelog entries (`make changelog-check`, part of `make lint`).
+- CI checks the commit subjects of a pull request (`make check-commits` checks the last commit,
+  `RANGE=origin/omk..HEAD` a range; also part of `make precommit`; run it after `jj commit` too and
+  fix a subject with `jj describe`) and the changelog entries (`make changelog-check`, part of
+  `make lint`).
 
 ## Pull Requests
 

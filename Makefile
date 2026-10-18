@@ -53,7 +53,9 @@ test-scripts: ## Tests of the helper scripts in scripts/
 changelog-check: ## Check the [Unreleased] entries of CHANGELOG.md against the AGENTS.md rules
 	node scripts/check-changelog.mjs
 
-check-commits: ## Check commit subjects of a range (make check-commits RANGE=origin/omk..HEAD)
+RANGE ?= HEAD^!
+
+check-commits: ## Check commit subjects of RANGE (default: the last commit)
 	node scripts/check-commits.mjs $(RANGE)
 
 doc-links: ## Check repo-relative Markdown links and anchors (offline)
@@ -120,7 +122,7 @@ arch: install ## Architecture rules: Go depguard layering, frontend dependency-c
 	cd backend && golangci-lint run --enable-only depguard
 	node scripts/arch-frontend.mjs
 
-precommit: format-check lint typecheck i18n-check arch openapi-check test-scripts use-cases test-coverage test-e2e ## All checks, including E2E
+precommit: check-commits format-check lint typecheck i18n-check arch openapi-check test-scripts use-cases test-coverage test-e2e ## All checks, including E2E
 
 build: install ## Build backend binary and frontend bundle
 	cd backend && go build -o meerkat .
