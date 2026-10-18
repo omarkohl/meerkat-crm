@@ -2,7 +2,7 @@
 
 ## Next step
 
-13i3 (email outbox delivery engine).
+13j (import and export).
 
 ## Stack
 
@@ -266,6 +266,8 @@
   tests on real SQLite with the fake clock (own-data mails, not-due/completed/sent/not-by-mail,
   reminder time zone, birthday-only mail, no channel keeps reminders, no address, webhooks) plus
   domain and wording tests. `make precommit` green.
+- Step 13i3: no code change. The e-mail outbox engine stays in `services` (see Decisions). Step 13i
+  is done. `make precommit` green.
 
 ## Decisions
 
@@ -567,6 +569,15 @@
   event. `main.go` builds its own `reminders` module for the job (the routes' modules are built
   after the scheduler starts); the module has no state, so the two instances are equivalent. Marking
   a reminder mailed now updates `email_sent` and `last_sent` only, instead of saving the whole row.
+- 13i3, **the e-mail outbox is not made a module**. It has no HTTP surface, and it is one half of a
+  shared delivery protocol: the webhook delivery engine (`services`, used by every module's event
+  adapter and the scheduler) uses the same attempts, backoff, claim lock and retention constants
+  (`webhook_service.go`), the same `OutboxDead` metric and the same gauges
+  (`RegisterOutboxMetrics`), and password reset queues mail from `services` too. Moving only the
+  e-mail half would copy the policy or make `services` import a module (a cycle). Its callers
+  already reach it through ports (the users `ResetMail` adapter and the reminders mail adapter), so
+  the modules do not depend on it directly. If the outbox ever gets an API (for example an admin
+  view of dead mail), extract one `outbox` package for both kinds then. Review item.
 
 ## For review
 

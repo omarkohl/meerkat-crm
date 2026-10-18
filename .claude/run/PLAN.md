@@ -148,7 +148,8 @@ Read first: `.claude/plans/engineering-principles-reference.md`, `.claude/AUTONO
   - [ ] 13i. webhooks and email outbox (incl. the daily reminder e-mail job; split, see PROGRESS):
     - [x] 13i1. webhook management endpoints (list, create, get, update, delete, test, deliveries)
     - [x] 13i2. daily reminder e-mail job (into the reminders module)
-    - [ ] 13i3. email outbox delivery engine
+    - [x] 13i3. email outbox delivery engine: stays in `services` (decision in PROGRESS, no code
+          change)
   - [ ] 13j. import (CSV, VCF, Monica) and export
   - [ ] 13k. CardDAV sync settings and contact/calendar sync (the CardDAV protocol endpoints stay
         plain Gin: they are not JSON)
