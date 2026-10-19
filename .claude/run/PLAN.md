@@ -9,7 +9,7 @@ step: test first, own commit, `make precommit` green.
       `.claude/plans/coverage-and-search-summary.md`, in the parent of the commit that deletes it.
 - [ ] https://github.com/omarkohl/meerkat-crm/issues/109 (merge contacts). Settle first: merge
       dialog and conflict UI, removal from synced CardDAV devices, undo or confirmation, API shape.
-- [ ] Birthday mail sent mark: store the last-sent date per user (migration), so a restart does not
+- [x] Birthday mail sent mark: store the last-sent date per user (migration), so a restart does not
       send it again.
 - [ ] `contacts.add.requiredFields`: say only the first name is required (5 locales).
 - [ ] `AddContactDialog`: a contact added on its birthday gets its first reminder this year.

@@ -3,6 +3,7 @@ package reminders_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -215,4 +216,105 @@ func TestDigestDoesNotMailTheSameReminderTwice(t *testing.T) {
 	require.NoError(t, e.digest())
 	require.NoError(t, e.digest())
 	assert.Len(t, e.mails(t), 1)
+}
+
+// @006-US2
+func TestDigestMailsABirthdayOnlyOncePerDayEvenAfterARestart(t *testing.T) {
+	e := newDigestEnv(t, true)
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-10")
+
+	require.NoError(t, e.digest())
+	require.NoError(t, e.digest())
+	require.Len(t, e.mails(t), 1)
+
+	byMail := e.byMail(t, e.a.ID, e.contact(t, e.a.ID, "Jane", "", ""), "added later", now.Add(-time.Minute))
+	require.NoError(t, e.digest())
+	mails := e.mails(t)
+	require.Len(t, mails, 2)
+	assert.Contains(t, mails[1].HTML, "added later")
+	assert.NotContains(t, mails[1].HTML, "Ada Lovelace")
+	var r models.Reminder
+	require.NoError(t, e.db.First(&r, byMail.ID).Error)
+	assert.True(t, r.EmailSent)
+
+	e.clk = clock.NewFake(now.AddDate(1, 0, 0))
+	require.NoError(t, e.digest())
+	assert.Len(t, e.mails(t), 3, "the next year's birthday is mailed again")
+}
+
+// @006-US2
+func TestDigestKeepsTheBirthdayForLaterWhenNothingCouldBeMailed(t *testing.T) {
+	e := newDigestEnv(t, false)
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-10")
+	require.NoError(t, e.digest())
+	assert.Empty(t, e.mails(t))
+
+	e.cfg.UseResend, e.cfg.ResendAPIKey, e.cfg.ResendFromEmail = true, "key", "noreply@example.com"
+	require.NoError(t, e.digest())
+	assert.Len(t, e.mails(t), 1)
+}
+
+// @006-US2
+func TestDigestMailsAnotherUsersBirthdayAfterTheFirstUserWasMarked(t *testing.T) {
+	e := newDigestEnv(t, true)
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-10")
+	require.NoError(t, e.digest())
+	e.contact(t, e.b.ID, "Grace", "Hopper", "1906-03-10")
+
+	require.NoError(t, e.digest())
+
+	mails := e.mails(t)
+	require.Len(t, mails, 2)
+	assert.Equal(t, "b@example.com", mails[1].ToAddr)
+	assert.Contains(t, mails[1].HTML, "Grace Hopper")
+}
+
+// @006-US2
+func TestDigestCountsTheBirthdayDayInTheReminderTimezone(t *testing.T) {
+	e := newDigestEnv(t, true)
+	e.cfg.ReminderTimezone = "Pacific/Auckland"
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-11")
+
+	require.NoError(t, e.digest())
+	require.NoError(t, e.digest())
+
+	assert.Len(t, e.mails(t), 1)
+	var u models.User
+	require.NoError(t, e.db.First(&u, e.a.ID).Error)
+	assert.Equal(t, "2026-03-11", u.BirthdayMailedOn)
+}
+
+// @006-US2
+func TestDigestDoesNotRememberABirthdayForAUserWithoutAnAddress(t *testing.T) {
+	e := newDigestEnv(t, true)
+	require.NoError(t, e.db.Model(&e.a).Update("email", "").Error)
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-10")
+
+	require.NoError(t, e.digest())
+
+	assert.Empty(t, e.mails(t))
+	var u models.User
+	require.NoError(t, e.db.First(&u, e.a.ID).Error)
+	assert.Empty(t, u.BirthdayMailedOn)
+}
+
+// @006-US2
+func TestDigestFiresTheBirthdayWebhookOnlyOncePerDay(t *testing.T) {
+	var hits atomic.Int32
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+	e := newDigestEnv(t, true)
+	require.NoError(t, e.db.Create(&models.Webhook{UserID: e.a.ID, Name: "h", URL: target.URL, Secret: "s", IsActive: true,
+		Events: []string{"birthday.occurred"}}).Error)
+	e.contact(t, e.a.ID, "Ada", "Lovelace", "1815-03-10")
+
+	require.NoError(t, e.digest())
+	require.Eventually(t, func() bool { return hits.Load() == 1 }, 5*time.Second, 20*time.Millisecond)
+	require.NoError(t, e.digest())
+	time.Sleep(300 * time.Millisecond)
+
+	assert.EqualValues(t, 1, hits.Load())
 }

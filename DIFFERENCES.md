@@ -13,7 +13,7 @@ Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000033.** No upstream migration is changed. Each has a down migration
+- **New migrations 000024 to 000035.** No upstream migration is changed. Each has a down migration
   and a round-trip test. 000030 adds a column for thumbnail files and copies old thumbnails into
   files at startup; the old column stays.
 - **Whole-repo reformat.** Go (`gofmt`), TypeScript, JSON, YAML and Markdown (wrapped at 100
@@ -50,6 +50,7 @@ an open pull request. "Separable" means it can be taken without the other rows.
 | Contacts      | Trash                                  | M    | 25        | yes             | not proposed                                                                                                                             |
 | Contacts      | Merge duplicate contacts               | S    | –         | needs trash     | not proposed                                                                                                                             |
 | Calendar      | Subscribable ICS feed                  | M    | 24, 26    | yes             | not proposed                                                                                                                             |
+| Reminders     | Birthday mail once a day               | S    | 35        | yes             | not proposed                                                                                                                             |
 | Operations    | Scheduled backups                      | M    | 31        | yes             | not proposed                                                                                                                             |
 | Search        | Full-text search (FTS5)                | M    | 29        | yes             | not proposed                                                                                                                             |
 | Import        | Preview filter, sort, bulk set         | M    | –         | yes             | not proposed                                                                                                                             |
@@ -95,6 +96,9 @@ settings page shows when the feed was last fetched. Migrations 24 and 26.
 **CardDAV server.** Conditional writes work: a stale `If-Match`, an `If-None-Match` on an existing
 contact and an `If-Match` on a missing one answer `412`; ETags change on every save; a missing
 contact or another user's address book answers `404`.
+
+**Birthday mail.** The day of the last birthday mail is stored per user, so a restart on a birthday
+does not send it again. Migration 35.
 
 **Scheduled backups.** A daily tarball with a consistent SQLite snapshot and the photo files, kept
 `BACKUP_RETENTION_COUNT` times. Admins can create, download and delete backups in the UI. Migration

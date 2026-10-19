@@ -3,10 +3,11 @@ package domain
 import "time"
 
 type Recipient struct {
-	ID         UserID
-	Email      string
-	Language   string
-	DateFormat string
+	ID               UserID
+	Email            string
+	Language         string
+	DateFormat       string
+	BirthdayMailedOn string
 }
 
 type DueReminder struct {

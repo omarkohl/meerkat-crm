@@ -63,7 +63,7 @@ func (d *Digest) Recipients(ctx context.Context, ids []domain.UserID) ([]domain.
 	}
 	out := make([]domain.Recipient, len(users))
 	for i, u := range users {
-		out[i] = domain.Recipient{ID: domain.UserID(u.ID), Email: u.Email, Language: u.Language, DateFormat: u.DateFormat}
+		out[i] = domain.Recipient{ID: domain.UserID(u.ID), Email: u.Email, Language: u.Language, DateFormat: u.DateFormat, BirthdayMailedOn: u.BirthdayMailedOn}
 	}
 	return out, nil
 }
@@ -83,4 +83,9 @@ func (d *Digest) Birthdays(ctx context.Context, user domain.UserID, now time.Tim
 func (d *Digest) MarkEmailed(ctx context.Context, user domain.UserID, id domain.ReminderID, at time.Time) error {
 	return d.db.WithContext(ctx).Model(&models.Reminder{}).Where("id = ? AND user_id = ?", uint(id), uint(user)).
 		Updates(map[string]any{"email_sent": true, "last_sent": at}).Error
+}
+
+func (d *Digest) MarkBirthdaysMailed(ctx context.Context, user domain.UserID, day string) error {
+	return d.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", uint(user)).
+		UpdateColumn("birthday_mail_sent_on", day).Error
 }

@@ -20,6 +20,7 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Fixed
 
+- **Birthday e-mail is sent once a day**: restarting the server on a birthday sent it again.
 - **Imports skip invalid rows and survive broken vCards** (#107): rows without a first name were
   still added, and one unreadable vCard in a file shifted every later card or crashed the import.
 - **CardDAV clients no longer overwrite newer changes** (#107): a quick second save could replace

@@ -27,4 +27,7 @@ type User struct {
 	TOTPSecret   string `gorm:"column:totp_secret;not null;default:''" json:"-"`
 	TOTPEnabled  bool   `gorm:"column:totp_enabled;not null;default:false" json:"-"`
 	TOTPLastStep int64  `gorm:"column:totp_last_step;not null;default:0" json:"-"`
+
+	// BirthdayMailedOn is the day (YYYY-MM-DD, in the reminder timezone) the birthday mail last went out.
+	BirthdayMailedOn string `gorm:"column:birthday_mail_sent_on;not null;default:''" json:"-"`
 }
