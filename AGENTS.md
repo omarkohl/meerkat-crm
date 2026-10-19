@@ -18,6 +18,8 @@ copy it.
   or removes from that difference (feature, migration, API, build, dependency, tooling) updates it
   in the same commit. Remove an entry when upstream has the change. It describes the current state:
   no history and no restating of the changelog.
+- A `CHANGELOG.md` entry for a change probably needs a `DIFFERENCES.md` change in the same commit,
+  unless there is a very good reason not to.
 
 ## Hard limits
 
