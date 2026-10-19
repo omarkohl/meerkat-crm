@@ -22,6 +22,7 @@ services:
       - PROFILE_PHOTO_DIR=/app/static/photos
       - FRONTEND_URL=http://localhost:7300
       - DISABLE_REGISTRATION=false
+      - API_RATE_LIMIT_BURST=2000
     volumes:
       - test-data:/app/data
       - test-photos:/app/static/photos

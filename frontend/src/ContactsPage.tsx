@@ -7,6 +7,7 @@ import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import AddContactDialog from './components/AddContactDialog';
 import ImportContactsDialog from './components/ImportContactsDialog';
+import MergeContactsDialog from './components/MergeContactsDialog';
 import {
   Box,
   Card,
@@ -22,9 +23,11 @@ import {
   Button,
   FormControlLabel,
   Switch,
+  Checkbox,
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import MergeIcon from '@mui/icons-material/CallMerge';
 import { ContactListSkeleton } from './components/LoadingSkeletons';
 import { thumbnailSrc } from './utils/thumbnail';
 
@@ -44,6 +47,8 @@ export default function ContactsPage() {
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
   const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const pageSize = 10;
 
   // While searching, the default order is the best match first (the server ranks when no
@@ -190,6 +195,18 @@ export default function ContactsPage() {
           label={t('contacts.showArchived')}
           sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
         />
+        {selectedIds.length >= 2 && (
+          <Button
+            variant="contained"
+            startIcon={<MergeIcon />}
+            onClick={() => {
+              setMergeOpen(true);
+            }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            {t('merge.button')} ({selectedIds.length})
+          </Button>
+        )}
         <Button
           variant="outlined"
           startIcon={<FileUploadIcon />}
@@ -277,6 +294,24 @@ export default function ContactsPage() {
                   },
                 }}
               >
+                <Checkbox
+                  checked={selectedIds.includes(contact.ID)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onChange={() => {
+                    setSelectedIds((ids) =>
+                      ids.includes(contact.ID) ? ids.filter((id) => id !== contact.ID) : [...ids, contact.ID],
+                    );
+                  }}
+                  slotProps={{
+                    input: {
+                      'aria-label': t('merge.selectContact', {
+                        name: [contact.firstname, contact.lastname].filter(Boolean).join(' '),
+                      }),
+                    },
+                  }}
+                />
                 <Avatar
                   src={thumbnailSrc(contact.photo_thumbnail)}
                   sx={{ width: 48, height: 48, mr: 1.5, bgcolor: 'primary.main' }}
@@ -348,6 +383,18 @@ export default function ContactsPage() {
         availableCircles={circles}
         customFieldNames={customFieldNames}
         enabledFields={enabledFields}
+      />
+      <MergeContactsDialog
+        open={mergeOpen}
+        onClose={() => {
+          setMergeOpen(false);
+        }}
+        contactIds={selectedIds}
+        onMerged={() => {
+          setMergeOpen(false);
+          setSelectedIds([]);
+          void refetch();
+        }}
       />
       <ImportContactsDialog
         open={importDialogOpen}

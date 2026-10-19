@@ -28,6 +28,8 @@ import ReminderDialog from './components/ReminderDialog';
 import ReminderList from './components/ReminderList';
 import EditTimelineItemDialog from './components/EditTimelineItemDialog';
 import ContactHeader from './components/ContactHeader';
+import MergePickerDialog from './components/MergePickerDialog';
+import MergeContactsDialog from './components/MergeContactsDialog';
 import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
 import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
@@ -90,6 +92,9 @@ export default function ContactDetailPage() {
   const [contact, setContact] = useState<ContactWithRelations | null>(null);
   const [profilePic, setProfilePic] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [mergePickerOpen, setMergePickerOpen] = useState(false);
+  const [mergeIds, setMergeIds] = useState<number[]>([]);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [validationError, setValidationError] = useState<string>('');
@@ -274,7 +279,7 @@ export default function ContactDetailPage() {
         URL.revokeObjectURL(currentBlobUrl);
       }
     };
-  }, [id, refreshReminders, refreshRelationships]);
+  }, [id, reloadKey, refreshReminders, refreshRelationships]);
 
   // Combine and sort notes, activities, and completions for timeline
   const timelineItems: Array<{
@@ -666,6 +671,37 @@ export default function ContactDetailPage() {
         onStayInTouch={contact.archived ? undefined : handleStayInTouch}
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
+        onMergeContact={() => {
+          setMergePickerOpen(true);
+        }}
+      />
+      {mergePickerOpen && (
+        <MergePickerDialog
+          open={mergePickerOpen}
+          onClose={() => {
+            setMergePickerOpen(false);
+          }}
+          contact={contact}
+          onPicked={(ids) => {
+            setMergePickerOpen(false);
+            setMergeIds(ids);
+          }}
+        />
+      )}
+      <MergeContactsDialog
+        open={mergeIds.length > 0}
+        onClose={() => {
+          setMergeIds([]);
+        }}
+        contactIds={mergeIds}
+        onMerged={(targetId) => {
+          setMergeIds([]);
+          if (String(targetId) === id) {
+            setReloadKey((k) => k + 1);
+          } else {
+            void navigate(`/contacts/${String(targetId)}`);
+          }
+        }}
       />
 
       {/* General Information and Timeline - Two Column Layout */}

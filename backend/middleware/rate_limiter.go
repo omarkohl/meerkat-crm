@@ -3,6 +3,8 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -229,6 +231,13 @@ func (i *IPRateLimiter) EntryCount() int {
 	return len(i.ips)
 }
 
+func apiBurst() int {
+	if n, err := strconv.Atoi(os.Getenv("API_RATE_LIMIT_BURST")); err == nil && n > 0 {
+		return n
+	}
+	return 500
+}
+
 // Global rate limiters for different use cases
 var (
 	// Rate limiter for authentication endpoints (login, register)
@@ -237,8 +246,8 @@ var (
 	authLimiter = NewIPRateLimiter(rate.Every(500*time.Millisecond), 50)
 
 	// General API rate limiter
-	// 100 requests per minute with burst of 500
-	apiLimiter = NewIPRateLimiter(rate.Every(600*time.Millisecond), 500)
+	// 100 requests per minute with a burst of API_RATE_LIMIT_BURST (default 500)
+	apiLimiter = NewIPRateLimiter(rate.Every(600*time.Millisecond), apiBurst())
 
 	// CardDAV rate limiter — higher burst to accommodate bulk sync from clients like vdirsyncer
 	// 10 requests per second sustained, burst of 2500 for initial address book sync

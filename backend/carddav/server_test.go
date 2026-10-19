@@ -306,3 +306,33 @@ func TestAVCardWithAPhotoGivesTheContactAPhoto(t *testing.T) {
 
 	assert.Contains(t, s.get("c-5").Body.String(), "PHOTO", "the client gets the profile picture back")
 }
+
+// @020-US1
+func TestATrashedContactLeavesTheAddressBookAndTheEditedOneGetsANewETagLeavesTheAddressBookAndTheTargetGetsANewETag(t *testing.T) {
+	s := newServer(t)
+	target := s.put("m-target", vcardBody("m-target", "Anna", "Smith"))
+	require.Equal(t, http.StatusCreated, target.Code)
+	require.Equal(t, http.StatusCreated, s.put("m-source", vcardBody("m-source", "Anna", "Jones", "TEL:+4930123")).Code)
+	before := s.addressBook()
+	require.Contains(t, before, "m-target")
+	require.Contains(t, before, "m-source")
+
+	var merged models.Contact
+	require.NoError(t, s.db.Where("vcard_uid = ?", "m-target").First(&merged).Error)
+	var source models.Contact
+	require.NoError(t, s.db.Where("vcard_uid = ?", "m-source").First(&source).Error)
+	merged.Phones = source.Phones
+	require.NoError(t, s.db.Save(&merged).Error)
+	require.NoError(t, s.db.Transaction(func(tx *gorm.DB) error {
+		return models.TrashContact(tx, s.alice.ID, source.ID)
+	}))
+
+	after := s.addressBook()
+	assert.Contains(t, after, "m-target")
+	assert.NotContains(t, after, "m-source")
+	assert.NotEqual(t, target.Header().Get("ETag"), s.get("m-target").Header().Get("ETag"))
+	assert.Equal(t, http.StatusNotFound, s.get("m-source").Code)
+	assert.Equal(t, http.StatusNotFound, s.do("DELETE", "/carddav/addressbooks/alice/contacts/m-source.vcf", "alice", alicePassword).Code)
+	assert.Equal(t, http.StatusPreconditionFailed, s.put("m-source", vcardBody("m-source", "Anna", "Revived"), "If-Match", `"old"`).Code, "a device update of a trashed contact is refused")
+	assert.NotContains(t, s.addressBook(), "m-source")
+}

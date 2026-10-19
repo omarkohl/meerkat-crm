@@ -28,6 +28,13 @@ permanently deletes all active reminders for that contact. Notes, activities and
 preserved. Archived contacts are still synced via CardDAV (as often you might have phone contacts
 that you want to keep but do not want them to show up in Meerkat CRM).
 
+**Merging** duplicates: select two or more contacts in the contact list and choose **Merge**, or use
+**Merge with…** on a contact. You pick the contact to keep and, for fields with different values,
+the value to use or your own. E-mail addresses, phone numbers, addresses, circles, links, social
+profiles, custom fields and the CardDAV note are combined, and activities, notes, reminders and
+relationships move to the kept contact. The other contacts go to the trash. A merge cannot be
+undone.
+
 **Deleting** a contact moves it to the **Trash** (sidebar). The contact keeps its notes, reminders,
 relationships, activity links and photo there, and **Restore** brings everything back. While in the
 trash the contact is hidden from lists, search, birthdays, the network graph, the calendar feed and

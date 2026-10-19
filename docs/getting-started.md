@@ -58,6 +58,7 @@ After adjusting the environment variables as needed you can run: `docker compose
 | `METRICS_TOKEN`            | Optional bearer token that scrapers must send to read the metrics                                                                                                                                                                    |
 | `METRICS_ADDR`             | Optional separate listen address for the metrics (for example `127.0.0.1:9090`); then `/metrics` is not served on the main port                                                                                                      |
 | `TRASH_RETENTION_DAYS`     | Number of days a deleted contact stays in the Trash before it is deleted permanently (checked daily). Values below 1 fall back to the default, `30`                                                                                  |
+| `API_RATE_LIMIT_BURST`     | Requests one IP address may send in a burst to the API before it is slowed to 100 per minute. Default is `500`; raise it for scripts that send many requests                                                                         |
 
 SSO is disabled unless all three of `OIDC_PROVIDER_URL`, `OIDC_CLIENT_ID`, and `OIDC_CLIENT_SECRET`
 are set.

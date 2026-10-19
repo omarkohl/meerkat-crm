@@ -130,6 +130,12 @@
   priority: low
   status: implemented
 
+- id: 004-US10
+  title: Merge duplicate contacts
+  actor: user
+  priority: medium
+  status: implemented
+
 - id: 005-US1
   title: Add a note to a contact
   actor: user

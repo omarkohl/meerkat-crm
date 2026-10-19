@@ -48,6 +48,7 @@ an open pull request. "Separable" means it can be taken without the other rows.
 | Users         | Two-factor login (TOTP)                | M    | 28        | yes             | not proposed                                                                                                                             |
 | Users         | Sessions and audit log                 | M    | 27        | yes             | not proposed                                                                                                                             |
 | Contacts      | Trash                                  | M    | 25        | yes             | not proposed                                                                                                                             |
+| Contacts      | Merge duplicate contacts               | S    | –         | needs trash     | not proposed                                                                                                                             |
 | Calendar      | Subscribable ICS feed                  | M    | 24, 26    | yes             | not proposed                                                                                                                             |
 | Operations    | Scheduled backups                      | M    | 31        | yes             | not proposed                                                                                                                             |
 | Search        | Full-text search (FTS5)                | M    | 29        | yes             | not proposed                                                                                                                             |
@@ -83,6 +84,10 @@ Migration 27.
 **Trash.** Deleted contacts go to a trash page where they can be restored or purged. Adds the
 `contact.restored` webhook and a purge marker so CardDAV does not bring a purged contact back.
 Migration 25.
+
+**Merge contacts.** Select two or more contacts in the list (or use "Merge with…" on a contact) to
+merge them into one. The browser does the work with the ordinary endpoints; there is no merge
+endpoint.
 
 **ICS feed.** A private URL that calendar apps subscribe to for birthdays and reminders. The
 settings page shows when the feed was last fetched. Migrations 24 and 26.

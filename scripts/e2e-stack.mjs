@@ -69,6 +69,7 @@ const backend = spawn(join(backendDir, 'meerkat'), [], {
     FRONTEND_URL: `http://localhost:${APP_PORT}`,
     DISABLE_REGISTRATION: 'false',
     COOKIE_SECURE: 'false',
+    API_RATE_LIMIT_BURST: '2000',
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'warn',
   },
 });

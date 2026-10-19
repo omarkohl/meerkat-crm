@@ -13,6 +13,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Added
 
+- **Merge duplicate contacts** (#109): select contacts in the list or use "Merge with…" on a
+  contact, resolve differing values and combine their data. The others go to the trash.
 - **Search contacts, notes and activities from the header** (#118): grouped results with the match
   marked and named, over every contact field, and a results page with a tab per group.
 
