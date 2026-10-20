@@ -94,7 +94,38 @@ Set these variables in `.env` when running over HTTPS:
 | `COOKIE_SECURE`      | `true`                                                                                                      |
 | `COOKIE_DOMAIN`      | Leave empty. Only set it (e.g. `.example.com`) if frontend and API live on different subdomains             |
 | `JWT_SECRET_KEY`     | Generate with `openssl rand -base64 32`                                                                     |
+| `ENCRYPTION_KEY`     | Generate with `openssl rand -base64 32` (see [Encryption key](#encryption-key))                             |
 | `BLOCK_PRIVATE_URLS` | `true` on any instance with more than one user (see [Private network access](#private-network-access-ssrf)) |
+
+## Encryption key
+
+`ENCRYPTION_KEY` encrypts the secrets that Meerkat stores in the database: two-factor secrets and
+recovery codes, and CardDAV and calendar passwords. Generate it with `openssl rand -base64 32`.
+Meerkat does not start if the value is not 32 random bytes in base64, or if it is the same as
+`JWT_SECRET_KEY`. The key is not in the database or in the backups, so a leaked backup does not show
+these secrets ([ADR 0018](adr/0018-encryption-key.md)).
+
+- **Keep it safe** with your `.env` and your backups, and do not change it. Without it, two-factor
+  login and the stored passwords are lost.
+- **Not set:** Meerkat starts and logs an error with the steps to set it, but two-factor login
+  cannot be turned on. A later version (about one year after this change) will not start without it.
+- **Missing or wrong key:** once the database has values encrypted with `ENCRYPTION_KEY`, Meerkat
+  does not start without that same key.
+- **Lost key:** set a new `ENCRYPTION_KEY` and `ENCRYPTION_KEY_RESET=true`, start Meerkat once, then
+  remove `ENCRYPTION_KEY_RESET`. This turns off two-factor login for all users and deletes the
+  stored CardDAV and calendar passwords; users must set them up again. With the right key,
+  `ENCRYPTION_KEY_RESET` does nothing.
+
+To set it on an existing instance:
+
+1. Run `openssl rand -base64 32` and set the output as `ENCRYPTION_KEY` in `.env`. Do not change
+   `JWT_SECRET_KEY`: Meerkat needs it once to read the stored passwords.
+2. Restart Meerkat. It encrypts the stored CardDAV and calendar passwords again with the new key and
+   logs how many.
+
+After that, `JWT_SECRET_KEY` only signs logins. You do not have to change it; if you do, everyone is
+signed out. Two-factor login that was set up before this version is turned off by the upgrade; users
+can turn it on again.
 
 ## Private network access (SSRF)
 
@@ -285,10 +316,9 @@ it.
 - **Brute force:** wrong codes, and wrong passwords in the two-factor dialogs, count toward the same
   lockout as wrong passwords (per account, with growing delays); a code is accepted once, so a code
   that was just used (or sniffed) cannot be replayed.
-- **Secrets at rest:** the secret is encrypted with the key derived from `JWT_SECRET_KEY`, like the
-  CardDAV and calendar credentials. If you change `JWT_SECRET_KEY`, secrets cannot be decrypted and
-  users with two-factor are locked out until an admin resets them (the recovery codes are stored as
-  HMACs keyed from the same secret, so they stop working too).
+- **Secrets at rest:** the secret is encrypted with [`ENCRYPTION_KEY`](#encryption-key) and the
+  recovery codes are stored as HMACs keyed from it. Two-factor login cannot be turned on until it is
+  set.
 - **Not affected:** single sign-on (the identity provider is the second factor), API tokens and the
   calendar feed.
 
@@ -399,11 +429,11 @@ copy all three files.
 
 ### Restoring a backup
 
-**Keep `JWT_SECRET_KEY` and your `.env` file safe alongside the backups.** The `.env` file is not in
-the archive. CardDAV and CalDAV passwords in the database are encrypted with a key derived from
-`JWT_SECRET_KEY`, so a restore needs the same `JWT_SECRET_KEY`; with a different one those
-connections must be set up again. Without your `.env` you also lose the other settings (SMTP, OIDC
-and so on).
+**Keep `ENCRYPTION_KEY` and your `.env` file safe alongside the backups.** The `.env` file is not in
+the archive. Two-factor secrets and CardDAV and CalDAV passwords in the database are encrypted with
+[`ENCRYPTION_KEY`](#encryption-key), so a restore needs the same key; Meerkat does not start with
+another one. A backup from before `ENCRYPTION_KEY` needs the `JWT_SECRET_KEY` of that time to read
+its passwords. Without your `.env` you also lose the other settings (SMTP, OIDC and so on).
 
 1. Stop Meerkat (`docker compose down`).
 2. Unpack the archive in an empty directory: `tar -xzf meerkat-backup-YYYYMMDD-HHMMSS.tar.gz`.

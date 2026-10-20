@@ -46,6 +46,7 @@ type TwoFactorStatusOutput struct {
 		Enabled                bool `json:"enabled"`
 		RecoveryCodesRemaining int  `json:"recovery_codes_remaining"`
 		Available              bool `json:"available" doc:"False for accounts without a password (single sign-on only)"`
+		ServerReady            bool `json:"server_ready" doc:"False when the server has no ENCRYPTION_KEY: two-factor cannot be turned on"`
 	}
 }
 
@@ -129,7 +130,7 @@ func (h *handlers) twoFactorStatus(ctx context.Context, _ *struct{}) (*TwoFactor
 		return nil, accountError(err)
 	}
 	out := &TwoFactorStatusOutput{}
-	out.Body.Enabled, out.Body.RecoveryCodesRemaining, out.Body.Available = st.Enabled, st.CodesLeft, st.Available
+	out.Body.Enabled, out.Body.RecoveryCodesRemaining, out.Body.Available, out.Body.ServerReady = st.Enabled, st.CodesLeft, st.Available, st.ServerReady
 	return out, nil
 }
 
@@ -211,6 +212,8 @@ func accountError(err error) error {
 		return apperrors.ErrConflict("Two-factor authentication is already enabled")
 	case errors.Is(err, domain.ErrTwoFactorNotAvailable):
 		return apperrors.ErrInvalidInput("", "Two-factor authentication is not available for single sign-on accounts")
+	case errors.Is(err, domain.ErrTwoFactorNoServerKey):
+		return apperrors.ErrBusinessLogic("Two-factor authentication needs ENCRYPTION_KEY on the server. Ask your administrator to set it.")
 	case errors.Is(err, domain.ErrTwoFactorNotEnabled):
 		return apperrors.ErrInvalidInput("", "Two-factor authentication is not enabled")
 	case errors.Is(err, domain.ErrWrongPassword):

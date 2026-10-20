@@ -2753,6 +2753,8 @@ export interface components {
             enabled: boolean;
             /** Format: int64 */
             recovery_codes_remaining: number;
+            /** @description False when the server has no ENCRYPTION_KEY: two-factor cannot be turned on */
+            server_ready: boolean;
         };
         URLInput: {
             type?: string;

@@ -141,9 +141,9 @@ func syncKind(err error) domain.SyncKind {
 	return domain.SyncFailed
 }
 
-type Secrets struct{ key string }
+type Secrets struct{ key services.CredentialKeys }
 
-func NewSecrets(key string) *Secrets { return &Secrets{key: key} }
+func NewSecrets(cfg config.Config) *Secrets { return &Secrets{key: services.CredentialKeysOf(cfg)} }
 
 var _ app.Secrets = (*Secrets)(nil)
 

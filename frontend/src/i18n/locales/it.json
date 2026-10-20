@@ -1109,6 +1109,7 @@
     "statusOff": "L'autenticazione a due fattori è disattivata.",
     "recoveryRemaining": "Codici di recupero non usati: {{remaining}}",
     "enable": "Attiva",
+    "needsServerKey": "L'autenticazione a due fattori non può ancora essere attivata: l'amministratore deve impostare ENCRYPTION_KEY sul server.",
     "disable": "Disattiva",
     "newCodes": "Nuovi codici di recupero",
     "setup": {

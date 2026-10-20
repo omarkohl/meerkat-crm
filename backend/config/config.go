@@ -43,6 +43,8 @@ type Config struct {
 	SMTPUseTLS               bool // implicit TLS (e.g. port 465); otherwise STARTTLS is used when available
 	JWTSecretKey             string
 	JWTExpiryHours           int
+	EncryptionKey            string // ENCRYPTION_KEY: base64 of 32 random bytes for the secrets stored in the database
+	EncryptionKeyReset       bool   // ENCRYPTION_KEY_RESET: a new key replaces a lost one; what the lost key encrypted is deleted
 	ReadTimeout              int    // HTTP server read timeout in seconds
 	WriteTimeout             int    // HTTP server write timeout in seconds
 	IdleTimeout              int    // HTTP server idle timeout in seconds
@@ -100,6 +102,8 @@ func LoadConfig() *Config {
 		SMTPUseTLS:              getBoolEnv("SMTP_USE_TLS", false),
 		JWTSecretKey:            getEnv("JWT_SECRET_KEY", ""),
 		JWTExpiryHours:          jwtExpiryHours,
+		EncryptionKey:           getEnv("ENCRYPTION_KEY", ""),
+		EncryptionKeyReset:      getBoolEnv("ENCRYPTION_KEY_RESET", false),
 		TrustedProxies:          getProxies(getEnv("TRUSTED_PROXIES", "")),
 		ReadTimeout:             readTimeout,
 		WriteTimeout:            writeTimeout,
@@ -290,6 +294,10 @@ func (c *Config) Validate() []ValidationError {
 			Field:   "JWT_SECRET_KEY",
 			Message: fmt.Sprintf("JWT secret key is too short (%d characters). Must be at least 32 characters for security.", len(c.JWTSecretKey)),
 		})
+	}
+
+	if msg := c.encryptionKeyProblem(); msg != "" {
+		errors = append(errors, ValidationError{Field: "ENCRYPTION_KEY", Message: msg})
 	}
 
 	if c.FakeNow != "" {

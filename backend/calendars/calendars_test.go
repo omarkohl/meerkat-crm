@@ -25,7 +25,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const secret = "unit-test-secret"
+var testConfig = config.Config{JWTSecretKey: "unit-test-secret", EncryptionKey: "+WawZKvzbWZ2/2AjCy61aKmgjZub4jqXuGWNXY4eJUc="}
 
 var now = time.Date(2026, 3, 10, 15, 30, 0, 0, time.UTC)
 
@@ -50,7 +50,7 @@ func newEnv(t *testing.T) *env {
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
-	module := calendars.New(calendars.Deps{DB: db, Config: &config.Config{JWTSecretKey: secret}})
+	module := calendars.New(calendars.Deps{DB: db, Config: &testConfig})
 	mount := func(userID uint) *gin.Engine {
 		r := gin.New()
 		r.Use(middleware.ClockMiddleware(clock.NewFake(now)))
@@ -103,7 +103,7 @@ func TestPasswordIsEncryptedAtRestAndNeverReturned(t *testing.T) {
 	var sub models.CalendarSubscription
 	require.NoError(t, e.db.Where("user_id = ?", e.a.ID).First(&sub).Error)
 	assert.NotContains(t, sub.PasswordEncrypted, "hunter2")
-	plain, err := services.DecryptCredential(secret, sub.PasswordEncrypted)
+	plain, err := services.DecryptCredential(services.CredentialKeysOf(testConfig), sub.PasswordEncrypted)
 	require.NoError(t, err)
 	assert.Equal(t, "hunter2", plain)
 	assert.Equal(t, 5, sub.PastDays)
@@ -179,7 +179,7 @@ func TestAStoredPasswordDoesNotFollowAUrlChangeToAnotherServer(t *testing.T) {
 		assert.NotEmpty(t, stored().PasswordEncrypted)
 	}
 	require.Equal(t, http.StatusOK, do(e.asA, "PUT", idPath(id, ""), map[string]any{"name": "Work", "url": "https://other.example.net/b.ics", "username": "u", "password": "new"}).Code)
-	plain, err := services.DecryptCredential(secret, stored().PasswordEncrypted)
+	plain, err := services.DecryptCredential(services.CredentialKeysOf(testConfig), stored().PasswordEncrypted)
 	require.NoError(t, err)
 	assert.Equal(t, "new", plain)
 	require.Equal(t, http.StatusOK, do(e.asA, "PUT", idPath(id, ""), map[string]any{"name": "Work", "url": "http://third.example.net/b.ics", "username": "u", "clear_password": true}).Code)
@@ -267,7 +267,7 @@ func TestSyncRefusesPrivateAddressesWhenBlocked(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(ics)) }))
 	defer server.Close()
 	e := newEnv(t)
-	blocked := calendars.New(calendars.Deps{DB: e.db, Config: &config.Config{JWTSecretKey: secret, CalDAVBlockPrivateURLs: true}})
+	blocked := calendars.New(calendars.Deps{DB: e.db, Config: &config.Config{JWTSecretKey: testConfig.JWTSecretKey, EncryptionKey: testConfig.EncryptionKey, CalDAVBlockPrivateURLs: true}})
 	r := gin.New()
 	r.Use(middleware.ClockMiddleware(clock.NewFake(now)), func(c *gin.Context) { c.Set("userID", e.a.ID); c.Next() })
 	blocked.Register(api.New(r.Group(""), r), r.Group(""))

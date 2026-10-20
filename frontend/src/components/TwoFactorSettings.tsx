@@ -277,10 +277,12 @@ export default function TwoFactorSettings() {
                     {t('twoFactor.disable')}
                   </Button>
                 </>
-              ) : (
+              ) : status.server_ready ? (
                 <Button size="small" variant="contained" onClick={openSetup}>
                   {t('twoFactor.enable')}
                 </Button>
+              ) : (
+                <Alert severity="info">{t('twoFactor.needsServerKey')}</Alert>
               )}
             </Stack>
           </Stack>

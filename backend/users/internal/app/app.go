@@ -63,6 +63,8 @@ type Accounts interface {
 
 // SecondFactor is the authenticator-app (TOTP) secret and recovery codes of the actor.
 type SecondFactor interface {
+	// ServerReady reports whether the server has the key to store second factors.
+	ServerReady() bool
 	RecoveryCodesLeft(ctx context.Context, actor domain.UserID) (int, error)
 	// BeginSetup stores a pending secret and returns it with the URI for the QR code. It
 	// returns domain.ErrTwoFactorEnabled when two-factor is already on.

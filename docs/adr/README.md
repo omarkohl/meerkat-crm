@@ -28,5 +28,6 @@ supersede it.
 | [0015](0015-dependency-updates.md)          | Dependency updates                         | Accepted |
 | [0016](0016-changelog-and-commit-rules.md)  | Changelog and commit rules                 | Accepted |
 | [0017](0017-fetching-user-supplied-urls.md) | Fetching user-supplied image URLs          | Accepted |
+| [0018](0018-encryption-key.md)              | A separate encryption key                  | Accepted |
 
 New ADR: copy a recent one, take the next number, add a row here.

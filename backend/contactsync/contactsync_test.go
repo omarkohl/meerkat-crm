@@ -26,7 +26,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const secret = "unit-test-secret"
+var testConfig = config.Config{JWTSecretKey: "unit-test-secret", EncryptionKey: "+WawZKvzbWZ2/2AjCy61aKmgjZub4jqXuGWNXY4eJUc="}
 
 var now = time.Date(2026, 3, 10, 15, 30, 0, 0, time.UTC)
 
@@ -51,7 +51,7 @@ func newEnv(t *testing.T) *env {
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
-	module := contactsync.New(contactsync.Deps{DB: db, Config: &config.Config{JWTSecretKey: secret}})
+	module := contactsync.New(contactsync.Deps{DB: db, Config: &testConfig})
 	mount := func(userID uint) *gin.Engine {
 		r := gin.New()
 		r.Use(middleware.ClockMiddleware(clock.NewFake(now)))
@@ -109,7 +109,7 @@ func TestPasswordHandling(t *testing.T) {
 
 	conn := e.stored(t, e.a.ID)
 	assert.NotContains(t, conn.BaseURL, "inline")
-	plain, err := services.DecryptCredential(secret, conn.PasswordEncrypted)
+	plain, err := services.DecryptCredential(services.CredentialKeysOf(testConfig), conn.PasswordEncrypted)
 	require.NoError(t, err)
 	assert.Equal(t, "hunter2", plain)
 	assert.Equal(t, models.CardDAVDirectionTwoWay, conn.Direction)
@@ -232,7 +232,7 @@ func TestDiscoverRefusesBadAddressesAndPrivateOnes(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
 	defer server.Close()
-	blocked := contactsync.New(contactsync.Deps{DB: e.db, Config: &config.Config{JWTSecretKey: secret, CardDAVBlockPrivateURLs: true}})
+	blocked := contactsync.New(contactsync.Deps{DB: e.db, Config: &config.Config{JWTSecretKey: testConfig.JWTSecretKey, EncryptionKey: testConfig.EncryptionKey, CardDAVBlockPrivateURLs: true}})
 	r := gin.New()
 	r.Use(middleware.ClockMiddleware(clock.NewFake(now)), func(c *gin.Context) { c.Set("userID", e.a.ID); c.Next() })
 	blocked.Register(api.New(r.Group(""), r), r.Group(""))

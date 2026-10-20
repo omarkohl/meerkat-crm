@@ -39,7 +39,7 @@ func setupCalendarSyncTestDB(t *testing.T) *gorm.DB {
 }
 
 func calendarTestConfig() config.Config {
-	return config.Config{JWTSecretKey: "test-jwt-secret-key-with-32-chars!!"}
+	return config.Config{JWTSecretKey: testJWTSecret, EncryptionKey: base64.StdEncoding.EncodeToString(testEncryptionKey(1))}
 }
 
 func createCalendarTestUser(t *testing.T, db *gorm.DB) models.User {
@@ -51,7 +51,7 @@ func createCalendarTestUser(t *testing.T, db *gorm.DB) models.User {
 
 func newTestSubscription(t *testing.T, db *gorm.DB, cfg config.Config, userID uint, url, username, password string) *models.CalendarSubscription {
 	t.Helper()
-	encrypted, err := EncryptCredential(cfg.JWTSecretKey, password)
+	encrypted, err := EncryptCredential(CredentialKeysOf(cfg), password)
 	require.NoError(t, err)
 	sub := models.CalendarSubscription{
 		UserID:            userID,
@@ -498,41 +498,6 @@ func TestNormalizeCalendarURL(t *testing.T) {
 
 	_, err = NormalizeCalendarURL("https:///missing-host.ics")
 	assert.ErrorIs(t, err, ErrCalendarInvalidURL)
-}
-
-func TestCredentialCryptoRoundTrip(t *testing.T) {
-	secret := "test-jwt-secret-key-with-32-chars!!"
-
-	encrypted, err := EncryptCredential(secret, "hunter2-🔒")
-	require.NoError(t, err)
-	assert.NotContains(t, encrypted, "hunter2", "ciphertext must not contain the plaintext")
-
-	decrypted, err := DecryptCredential(secret, encrypted)
-	require.NoError(t, err)
-	assert.Equal(t, "hunter2-🔒", decrypted)
-
-	// Empty passwords stay empty.
-	encrypted, err = EncryptCredential(secret, "")
-	require.NoError(t, err)
-	assert.Empty(t, encrypted)
-	decrypted, err = DecryptCredential(secret, "")
-	require.NoError(t, err)
-	assert.Empty(t, decrypted)
-
-	// A different key cannot decrypt.
-	_, err = DecryptCredential("another-secret-key-that-is-32-chars", mustEncrypt(t, secret, "value"))
-	assert.Error(t, err)
-
-	// Corrupted ciphertext fails cleanly.
-	_, err = DecryptCredential(secret, "not-base64!!")
-	assert.Error(t, err)
-}
-
-func mustEncrypt(t *testing.T, secret, value string) string {
-	t.Helper()
-	encrypted, err := EncryptCredential(secret, value)
-	require.NoError(t, err)
-	return encrypted
 }
 
 func TestSyncAllCalendarsRecordsErrorsPerSubscription(t *testing.T) {

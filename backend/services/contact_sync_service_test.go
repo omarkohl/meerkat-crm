@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	mcarddav "meerkat/carddav"
 	"meerkat/clock"
@@ -50,7 +51,7 @@ func setupContactSyncEnv(t *testing.T, direction string, remote *davRemote) *con
 	t.Helper()
 	env := &contactSyncEnv{
 		db:      newContactSyncDB(t),
-		cfg:     config.Config{JWTSecretKey: "test-jwt-secret-key-with-32-chars!!", ProfilePhotoDir: t.TempDir()},
+		cfg:     config.Config{JWTSecretKey: testJWTSecret, EncryptionKey: base64.StdEncoding.EncodeToString(testEncryptionKey(1)), ProfilePhotoDir: t.TempDir()},
 		remote:  remote,
 		service: NewContactSyncService(false),
 	}
@@ -66,7 +67,7 @@ func setupContactSyncEnv(t *testing.T, direction string, remote *davRemote) *con
 		Username:        remote.user,
 	}
 	if remote.pass != "" {
-		encrypted, err := EncryptCredential(env.cfg.JWTSecretKey, remote.pass)
+		encrypted, err := EncryptCredential(CredentialKeysOf(env.cfg), remote.pass)
 		require.NoError(t, err)
 		env.conn.PasswordEncrypted = encrypted
 	}

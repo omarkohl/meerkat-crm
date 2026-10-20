@@ -50,22 +50,37 @@ func TestTwoFactorStartsOffAndIsAvailableToAccountsWithAPassword(t *testing.T) {
 	e.withPassword(t, &e.a, oldPassword)
 	w := send(e.asA, http.MethodGet, "/users/me/2fa", "")
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true}`, w.Body.String())
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true,"server_ready":true}`, w.Body.String())
 
 	w = send(e.asB, http.MethodGet, "/users/me/2fa", "")
-	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true}`, w.Body.String())
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true,"server_ready":true}`, w.Body.String())
 }
 
 func TestSingleSignOnAccountsCannotEnrol(t *testing.T) {
 	e := newEnv(t)
 	require.NoError(t, e.db.Model(&e.a).Update("password", "").Error)
 
-	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":false}`, send(e.asA, http.MethodGet, "/users/me/2fa", "").Body.String())
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":false,"server_ready":true}`, send(e.asA, http.MethodGet, "/users/me/2fa", "").Body.String())
 	w := send(e.asA, http.MethodPost, "/users/me/2fa/setup", "")
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Two-factor authentication is not available for single sign-on accounts")
 	w = send(e.asA, http.MethodPost, "/users/me/2fa/enable", `{"password":"anything","code":"123456"}`)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestTwoFactorCannotBeTurnedOnWithoutTheServersEncryptionKey(t *testing.T) {
+	e := newEnv(t)
+	e.withPassword(t, &e.a, oldPassword)
+	e.cfg.EncryptionKey = ""
+	r := e.engine(&e.a, nil)
+
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true,"server_ready":false}`, send(r, http.MethodGet, "/users/me/2fa", "").Body.String())
+	w := send(r, http.MethodPost, "/users/me/2fa/setup", "")
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Contains(t, w.Body.String(), "ENCRYPTION_KEY")
+	var stored models.User
+	require.NoError(t, e.db.First(&stored, e.a.ID).Error)
+	assert.Empty(t, stored.TOTPSecret)
 }
 
 // @002-US1
@@ -80,7 +95,7 @@ func TestEnrolmentTurnsTwoFactorOnAndSignsOtherBrowsersOut(t *testing.T) {
 	_, codes := e.enrol(t, r, oldPassword)
 
 	st := send(r, http.MethodGet, "/users/me/2fa", "")
-	assert.JSONEq(t, `{"enabled":true,"recovery_codes_remaining":10,"available":true}`, st.Body.String())
+	assert.JSONEq(t, `{"enabled":true,"recovery_codes_remaining":10,"available":true,"server_ready":true}`, st.Body.String())
 	assert.EqualValues(t, 1, e.liveSessions(t, e.a.ID), "the browser that enrolled stays")
 	assert.Len(t, codes, 10)
 	got := e.reload(t, e.a.ID)
@@ -285,7 +300,7 @@ func TestOneUsersTwoFactorCannotBeSeenOrChangedByAnotherUser(t *testing.T) {
 	e.db.Model(&models.RecoveryCode{}).Where("user_id = ?", e.a.ID).Count(&codesBefore)
 	require.EqualValues(t, services.RecoveryCodeCount, codesBefore)
 
-	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true}`, send(e.asB, http.MethodGet, "/users/me/2fa", "").Body.String())
+	assert.JSONEq(t, `{"enabled":false,"recovery_codes_remaining":0,"available":true,"server_ready":true}`, send(e.asB, http.MethodGet, "/users/me/2fa", "").Body.String())
 	assert.GreaterOrEqual(t, send(e.asB, http.MethodPost, "/users/me/2fa/recovery-codes", `{"password":"`+oldPassword+`","code":"`+services.TOTPCode(secret, clock.Real().Now())+`"}`).Code, 400)
 	assert.GreaterOrEqual(t, send(e.asB, http.MethodPost, "/users/me/2fa/disable", `{"password":"`+oldPassword+`","recovery_code":"`+codes[0]+`"}`).Code, 400)
 	w := send(e.asB, http.MethodPost, "/users/me/2fa/setup", "")

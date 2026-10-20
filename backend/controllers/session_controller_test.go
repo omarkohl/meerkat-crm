@@ -33,7 +33,7 @@ type sessionEnv struct {
 func newSessionEnv(t *testing.T) *sessionEnv {
 	t.Helper()
 	db, router := setupRouter() // seeds one user ("tester") that the stub middleware logs in
-	cfg := &config.Config{JWTSecretKey: "session-test-secret-0123456789abcdef", JWTExpiryHours: 24}
+	cfg := &config.Config{JWTSecretKey: "session-test-secret-0123456789abcdef", EncryptionKey: "+WawZKvzbWZ2/2AjCy61aKmgjZub4jqXuGWNXY4eJUc=", JWTExpiryHours: 24}
 	r := gin.New()
 	r.Use(func(c *gin.Context) { c.Set("db", db); c.Set("cfg", *cfg); c.Next() })
 	p := r.Group("/", middleware.AuthMiddleware(cfg))

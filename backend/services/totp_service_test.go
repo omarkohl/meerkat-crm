@@ -2,6 +2,7 @@ package services
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ func totpTestDB(t *testing.T) (*gorm.DB, *config.Config, models.User) {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.RecoveryCode{}))
-	cfg := &config.Config{JWTSecretKey: "totp-test-secret-0123456789abcdefgh"}
+	cfg := &config.Config{JWTSecretKey: testJWTSecret, EncryptionKey: base64.StdEncoding.EncodeToString(testEncryptionKey(1))}
 	u := models.User{Username: "u", Email: "u@example.com", Password: "x"}
 	require.NoError(t, db.Create(&u).Error)
 	return db, cfg, u
@@ -186,11 +187,22 @@ func TestCheckSecondFactorFailsWithoutEnabledTOTP(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestRecoveryHashDependsOnTheServerSecretAndIsNotTheEncryptionKey(t *testing.T) {
-	a := hashRecoveryCode("secret-one-0123456789abcdefghij", "AAAAA-BBBBB")
-	assert.Equal(t, a, hashRecoveryCode("secret-one-0123456789abcdefghij", "aaaaa bbbbb"), "normalised")
-	assert.NotEqual(t, a, hashRecoveryCode("secret-two-0123456789abcdefghij", "AAAAA-BBBBB"))
-	assert.NotEqual(t, recoveryHashKey("s"), credentialKey("s"))
+func TestTwoFactorNeedsTheEncryptionKey(t *testing.T) {
+	db, cfg, u := totpTestDB(t)
+	cfg.EncryptionKey = ""
+	_, err := BeginTOTPSetup(db, cfg, u.ID)
+	assert.ErrorIs(t, err, ErrNoEncryptionKey)
+	var stored models.User
+	require.NoError(t, db.First(&stored, u.ID).Error)
+	assert.Empty(t, stored.TOTPSecret)
+}
+
+func TestRecoveryHashDependsOnTheEncryptionKeyOnly(t *testing.T) {
+	keys := testKeys()
+	a := hashRecoveryCode(keys, "AAAAA-BBBBB")
+	assert.Equal(t, a, hashRecoveryCode(keys, "aaaaa bbbbb"), "normalised")
+	assert.NotEqual(t, a, hashRecoveryCode(NewCredentialKeys(testEncryptionKey(2), testJWTSecret), "AAAAA-BBBBB"))
+	assert.Equal(t, a, hashRecoveryCode(NewCredentialKeys(testEncryptionKey(1), "a-new-jwt-secret-after-rotation!!!"), "AAAAA-BBBBB"))
 	// the plain SHA-256 of the code (what an attacker with the table could test) does not match
 	plain := sha256.Sum256([]byte("AAAAABBBBB"))
 	assert.NotEqual(t, hex.EncodeToString(plain[:]), a)

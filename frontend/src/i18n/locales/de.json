@@ -1109,6 +1109,7 @@
     "statusOff": "Die Zwei-Faktor-Authentifizierung ist ausgeschaltet.",
     "recoveryRemaining": "Unbenutzte Wiederherstellungscodes: {{remaining}}",
     "enable": "Einschalten",
+    "needsServerKey": "Die Zwei-Faktor-Authentifizierung kann noch nicht eingeschaltet werden: Ihr Administrator muss ENCRYPTION_KEY auf dem Server setzen.",
     "disable": "Ausschalten",
     "newCodes": "Neue Wiederherstellungscodes",
     "setup": {

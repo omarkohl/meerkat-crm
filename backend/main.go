@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"meerkat/clock"
 	"meerkat/config"
 	"meerkat/database"
@@ -24,6 +26,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // backgroundShutdownTimeout bounds the wait for startup tasks at shutdown. It adds
@@ -75,6 +78,8 @@ func main() {
 	}
 	// created_at and updated_at follow the same clock as everything else
 	db.NowFunc = clk.Now
+
+	prepareEncryptionKey(db, cfg)
 
 	// Thumbnails used to live in the database as base64: move them into files (idempotent,
 	// before serving, so lists never miss a thumbnail).
@@ -370,4 +375,41 @@ func main() {
 	}
 
 	logger.Info().Msg("Server exited gracefully")
+}
+
+// prepareEncryptionKey stops the server when ENCRYPTION_KEY does not fit the database, and
+// moves the passwords from before it to it (docs/adr/0018-encryption-key.md).
+func prepareEncryptionKey(db *gorm.DB, cfg *config.Config) {
+	moved, err := services.PrepareCredentialKeys(db, services.CredentialKeysOf(*cfg), cfg.EncryptionKeyReset)
+	switch {
+	case errors.Is(err, services.ErrEncryptionKeyNeeded), errors.Is(err, services.ErrEncryptionKeyWrong):
+		log.Printf("❌ %v.\n"+
+			"    To fix this, set ENCRYPTION_KEY to the value this database was encrypted with and\n"+
+			"    restart Meerkat. If you restored a backup, use the key from the time of the backup.\n"+
+			"    If the key is lost: set a new ENCRYPTION_KEY (openssl rand -base64 32) and\n"+
+			"    ENCRYPTION_KEY_RESET=true, start Meerkat once, then remove ENCRYPTION_KEY_RESET.\n"+
+			"    This turns off two-factor login for all users and deletes the stored CardDAV and\n"+
+			"    calendar passwords; users must set them up again.\n"+
+			"    See docs/deployment.md#encryption-key.", err)
+		logger.Fatal().Msg("ENCRYPTION_KEY does not fit the database")
+	case err != nil:
+		logger.Fatal().Err(err).Msg("Failed to prepare ENCRYPTION_KEY")
+	case cfg.EncryptionKeyBytes() == nil:
+		log.Printf("❌ ENCRYPTION_KEY is not set. Meerkat starts, but two-factor login is not available,\n"+
+			"    and a future version will not start without it.\n%s", config.EncryptionKeySteps)
+	}
+	switch {
+	case moved.Reset:
+		log.Printf("❌ ENCRYPTION_KEY_RESET: the values of the lost key were deleted. Two-factor login is off\n" +
+			"    for all users, and stored CardDAV and calendar passwords must be entered again.\n" +
+			"    Remove ENCRYPTION_KEY_RESET now.")
+	case cfg.EncryptionKeyReset:
+		logger.Warn().Msg("ENCRYPTION_KEY_RESET is set, but ENCRYPTION_KEY fits the database: nothing was reset. Remove ENCRYPTION_KEY_RESET")
+	}
+	if moved.Moved > 0 {
+		logger.Info().Int("passwords", moved.Moved).Msg("Moved stored CardDAV and calendar passwords to ENCRYPTION_KEY")
+	}
+	if moved.Failed > 0 {
+		logger.Warn().Int("passwords", moved.Failed).Msg("Stored CardDAV or calendar passwords could not be decrypted and stay unchanged; their users must enter them again")
+	}
 }

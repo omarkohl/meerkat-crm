@@ -17,8 +17,9 @@ set +a
 : "${FRONTEND_PORT:=$(node scripts/free-port.mjs 7300)}"
 : "${SQLITE_DB_PATH:=$DEV_DATA_DIR/meerkat.db}" "${PROFILE_PHOTO_DIR:=$DEV_DATA_DIR/photos}"
 : "${JWT_SECRET_KEY:=insecure-dev-only-jwt-secret-key-do-not-use-in-production}"
+: "${ENCRYPTION_KEY:=TESTOSNhn3czhueriPkmUWzLFJ2kmE0BofVJ3yf9Bpk=}"
 : "${FRONTEND_URL:=http://localhost:$FRONTEND_PORT}"
-export SQLITE_DB_PATH PROFILE_PHOTO_DIR JWT_SECRET_KEY FRONTEND_URL
+export SQLITE_DB_PATH PROFILE_PHOTO_DIR JWT_SECRET_KEY ENCRYPTION_KEY FRONTEND_URL
 mkdir -p "$PROFILE_PHOTO_DIR" "$DEV_DATA_DIR"
 printf 'BACKEND_PORT=%s\nFRONTEND_PORT=%s\n' "$BACKEND_PORT" "$FRONTEND_PORT" > "$DEV_DATA_DIR/ports.env"
 echo "dev: app on http://localhost:$FRONTEND_PORT, API on http://localhost:$BACKEND_PORT"

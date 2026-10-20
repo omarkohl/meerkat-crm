@@ -4661,12 +4661,17 @@
           "recovery_codes_remaining": {
             "format": "int64",
             "type": "integer"
+          },
+          "server_ready": {
+            "description": "False when the server has no ENCRYPTION_KEY: two-factor cannot be turned on",
+            "type": "boolean"
           }
         },
         "required": [
           "enabled",
           "recovery_codes_remaining",
-          "available"
+          "available",
+          "server_ready"
         ],
         "type": "object"
       },

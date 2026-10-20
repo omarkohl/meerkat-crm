@@ -29,7 +29,7 @@ func New(d Deps) *Module {
 		cfg = *d.Config
 	}
 	repo := persistence.New(d.DB, cfg)
-	return &Module{uc: app.New(repo, repo, persistence.NewSecrets(cfg.JWTSecretKey))}
+	return &Module{uc: app.New(repo, repo, persistence.NewSecrets(cfg))}
 }
 
 func (m *Module) Register(a huma.API, group gin.IRoutes) { httpadapter.Register(a, group, m.uc) }

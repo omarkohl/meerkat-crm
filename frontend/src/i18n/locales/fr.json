@@ -1109,6 +1109,7 @@
     "statusOff": "L'authentification à deux facteurs est désactivée.",
     "recoveryRemaining": "Codes de récupération non utilisés : {{remaining}}",
     "enable": "Activer",
+    "needsServerKey": "L'authentification à deux facteurs ne peut pas encore être activée : votre administrateur doit définir ENCRYPTION_KEY sur le serveur.",
     "disable": "Désactiver",
     "newCodes": "Nouveaux codes de récupération",
     "setup": {

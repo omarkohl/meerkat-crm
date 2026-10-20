@@ -1109,6 +1109,7 @@
     "statusOff": "Two-factor authentication is off.",
     "recoveryRemaining": "Unused recovery codes: {{remaining}}",
     "enable": "Turn on",
+    "needsServerKey": "Two-factor authentication cannot be turned on yet: your administrator must set ENCRYPTION_KEY on the server.",
     "disable": "Turn off",
     "newCodes": "New recovery codes",
     "setup": {

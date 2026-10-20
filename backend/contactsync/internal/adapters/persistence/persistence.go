@@ -114,7 +114,7 @@ func (r *Repository) Credentials(ctx context.Context, actor domain.UserID) (stri
 		return "", nil, false
 	}
 	return m.BaseURL, func() string {
-		password, err := services.DecryptCredential(r.cfg.JWTSecretKey, m.PasswordEncrypted)
+		password, err := services.DecryptCredential(services.CredentialKeysOf(r.cfg), m.PasswordEncrypted)
 		if err != nil {
 			return ""
 		}
@@ -166,9 +166,9 @@ func syncKind(err error) domain.SyncKind {
 	return domain.SyncFailed
 }
 
-type Secrets struct{ key string }
+type Secrets struct{ key services.CredentialKeys }
 
-func NewSecrets(key string) *Secrets { return &Secrets{key: key} }
+func NewSecrets(cfg config.Config) *Secrets { return &Secrets{key: services.CredentialKeysOf(cfg)} }
 
 func (s *Secrets) Encrypt(plain string) (string, error) {
 	return services.EncryptCredential(s.key, plain)

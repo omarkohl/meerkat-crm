@@ -9,9 +9,10 @@ import (
 )
 
 type TwoFactorStatus struct {
-	Enabled   bool
-	CodesLeft int
-	Available bool
+	Enabled     bool
+	CodesLeft   int
+	Available   bool
+	ServerReady bool
 }
 
 func (u *UseCases) TwoFactorStatus(ctx context.Context, actor domain.UserID) (TwoFactorStatus, error) {
@@ -19,7 +20,7 @@ func (u *UseCases) TwoFactorStatus(ctx context.Context, actor domain.UserID) (Tw
 	if err != nil {
 		return TwoFactorStatus{}, stage(StageQuery, err)
 	}
-	st := TwoFactorStatus{Enabled: acct.TOTPEnabled, Available: acct.HasPassword()}
+	st := TwoFactorStatus{Enabled: acct.TOTPEnabled, Available: acct.HasPassword(), ServerReady: u.factor.ServerReady()}
 	if acct.TOTPEnabled {
 		if st.CodesLeft, err = u.factor.RecoveryCodesLeft(ctx, actor); err != nil {
 			return TwoFactorStatus{}, stage(StageQuery, err)
@@ -38,8 +39,11 @@ func (u *UseCases) BeginTwoFactorSetup(ctx context.Context, actor domain.UserID)
 	if !acct.HasPassword() {
 		return TwoFactorSetup{}, domain.ErrTwoFactorNotAvailable
 	}
+	if !u.factor.ServerReady() {
+		return TwoFactorSetup{}, domain.ErrTwoFactorNoServerKey
+	}
 	secret, uri, err := u.factor.BeginSetup(ctx, actor, acct.Username)
-	if errors.Is(err, domain.ErrTwoFactorEnabled) {
+	if errors.Is(err, domain.ErrTwoFactorEnabled) || errors.Is(err, domain.ErrTwoFactorNoServerKey) {
 		return TwoFactorSetup{}, err
 	}
 	if err != nil {

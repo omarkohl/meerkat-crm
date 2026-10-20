@@ -27,14 +27,19 @@ func NewTwoFactor(db *gorm.DB, cfg *config.Config) *TwoFactor { return &TwoFacto
 
 var _ app.SecondFactor = (*TwoFactor)(nil)
 
+func (t *TwoFactor) ServerReady() bool { return services.CredentialKeysOf(*t.cfg).Ready() }
+
 func (t *TwoFactor) RecoveryCodesLeft(ctx context.Context, actor domain.UserID) (int, error) {
 	return services.RecoveryCodesRemaining(t.db.WithContext(ctx), uint(actor)), nil
 }
 
 func (t *TwoFactor) BeginSetup(ctx context.Context, actor domain.UserID, username string) (string, string, error) {
 	secret, err := services.BeginTOTPSetup(t.db.WithContext(ctx), t.cfg, uint(actor))
-	if errors.Is(err, services.ErrTOTPAlreadyEnabled) {
+	switch {
+	case errors.Is(err, services.ErrTOTPAlreadyEnabled):
 		return "", "", domain.ErrTwoFactorEnabled
+	case errors.Is(err, services.ErrNoEncryptionKey):
+		return "", "", domain.ErrTwoFactorNoServerKey
 	}
 	if err != nil {
 		return "", "", err

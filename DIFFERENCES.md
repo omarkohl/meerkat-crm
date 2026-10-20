@@ -13,7 +13,7 @@ Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000035.** No upstream migration is changed. Each has a down migration
+- **New migrations 000024 to 000036.** No upstream migration is changed. Each has a down migration
   and a round-trip test. 000030 adds a column for thumbnail files and copies old thumbnails into
   files at startup; the old column stays.
 - **Whole-repo reformat.** Go (`gofmt`), TypeScript, JSON, YAML and Markdown (wrapped at 100
@@ -33,6 +33,10 @@ What can hurt when you merge, or when you look at the diff.
   `METRICS_TOKEN`, `METRICS_ADDR`, `BACKUP_ENABLED`, `BACKUP_TIME`, `BACKUP_DIR`,
   `BACKUP_RETENTION_COUNT`, `AUDIT_LOG_RETENTION_DAYS`, `PROFILE_PHOTO_DIR`, `FAKE_NOW`. The old
   per-feature `*_BLOCK_PRIVATE_URLS` still work.
+- **`ENCRYPTION_KEY`** encrypts stored passwords instead of a key derived from `JWT_SECRET_KEY`.
+  Optional for now (an error is logged without it), required later. At startup Meerkat encrypts the
+  old CardDAV and calendar passwords again ([ADR 0018](docs/adr/0018-encryption-key.md)).
+  `ENCRYPTION_KEY_RESET` replaces a lost key and deletes what it encrypted.
 - **Stricter security headers and CSP** from one place. Setups with the API on another origin need
   `FRONTEND_URL`.
 - **SQLite settings.** WAL, `busy_timeout` 5 s, `synchronous=NORMAL`, foreign keys on. One instance
@@ -60,6 +64,7 @@ an open pull request. "Separable" means it can be taken without the other rows.
 | Integrations  | Outbox with retries                    | M    | 32        | yes             | not proposed                                                                                                                             |
 | Operations    | Prometheus metrics                     | S    | –         | yes             | not proposed                                                                                                                             |
 | Security      | One SSRF switch, CSP, session checks   | M    | –         | partly          | not proposed                                                                                                                             |
+| Security      | Separate `ENCRYPTION_KEY`              | S    | 36        | yes             | not proposed                                                                                                                             |
 | Architecture  | Hexagonal modules                      | L    | –         | no (needs huma) | not proposed                                                                                                                             |
 | Architecture  | huma API contract, OpenAPI, TS types   | L    | –         | no              | not proposed                                                                                                                             |
 | Architecture  | Injected clock, `FAKE_NOW`             | S    | –         | yes             | not proposed                                                                                                                             |
@@ -75,8 +80,7 @@ an open pull request. "Separable" means it can be taken without the other rows.
 ## User-visible changes
 
 **Two-factor login.** Sign in with a TOTP authenticator app. Recovery codes; an admin can reset a
-user. Secrets are encrypted with the key derived from `JWT_SECRET_KEY`, like the CardDAV
-credentials. Endpoints under `/users/me/2fa`. Tables and columns: migration 28.
+user. Needs `ENCRYPTION_KEY`. Endpoints under `/users/me/2fa`. Tables and columns: migration 28.
 
 **Sessions and audit log.** Each login is a revocable session ("sign out everywhere" exists). An
 admin sees an audit log, kept for `AUDIT_LOG_RETENTION_DAYS`. Deleted users lose access at once.
@@ -141,6 +145,8 @@ a separate listener.
 - Private photo permissions, checked close errors, bounded shutdown wait.
 - Dependency bumps for known vulnerabilities; `govulncheck` and a Trivy image scan in CI.
 - Docker images get current Alpine package fixes at build time.
+- Stored secrets use `ENCRYPTION_KEY`, not `JWT_SECRET_KEY`; a wrong or missing key stops the server
+  ([ADR 0018](docs/adr/0018-encryption-key.md)).
 
 ## Architecture
 

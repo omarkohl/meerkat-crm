@@ -40,6 +40,8 @@ of this fork (see [FORK.md](FORK.md)).
   fixes released after the base image.
 - **Monica import no longer loads avatars from internal addresses**: a Monica server could make
   Meerkat load a picture from your local network.
+- **Separate encryption key for stored secrets**: set `ENCRYPTION_KEY` (`openssl rand -base64 32`).
+  Two-factor login needs it; two-factor set up before this version is turned off.
 - **Safer loading of pictures from web addresses**: only the standard web ports are allowed, and the
   profile picture dialog loads at most 30 pictures per minute.
 

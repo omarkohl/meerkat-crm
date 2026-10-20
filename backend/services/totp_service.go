@@ -115,15 +115,8 @@ func normalizeRecoveryCode(code string) string {
 	return code
 }
 
-// recoveryHashKey is derived from the JWT secret separately from the key that encrypts the
-// TOTP secrets, so a recovery code hash cannot be tested without the server secret.
-func recoveryHashKey(jwtSecret string) []byte {
-	sum := sha256.Sum256([]byte("meerkat-recovery-code-hmac:" + jwtSecret))
-	return sum[:]
-}
-
-func hashRecoveryCode(jwtSecret, code string) string {
-	mac := hmac.New(sha256.New, recoveryHashKey(jwtSecret))
+func hashRecoveryCode(k CredentialKeys, code string) string {
+	mac := hmac.New(sha256.New, k.recovery)
 	mac.Write([]byte(normalizeRecoveryCode(code)))
 	return hex.EncodeToString(mac.Sum(nil))
 }
@@ -142,7 +135,10 @@ func newRecoveryCode() (string, error) {
 
 // replaceRecoveryCodes deletes the user's codes and stores a fresh set inside tx. It
 // returns the plain codes, which are never stored.
-func replaceRecoveryCodes(tx *gorm.DB, jwtSecret string, userID uint) ([]string, error) {
+func replaceRecoveryCodes(tx *gorm.DB, k CredentialKeys, userID uint) ([]string, error) {
+	if !k.Ready() {
+		return nil, ErrNoEncryptionKey
+	}
 	if err := tx.Where("user_id = ?", userID).Delete(&models.RecoveryCode{}).Error; err != nil {
 		return nil, err
 	}
@@ -153,7 +149,7 @@ func replaceRecoveryCodes(tx *gorm.DB, jwtSecret string, userID uint) ([]string,
 			return nil, err
 		}
 		codes = append(codes, code)
-		if err := tx.Create(&models.RecoveryCode{UserID: userID, CodeHash: hashRecoveryCode(jwtSecret, code)}).Error; err != nil {
+		if err := tx.Create(&models.RecoveryCode{UserID: userID, CodeHash: hashRecoveryCode(k, code)}).Error; err != nil {
 			return nil, err
 		}
 	}
@@ -161,8 +157,12 @@ func replaceRecoveryCodes(tx *gorm.DB, jwtSecret string, userID uint) ([]string,
 }
 
 // BeginTOTPSetup stores a new, not yet active secret (encrypted) and returns it. Calling it
-// again before enabling replaces the secret.
+// again before enabling replaces the secret. It needs ENCRYPTION_KEY (ErrNoEncryptionKey).
 func BeginTOTPSetup(db *gorm.DB, cfg *config.Config, userID uint) (string, error) {
+	keys := CredentialKeysOf(*cfg)
+	if !keys.Ready() {
+		return "", ErrNoEncryptionKey
+	}
 	var user models.User
 	if err := db.First(&user, userID).Error; err != nil {
 		return "", err
@@ -174,7 +174,7 @@ func BeginTOTPSetup(db *gorm.DB, cfg *config.Config, userID uint) (string, error
 	if err != nil {
 		return "", err
 	}
-	enc, err := EncryptCredential(cfg.JWTSecretKey, secret)
+	enc, err := EncryptCredential(keys, secret)
 	if err != nil {
 		return "", err
 	}
@@ -196,7 +196,8 @@ func EnableTOTP(db *gorm.DB, cfg *config.Config, userID uint, code string, now t
 	if user.TOTPSecret == "" {
 		return nil, ErrInvalidSecondFactor
 	}
-	secret, err := DecryptCredential(cfg.JWTSecretKey, user.TOTPSecret)
+	keys := CredentialKeysOf(*cfg)
+	secret, err := DecryptCredential(keys, user.TOTPSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func EnableTOTP(db *gorm.DB, cfg *config.Config, userID uint, code string, now t
 			return ErrTOTPAlreadyEnabled
 		}
 		var err error
-		codes, err = replaceRecoveryCodes(tx, cfg.JWTSecretKey, userID)
+		codes, err = replaceRecoveryCodes(tx, keys, userID)
 		return err
 	})
 	return codes, err
@@ -224,11 +225,12 @@ func EnableTOTP(db *gorm.DB, cfg *config.Config, userID uint, code string, now t
 // CheckSecondFactor verifies the second login step: an authenticator code or, if none is
 // given, a recovery code. Each works once. usedRecovery tells which one matched.
 func CheckSecondFactor(db *gorm.DB, cfg *config.Config, user models.User, code, recovery string, now time.Time) (ok bool, usedRecovery bool) {
-	if !user.TOTPEnabled || user.TOTPSecret == "" {
+	keys := CredentialKeysOf(*cfg)
+	if !user.TOTPEnabled || user.TOTPSecret == "" || !keys.Ready() {
 		return false, false
 	}
 	if strings.TrimSpace(code) != "" {
-		secret, err := DecryptCredential(cfg.JWTSecretKey, user.TOTPSecret)
+		secret, err := DecryptCredential(keys, user.TOTPSecret)
 		if err != nil {
 			return false, false
 		}
@@ -245,7 +247,7 @@ func CheckSecondFactor(db *gorm.DB, cfg *config.Config, user models.User, code, 
 		return false, false
 	}
 	res := db.Model(&models.RecoveryCode{}).
-		Where("user_id = ? AND code_hash = ? AND used_at IS NULL", user.ID, hashRecoveryCode(cfg.JWTSecretKey, recovery)).
+		Where("user_id = ? AND code_hash = ? AND used_at IS NULL", user.ID, hashRecoveryCode(keys, recovery)).
 		Update("used_at", now)
 	if res.Error == nil && res.RowsAffected == 1 {
 		return true, true
@@ -258,7 +260,7 @@ func RegenerateRecoveryCodes(db *gorm.DB, cfg *config.Config, userID uint) ([]st
 	var codes []string
 	err := db.Transaction(func(tx *gorm.DB) error {
 		var err error
-		codes, err = replaceRecoveryCodes(tx, cfg.JWTSecretKey, userID)
+		codes, err = replaceRecoveryCodes(tx, CredentialKeysOf(*cfg), userID)
 		return err
 	})
 	return codes, err

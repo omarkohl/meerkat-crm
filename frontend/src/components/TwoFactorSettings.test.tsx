@@ -31,8 +31,8 @@ describe('TwoFactorSettings', () => {
 
   test('enrolment: shows the QR code and key, enables with a code and shows the recovery codes once', async () => {
     vi.mocked(api.getTwoFactorStatus)
-      .mockResolvedValueOnce({ enabled: false, recovery_codes_remaining: 0, available: true })
-      .mockResolvedValueOnce({ enabled: true, recovery_codes_remaining: 2, available: true });
+      .mockResolvedValueOnce({ enabled: false, recovery_codes_remaining: 0, available: true, server_ready: true })
+      .mockResolvedValueOnce({ enabled: true, recovery_codes_remaining: 2, available: true, server_ready: true });
     vi.mocked(api.setupTwoFactor).mockResolvedValue({
       secret: 'JBSWY3DPEHPK3PXP',
       otpauth_uri: 'otpauth://totp/Meerkat%20CRM:me?secret=JBSWY3DPEHPK3PXP',
@@ -68,6 +68,7 @@ describe('TwoFactorSettings', () => {
       enabled: false,
       recovery_codes_remaining: 0,
       available: true,
+      server_ready: true,
     });
     vi.mocked(api.setupTwoFactor).mockResolvedValue({ secret: 'ABC', otpauth_uri: 'otpauth://totp/x?secret=ABC' });
     vi.mocked(api.enableTwoFactor).mockRejectedValue(new ApiError('bad', 'INVALID_INPUT', 400, { field: 'code' }));
@@ -85,8 +86,8 @@ describe('TwoFactorSettings', () => {
 
   test('turning it off needs the password and a code, and maps a wrong password', async () => {
     vi.mocked(api.getTwoFactorStatus)
-      .mockResolvedValueOnce({ enabled: true, recovery_codes_remaining: 10, available: true })
-      .mockResolvedValue({ enabled: false, recovery_codes_remaining: 0, available: true });
+      .mockResolvedValueOnce({ enabled: true, recovery_codes_remaining: 10, available: true, server_ready: true })
+      .mockResolvedValue({ enabled: false, recovery_codes_remaining: 0, available: true, server_ready: true });
     vi.mocked(api.disableTwoFactor)
       .mockRejectedValueOnce(new ApiError('bad', 'INVALID_INPUT', 400, { field: 'password' }))
       .mockResolvedValueOnce();
@@ -114,6 +115,7 @@ describe('TwoFactorSettings', () => {
       enabled: true,
       recovery_codes_remaining: 3,
       available: true,
+      server_ready: true,
     });
     vi.mocked(api.regenerateRecoveryCodes).mockResolvedValue(CODES);
     renderIt();
@@ -132,6 +134,7 @@ describe('TwoFactorSettings', () => {
       enabled: false,
       recovery_codes_remaining: 0,
       available: false,
+      server_ready: true,
     });
     const { container } = renderIt();
     await waitFor(() => {
@@ -140,11 +143,24 @@ describe('TwoFactorSettings', () => {
     await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
+  test('says that the administrator must set the encryption key before it can be turned on', async () => {
+    vi.mocked(api.getTwoFactorStatus).mockResolvedValue({
+      enabled: false,
+      recovery_codes_remaining: 0,
+      available: true,
+      server_ready: false,
+    });
+    renderIt();
+    expect(await screen.findByText(/administrator must set ENCRYPTION_KEY/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
+  });
+
   test('a lockout is shown in the current language, not the server text', async () => {
     vi.mocked(api.getTwoFactorStatus).mockResolvedValue({
       enabled: true,
       recovery_codes_remaining: 3,
       available: true,
+      server_ready: true,
     });
     vi.mocked(api.disableTwoFactor).mockRejectedValue(new ApiError('Too many failed attempts.', 'UNKNOWN_ERROR', 429));
     renderIt();

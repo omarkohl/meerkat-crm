@@ -52,7 +52,7 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
 
-	e.cfg = &config.Config{JWTSecretKey: "test-secret-test-secret-test-secret", JWTExpiryHours: 24}
+	e.cfg = &config.Config{JWTSecretKey: "test-secret-test-secret-test-secret", EncryptionKey: "+WawZKvzbWZ2/2AjCy61aKmgjZub4jqXuGWNXY4eJUc=", JWTExpiryHours: 24}
 	e.asA, e.asB, e.anon = e.engine(&e.a, nil), e.engine(&e.b, nil), e.engine(nil, nil)
 	return e
 }

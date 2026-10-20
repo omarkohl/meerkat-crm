@@ -1109,6 +1109,7 @@
     "statusOff": "La autenticación en dos pasos está desactivada.",
     "recoveryRemaining": "Códigos de recuperación sin usar: {{remaining}}",
     "enable": "Activar",
+    "needsServerKey": "La autenticación en dos pasos todavía no se puede activar: el administrador debe configurar ENCRYPTION_KEY en el servidor.",
     "disable": "Desactivar",
     "newCodes": "Nuevos códigos de recuperación",
     "setup": {

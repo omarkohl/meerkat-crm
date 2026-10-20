@@ -9,6 +9,7 @@ var (
 	ErrTwoFactorEnabled        = errors.New("two-factor authentication is already enabled")
 	ErrTwoFactorNotEnabled     = errors.New("two-factor authentication is not enabled")
 	ErrTwoFactorNotAvailable   = errors.New("two-factor authentication is not available for single sign-on accounts")
+	ErrTwoFactorNoServerKey    = errors.New("two-factor authentication needs ENCRYPTION_KEY on the server")
 	ErrWrongPassword           = errors.New("password is incorrect")
 	ErrInvalidVerificationCode = errors.New("invalid verification code")
 )
