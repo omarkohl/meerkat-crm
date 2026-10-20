@@ -18,7 +18,7 @@ of this fork (see [FORK.md](FORK.md)).
 - **Search contacts, notes and activities from the header** (#118): grouped results with the match
   marked and named, over every contact field, and a results page with a tab per group.
 - **Search box on the contact list**: finds contacts by any field. Contacts you selected for a merge
-  stay selected while you search, and one button clears the selection.
+  stay selected while you search; you can show only them or clear the selection.
 
 ### Fixed
 

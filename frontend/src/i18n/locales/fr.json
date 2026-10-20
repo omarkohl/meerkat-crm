@@ -1156,6 +1156,7 @@
     "noResults": "Aucun autre contact trouvé",
     "selectContact": "Sélectionner {{name}}",
     "clearSelection": "Effacer la sélection ({{count}})",
+    "selectedOnly": "Sélection uniquement ({{count}})",
     "targetLegend": "Conserver ce contact",
     "targetHint": "Les autres contacts sont fusionnés dans celui-ci puis placés dans la corbeille.",
     "conflictsTitle": "Champs différents",

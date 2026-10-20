@@ -112,6 +112,37 @@ test.describe('Merge contacts', () => {
     await expect(page.getByRole('checkbox', { name: `Select ${firstname} Jones` })).not.toBeChecked();
   });
 
+  test('only the selected contacts can be shown, whatever the search finds @004-US10', async ({ page }) => {
+    const { firstname } = await duplicates(page.request, 'Only');
+    await page.goto('/contacts');
+    const search = page.getByRole('textbox', { name: 'Search Contacts' });
+
+    await search.fill(firstname);
+    await page.getByRole('checkbox', { name: `Select ${firstname} Smith` }).check();
+    await search.fill('nobody-has-this-name');
+    await page.getByRole('switch', { name: 'Selected only (1)' }).check();
+
+    await expect(page.getByRole('link', { name: `${firstname} Smith` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `${firstname} Jones` })).toHaveCount(0);
+    await page.getByRole('switch', { name: 'Selected only (1)' }).uncheck();
+    await expect(page.getByRole('link', { name: `${firstname} Smith` })).toHaveCount(0);
+  });
+
+  test('a new selection shows the whole list again after a cleared one @004-US10', async ({ page }) => {
+    const { firstname } = await duplicates(page.request, 'Again');
+    await page.goto('/contacts');
+    const search = page.getByRole('textbox', { name: 'Search Contacts' });
+
+    await search.fill(firstname);
+    await page.getByRole('checkbox', { name: `Select ${firstname} Smith` }).check();
+    await page.getByRole('switch', { name: 'Selected only (1)' }).check();
+    await page.getByRole('checkbox', { name: `Select ${firstname} Smith` }).uncheck();
+    await page.getByRole('checkbox', { name: `Select ${firstname} Jones` }).check();
+
+    await expect(page.getByRole('switch', { name: 'Selected only (1)' })).not.toBeChecked();
+    await expect(page.getByRole('link', { name: `${firstname} Smith` })).toBeVisible();
+  });
+
   test('a contact page offers to merge with a searched contact and a chosen main contact @004-US10', async ({
     page,
   }) => {

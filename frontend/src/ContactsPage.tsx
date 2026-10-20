@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
 import { useDebouncedValue } from './hooks/useDebounce';
-import { getCircles } from './api/contacts';
+import { getCircles, type Contact } from './api/contacts';
 import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import AddContactDialog from './components/AddContactDialog';
@@ -51,7 +51,10 @@ export default function ContactsPage() {
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
   const [enabledFields, setEnabledFields] = useState<Set<ContactFieldKey>>(() => resolveEnabledFields(null));
   const [showArchived, setShowArchived] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selected, setSelected] = useState<Map<number, Contact>>(new Map());
+  const selectedIds = useMemo(() => Array.from(selected.keys()), [selected]);
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  if (showSelectedOnly && selected.size === 0) setShowSelectedOnly(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const pageSize = 10;
 
@@ -133,7 +136,7 @@ export default function ContactsPage() {
 
   // Filter contacts by selected circle
   // With backend pagination, contacts are already filtered
-  const filteredContacts = contacts;
+  const filteredContacts = showSelectedOnly ? Array.from(selected.values()) : contacts;
 
   const handleContactAdded = (contactId: number) => {
     navigate(`/contacts/${contactId}`);
@@ -216,10 +219,25 @@ export default function ContactsPage() {
           sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
         />
         {selectedIds.length >= 1 && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showSelectedOnly}
+                onChange={(e) => {
+                  setShowSelectedOnly(e.target.checked);
+                }}
+                size="small"
+              />
+            }
+            label={t('merge.selectedOnly', { count: selectedIds.length })}
+            sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
+          />
+        )}
+        {selectedIds.length >= 1 && (
           <Button
             variant="outlined"
             onClick={() => {
-              setSelectedIds([]);
+              setSelected(new Map());
             }}
             sx={{ whiteSpace: 'nowrap' }}
           >
@@ -259,7 +277,7 @@ export default function ContactsPage() {
           {t('contacts.add.button')}
         </Button>
       </Stack>
-      {(totalContacts > 0 || searchQuery || selectedCircle) && (
+      {!showSelectedOnly && (totalContacts > 0 || searchQuery || selectedCircle) && (
         <Box
           sx={{
             mb: 2,
@@ -315,7 +333,7 @@ export default function ContactsPage() {
           )}
         </Box>
       )}
-      {loading ? (
+      {loading && !showSelectedOnly ? (
         <ContactListSkeleton count={10} />
       ) : (
         <>
@@ -339,14 +357,16 @@ export default function ContactsPage() {
                 }}
               >
                 <Checkbox
-                  checked={selectedIds.includes(contact.ID)}
+                  checked={selected.has(contact.ID)}
                   onClick={(e) => {
                     e.stopPropagation();
                   }}
                   onChange={() => {
-                    setSelectedIds((ids) =>
-                      ids.includes(contact.ID) ? ids.filter((id) => id !== contact.ID) : [...ids, contact.ID],
-                    );
+                    setSelected((prev) => {
+                      const next = new Map(prev);
+                      if (!next.delete(contact.ID)) next.set(contact.ID, contact);
+                      return next;
+                    });
                   }}
                   slotProps={{
                     input: {
@@ -403,7 +423,7 @@ export default function ContactsPage() {
               </Card>
             ))}
           </Stack>
-          {totalContacts > 0 && (
+          {!showSelectedOnly && totalContacts > 0 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
               <Pagination
                 count={Math.max(1, Math.ceil(totalContacts / pageSize))}
@@ -436,7 +456,7 @@ export default function ContactsPage() {
         contactIds={selectedIds}
         onMerged={() => {
           setMergeOpen(false);
-          setSelectedIds([]);
+          setSelected(new Map());
           void refetch();
         }}
       />

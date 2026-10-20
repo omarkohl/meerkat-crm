@@ -1156,6 +1156,7 @@
     "noResults": "No other contacts found",
     "selectContact": "Select {{name}}",
     "clearSelection": "Clear selection ({{count}})",
+    "selectedOnly": "Selected only ({{count}})",
     "targetLegend": "Keep this contact",
     "targetHint": "The other contacts are merged into it and then moved to the trash.",
     "conflictsTitle": "Fields that differ",
