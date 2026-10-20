@@ -456,8 +456,7 @@
     "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB.",
     "or": "oder",
     "urlPlaceholder": "Bild-URL einfügen...",
-    "fetch": "Abrufen",
-    "urlFetchError": "Bild konnte nicht von URL abgerufen werden"
+    "fetch": "Abrufen"
   },
   "settings": {
     "title": "Einstellungen",

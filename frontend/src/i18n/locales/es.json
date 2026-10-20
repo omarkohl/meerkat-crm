@@ -456,8 +456,7 @@
     "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es 10MB.",
     "or": "o",
     "urlPlaceholder": "Pegar URL de imagen...",
-    "fetch": "Obtener",
-    "urlFetchError": "Error al obtener la imagen desde la URL"
+    "fetch": "Obtener"
   },
   "settings": {
     "title": "Configuración",

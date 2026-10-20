@@ -132,6 +132,9 @@ a separate listener.
 
 - `BLOCK_PRIVATE_URLS` is one switch for all outgoing requests (webhooks, CalDAV, CardDAV, Monica)
   and one guard (`backend/netguard`). It ignores `HTTP_PROXY` for those requests.
+- Image URLs from users and vCards: ports 80 and 443 only, four fetches at a time, a per-user rate
+  limit on the image proxy, which returns a re-encoded JPEG
+  ([ADR 0017](docs/adr/0017-fetching-user-supplied-urls.md)).
 - One definition of security headers; an API CSP; an E2E guard that fails on CSP violations.
 - Private photo permissions, checked close errors, bounded shutdown wait.
 - Dependency bumps for known vulnerabilities; `govulncheck` and a Trivy image scan in CI.

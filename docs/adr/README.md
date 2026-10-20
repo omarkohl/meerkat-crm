@@ -27,5 +27,6 @@ supersede it.
 | [0014](0014-npm.md)                         | npm manages frontend dependencies          | Accepted |
 | [0015](0015-dependency-updates.md)          | Dependency updates                         | Accepted |
 | [0016](0016-changelog-and-commit-rules.md)  | Changelog and commit rules                 | Accepted |
+| [0017](0017-fetching-user-supplied-urls.md) | Fetching user-supplied image URLs          | Accepted |
 
 New ADR: copy a recent one, take the next number, add a row here.

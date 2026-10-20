@@ -149,3 +149,34 @@ func TestSaveContactPhotoRefusesHugeDimensions(t *testing.T) {
 		t.Fatalf("nothing may be written, found %d files", len(entries))
 	}
 }
+
+// @004-US9
+func TestReencodePhotoReturnsAJPEGOfTheSameImage(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 30, 20))
+	fillWithCentre(src)
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, src); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := ReencodePhoto(buf.Bytes(), "image/png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := jpeg.Decode(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("output is not a JPEG: %v", err)
+	}
+	if b := img.Bounds(); b.Dx() != 30 || b.Dy() != 20 {
+		t.Errorf("size is %dx%d, want 30x20", b.Dx(), b.Dy())
+	}
+	assertCentre(t, "re-encoded", img)
+}
+
+// @004-US9
+func TestReencodePhotoRefusesWhatIsNotAPhoto(t *testing.T) {
+	svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`)
+	if _, err := ReencodePhoto(svg, "image/svg+xml"); err == nil {
+		t.Error("an SVG was accepted")
+	}
+}

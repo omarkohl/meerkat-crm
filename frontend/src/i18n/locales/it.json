@@ -456,8 +456,7 @@
     "fileTooLarge": "Il file è troppo grande. La dimensione massima è 10MB.",
     "or": "o",
     "urlPlaceholder": "Incolla URL immagine...",
-    "fetch": "Recupera",
-    "urlFetchError": "Impossibile recuperare l'immagine dall'URL"
+    "fetch": "Recupera"
   },
   "settings": {
     "title": "Impostazioni",

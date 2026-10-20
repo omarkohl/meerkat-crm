@@ -2,6 +2,7 @@ package carddav
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -650,10 +651,23 @@ func cropToSquare(img image.Image) image.Image {
 	return cropped
 }
 
+// ReencodePhoto decodes a photo and encodes it again as JPEG, so no byte of the input is passed on.
+func ReencodePhoto(photoData []byte, mediaType string) ([]byte, error) {
+	img, err := decodePhoto(photoData, mediaType)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // FetchPhotoFromURL fetches a photo from a URL with SSRF protection
 // Returns the photo data, media type, and any error
-func FetchPhotoFromURL(photoURL string) ([]byte, string, error) {
-	return httputil.FetchImageFromURL(photoURL)
+func FetchPhotoFromURL(ctx context.Context, photoURL string) ([]byte, string, error) {
+	return httputil.FetchImageFromURL(ctx, photoURL)
 }
 
 // readContactPhoto reads photo from disk or falls back to thumbnail

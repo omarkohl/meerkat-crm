@@ -133,7 +133,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB, modules
 		protected := v1.Group("/")
 		protected.Use(middleware.APIRateLimitMiddleware())
 		protected.Use(middleware.AuthMiddleware(cfg))
-		protected.GET("/proxy/image", controllers.ProxyImage)
+		protected.GET("/proxy/image", middleware.ImageProxyRateLimitMiddleware(), controllers.ProxyImage)
 
 		// Admin routes (admin authentication required)
 		adminGroup := v1.Group("/")

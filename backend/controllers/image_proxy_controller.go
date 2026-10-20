@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"meerkat/carddav"
 	apperrors "meerkat/errors"
 	"meerkat/httputil"
 	"meerkat/logger"
@@ -17,12 +18,19 @@ func ProxyImage(c *gin.Context) {
 		return
 	}
 
-	body, contentType, err := httputil.FetchImageFromURL(imageURL)
+	body, contentType, err := httputil.FetchImageFromURL(c.Request.Context(), imageURL)
 	if err != nil {
 		logger.FromContext(c).Warn().Err(err).Str("url", imageURL).Msg("Failed to fetch image from URL")
 		apperrors.AbortWithError(c, apperrors.ErrExternal("image proxy", "Failed to fetch image").WithError(err))
 		return
 	}
 
-	c.Data(http.StatusOK, contentType, body)
+	photo, err := carddav.ReencodePhoto(body, contentType)
+	if err != nil {
+		logger.FromContext(c).Warn().Err(err).Str("url", imageURL).Msg("Fetched image could not be decoded")
+		apperrors.AbortWithError(c, apperrors.ErrExternal("image proxy", "Failed to fetch image").WithError(err))
+		return
+	}
+
+	c.Data(http.StatusOK, "image/jpeg", photo)
 }

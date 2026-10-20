@@ -456,8 +456,7 @@
     "fileTooLarge": "File is too large. Maximum size is 10MB.",
     "or": "or",
     "urlPlaceholder": "Paste image URL...",
-    "fetch": "Fetch",
-    "urlFetchError": "Failed to fetch image from URL"
+    "fetch": "Fetch"
   },
   "settings": {
     "title": "Settings",

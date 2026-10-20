@@ -1082,7 +1082,7 @@ func (r *contactSyncRun) resolveByRevision(obj *remoteObject, link *models.CardD
 func (r *contactSyncRun) applyPhoto(contact *models.Contact, photoData []byte, mediaType, photoURL string) mcarddav.PhotoSwap {
 	swap := mcarddav.NewPhotoSwap(contact)
 	if len(photoData) == 0 && photoURL != "" {
-		fetched, fetchedType, err := mcarddav.FetchPhotoFromURL(photoURL)
+		fetched, fetchedType, err := mcarddav.FetchPhotoFromURL(r.ctx, photoURL)
 		if err != nil {
 			logger.Warn().Err(err).Str("photo_url", photoURL).Msg("Contact sync: failed to fetch photo from URL")
 			return swap

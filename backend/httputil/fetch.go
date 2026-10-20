@@ -1,81 +1,70 @@
 package httputil
 
 import (
+	"context"
 	"errors"
 	"io"
 	"meerkat/netguard"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 )
 
-// validateURLForSSRF checks if a URL is safe to fetch (not pointing to internal resources)
-func validateURLForSSRF(rawURL string) (*url.URL, error) {
+const maxFetches = 4
+
+var (
+	transport  http.RoundTripper = netguard.NewTransport(errors.New("failed to resolve hostname"), errors.New("access to internal IP addresses is not allowed"))
+	fetchSlots                   = make(chan struct{}, maxFetches)
+)
+
+// validateURL accepts http and https URLs on the web ports. The address is checked by netguard when it is dialled.
+func validateURL(rawURL string) (*url.URL, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, errors.New("invalid URL format")
 	}
 
-	// Only allow http and https schemes
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return nil, errors.New("only http and https URLs are allowed")
 	}
 
-	host := parsedURL.Hostname()
-	if host == "" {
+	if parsedURL.Hostname() == "" {
 		return nil, errors.New("URL must have a host")
 	}
 
-	// Block common internal hostnames
-	lowerHost := strings.ToLower(host)
-	blockedHosts := []string{"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
-	for _, blocked := range blockedHosts {
-		if lowerHost == blocked {
-			return nil, errors.New("access to internal hosts is not allowed")
-		}
-	}
-
-	// Resolve the hostname to IP addresses
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, errors.New("failed to resolve hostname")
-	}
-
-	// Check all resolved IPs
-	for _, ip := range ips {
-		if netguard.IsBlockedIP(ip) {
-			return nil, errors.New("access to internal IP addresses is not allowed")
-		}
+	if port := parsedURL.Port(); port != "" && port != "80" && port != "443" {
+		return nil, errors.New("only ports 80 and 443 are allowed")
 	}
 
 	return parsedURL, nil
 }
 
-// FetchImageFromURL fetches an image from a URL with SSRF protection.
-// Returns the image data, content type, and any error.
-// The URL is sanitized to remove whitespace (handles Google VCF format).
-func FetchImageFromURL(imageURL string) ([]byte, string, error) {
+// FetchImageFromURL fetches an image from a URL that a user supplied. The risk and the
+// remaining exposure are in docs/adr/0017-fetching-user-supplied-urls.md.
+func FetchImageFromURL(ctx context.Context, imageURL string) ([]byte, string, error) {
 	// Clean URL - remove spaces and newlines (Google VCF format may have these)
 	cleanURL := strings.ReplaceAll(imageURL, " ", "")
 	cleanURL = strings.ReplaceAll(cleanURL, "\n", "")
 	cleanURL = strings.ReplaceAll(cleanURL, "\r", "")
 
-	// Validate the URL format and scheme
-	parsedURL, err := validateURLForSSRF(cleanURL)
+	parsedURL, err := validateURL(cleanURL)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Create HTTP client with custom transport that validates IPs at connection time
+	select {
+	case fetchSlots <- struct{}{}:
+		defer func() { <-fetchSlots }()
+	case <-ctx.Done():
+		return nil, "", ctx.Err()
+	}
+
 	client := &http.Client{
 		Timeout:   15 * time.Second,
-		Transport: netguard.NewTransport(errors.New("failed to resolve hostname"), errors.New("access to internal IP addresses is not allowed")),
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Validate redirect target URL format
-			_, err := validateURLForSSRF(req.URL.String())
-			if err != nil {
+			if _, err := validateURL(req.URL.String()); err != nil {
 				return errors.New("redirect to disallowed location")
 			}
 			if len(via) >= 3 {
@@ -85,8 +74,7 @@ func FetchImageFromURL(imageURL string) ([]byte, string, error) {
 		},
 	}
 
-	// Fetch the image using the validated URL
-	req, err := http.NewRequest("GET", parsedURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return nil, "", err
 	}

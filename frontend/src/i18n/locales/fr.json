@@ -456,8 +456,7 @@
     "fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de 10 Mo.",
     "or": "ou",
     "urlPlaceholder": "Collez l'URL de l'image...",
-    "fetch": "Récupérer",
-    "urlFetchError": "Échec de la récupération de l'image depuis l'URL"
+    "fetch": "Récupérer"
   },
   "settings": {
     "title": "Paramètres",

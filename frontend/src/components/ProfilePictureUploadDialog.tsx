@@ -19,7 +19,7 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LinkIcon from '@mui/icons-material/Link';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
-import { API_BASE_URL, apiFetch } from '../api/client';
+import { API_BASE_URL, apiFetch, parseErrorResponse } from '../api/client';
 
 interface ProfilePictureUploadDialogProps {
   open: boolean;
@@ -130,8 +130,7 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
       const response = await apiFetch(proxyUrl);
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || t('profilePicture.urlFetchError'));
+        throw await parseErrorResponse(response);
       }
 
       const contentType = response.headers.get('content-type');

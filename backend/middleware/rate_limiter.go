@@ -10,6 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
+
+	apperrors "meerkat/errors"
 )
 
 // Account lockout configuration
@@ -253,6 +255,9 @@ var (
 	// 10 requests per second sustained, burst of 2500 for initial address book sync
 	cardDAVLimiter = NewIPRateLimiter(rate.Every(100*time.Millisecond), 2500)
 
+	// Image proxy: 30 fetches per minute per user, burst of 5
+	imageProxyLimiter = NewIPRateLimiter(rate.Every(2*time.Second), 5)
+
 	// Per-account rate limiter for login attempts
 	// Tracks failed attempts per username/email with exponential backoff
 	// This is the primary brute force protection mechanism
@@ -290,6 +295,7 @@ func StartCleanupRoutine() {
 				authLimiter.CleanupStaleEntries()
 				apiLimiter.CleanupStaleEntries()
 				cardDAVLimiter.CleanupStaleEntries()
+				imageProxyLimiter.CleanupStaleEntries()
 				accountLimiter.CleanupStaleAccountEntries()
 			case <-cleanupDone:
 				return
@@ -352,6 +358,21 @@ func APIRateLimitMiddleware() gin.HandlerFunc {
 // Uses a higher burst than auth endpoints to allow bulk sync from clients like vdirsyncer.
 func CardDAVRateLimitMiddleware() gin.HandlerFunc {
 	return RateLimitMiddleware(cardDAVLimiter)
+}
+
+// UserRateLimitMiddleware limits each authenticated user; it must run after AuthMiddleware.
+func UserRateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !limiter.GetLimiter(fmt.Sprint(c.GetUint("userID"))).Allow() {
+			apperrors.AbortWithError(c, apperrors.ErrRateLimitExceeded())
+			return
+		}
+		c.Next()
+	}
+}
+
+func ImageProxyRateLimitMiddleware() gin.HandlerFunc {
+	return UserRateLimitMiddleware(imageProxyLimiter)
 }
 
 // SecondFactorKey names the failed-attempt counter of an account's second factor. It is by
