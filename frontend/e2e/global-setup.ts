@@ -1,6 +1,6 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 
-export const APP_ORIGIN = 'http://localhost:7300';
+export const APP_ORIGIN = process.env['E2E_BASE_URL'] ?? 'http://localhost:7300';
 export const API_BASE_URL = `${APP_ORIGIN}/api/v1`;
 
 // Test user credentials

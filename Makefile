@@ -18,7 +18,7 @@ dev: install ## Run backend and frontend dev servers (no setup; optional overrid
 	./scripts/dev.sh
 
 seed: ## Add a demo user (demo / DemoPassword123!) and contacts to the running "make dev" backend
-	set -a; [ ! -f dev.env ] || . ./dev.env; set +a; node scripts/seed.mjs
+	set -a; [ ! -f dev.env ] || . ./dev.env; p=$${DEV_DATA_DIR:-.dev}/ports.env; [ -n "$$BACKEND_PORT" ] || [ ! -f "$$p" ] || . "$$p"; set +a; node scripts/seed.mjs
 
 PRETTIER = frontend/node_modules/.bin/prettier
 

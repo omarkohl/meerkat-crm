@@ -215,14 +215,15 @@ cd frontend
 npx playwright install  # install browsers (first time only)
 ```
 
-The E2E tests expect the full application running on `http://localhost:7300`. `global-setup.ts`
-seeds a test user before the suite runs.
+The E2E tests expect the full application on `E2E_BASE_URL` (default `http://localhost:7300`).
+`global-setup.ts` seeds a test user before the suite runs.
 
 ### Running E2E Tests
 
 Without Docker, `make test-e2e` builds both apps and runs Playwright against a local stack
 ([scripts/e2e-stack.mjs](../../scripts/e2e-stack.mjs)). `E2E_SKIP_BUILD=1` reuses builds;
-`ARGS=e2e/contacts.spec.ts` narrows the run. Against a stack you started yourself:
+`ARGS=e2e/contacts.spec.ts` narrows the run. The stack uses free ports and a temporary database, so
+it can run next to a dev server and next to other checkouts. Against a stack you started yourself:
 
 ```sh
 npm run test:e2e           # headless

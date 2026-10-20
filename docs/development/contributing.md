@@ -104,8 +104,10 @@ git add backend/database/testdata/releases/vX.Y.Z.db
 `backend/database/testdata/releases/` to the newest schema and reads and writes through it. The
 script needs the network the first time (old dependencies) and writes one file of a few hundred KB.
 
-Several checkouts can run side by side (for example parallel worktrees): give each its own ports and
-data directory in `dev.env` (see `scripts/dev.sh`).
+Several checkouts can run side by side (for example parallel worktrees). `make dev` keeps its data
+in `.dev/` of the checkout and takes the first free ports from 8080/7300 (it prints them;
+`make seed` finds them). `make test-e2e` uses free ports and a temporary database, so it does not
+disturb a running dev server. Set `BACKEND_PORT` / `FRONTEND_PORT` in `dev.env` to pin ports.
 
 ## Adding a check
 

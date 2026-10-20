@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs the E2E stack without Docker, for environments without it (e.g. cloud
 // agents): builds the backend and the frontend bundle, starts the backend on
-// 127.0.0.1:8081 with a fresh database, and serves the bundle on :7300 with
+// a free port with a fresh database, and serves the bundle on another free port with
 // /api, /health and /carddav proxied, like docker/nginx.conf does (with the same security
 // headers on everything it serves itself).
 //
@@ -13,14 +13,17 @@ import { createReadStream, existsSync, mkdtempSync, rmSync, statSync } from 'nod
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize, resolve } from 'node:path';
+import { freePort } from './free-port.mjs';
 import { loadSnippetHeaders } from './security-headers.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const backendDir = join(root, 'backend');
 const frontendDir = join(root, 'frontend');
 const buildDir = join(frontendDir, 'build');
-const BACKEND_PORT = 8081;
-const APP_PORT = 7300;
+// Free ports, so stacks of other checkouts and a dev server never collide with this one.
+const BACKEND_PORT = await freePort();
+const APP_PORT = await freePort();
+const APP_URL = `http://localhost:${APP_PORT}`;
 const PROXIED = ['/api/', '/health', '/carddav/', '/.well-known/carddav'];
 const TYPES = {
   '.html': 'text/html',
@@ -66,7 +69,7 @@ const backend = spawn(join(backendDir, 'meerkat'), [], {
     SQLITE_DB_PATH: join(dataDir, 'test.db'),
     PROFILE_PHOTO_DIR: join(dataDir, 'photos'),
     JWT_SECRET_KEY: 'test-secret-key-for-e2e-testing-minimum-32-chars',
-    FRONTEND_URL: `http://localhost:${APP_PORT}`,
+    FRONTEND_URL: APP_URL,
     DISABLE_REGISTRATION: 'false',
     COOKIE_SECURE: 'false',
     API_RATE_LIMIT_BURST: '2000',
@@ -135,9 +138,13 @@ server.listen(APP_PORT, async () => {
   const sep = process.argv.indexOf('--');
   const cmd = sep === -1 ? [] : process.argv.slice(sep + 1);
   if (cmd.length === 0) {
-    console.log(`e2e-stack: app on http://localhost:${APP_PORT} (Ctrl+C to stop)`);
+    console.log(`e2e-stack: app on ${APP_URL} (Ctrl+C to stop)`);
     return;
   }
-  const child = spawn(cmd[0], cmd.slice(1), { cwd: frontendDir, stdio: 'inherit' });
+  const child = spawn(cmd[0], cmd.slice(1), {
+    cwd: frontendDir,
+    stdio: 'inherit',
+    env: { ...process.env, E2E_BASE_URL: APP_URL },
+  });
   child.on('exit', (code) => shutdown(code ?? 1));
 });

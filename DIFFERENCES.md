@@ -173,6 +173,8 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   commit subject check, format, lint, types, i18n key check, architecture check, OpenAPI check,
   use-case, Markdown link and changelog checks, coverage and E2E. Workflows call the same targets.
   Optional `lefthook`.
+- **Side-by-side checkouts:** `make dev` and `make test-e2e` pick free ports and keep their data per
+  checkout or in a temporary directory, so several checkouts and a dev server can run together.
 - **`make seed`:** adds a demo user (`demo`) and 60 realistic contacts with notes, activities,
   reminders and relationships to the running `make dev` backend. Safe to run again.
 - **Tests:** coverage thresholds for Go and Vitest, race detector in CI, fuzzing of the vCard, CSV,
