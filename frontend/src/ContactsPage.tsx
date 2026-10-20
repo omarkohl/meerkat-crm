@@ -215,6 +215,17 @@ export default function ContactsPage() {
           label={t('contacts.showArchived')}
           sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
         />
+        {selectedIds.length >= 1 && (
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setSelectedIds([]);
+            }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            {t('merge.clearSelection', { count: selectedIds.length })}
+          </Button>
+        )}
         {selectedIds.length >= 2 && (
           <Button
             variant="contained"

@@ -1155,6 +1155,7 @@
     "searchLabel": "Cerca contatti",
     "noResults": "Nessun altro contatto trovato",
     "selectContact": "Seleziona {{name}}",
+    "clearSelection": "Deseleziona tutto ({{count}})",
     "targetLegend": "Mantieni questo contatto",
     "targetHint": "Gli altri contatti vengono uniti a questo e poi spostati nel cestino.",
     "conflictsTitle": "Campi diversi",

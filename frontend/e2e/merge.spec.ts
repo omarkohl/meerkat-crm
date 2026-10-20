@@ -95,6 +95,23 @@ test.describe('Merge contacts', () => {
     await expect(page.getByRole('checkbox', { name: `Select ${firstname} Smith` })).toBeChecked();
   });
 
+  test('the selection can be cleared at once, also for contacts hidden by the search @004-US10', async ({ page }) => {
+    const { firstname } = await duplicates(page.request, 'Clear');
+    await page.goto('/contacts');
+    const search = page.getByRole('textbox', { name: 'Search Contacts' });
+
+    await search.fill(firstname);
+    await page.getByRole('checkbox', { name: `Select ${firstname} Smith` }).check();
+    await page.getByRole('checkbox', { name: `Select ${firstname} Jones` }).check();
+    await search.fill('nobody-has-this-name');
+    await page.getByRole('button', { name: 'Clear selection (2)' }).click();
+
+    await expect(page.getByRole('button', { name: /^Merge/ })).toHaveCount(0);
+    await search.fill(firstname);
+    await expect(page.getByRole('checkbox', { name: `Select ${firstname} Smith` })).not.toBeChecked();
+    await expect(page.getByRole('checkbox', { name: `Select ${firstname} Jones` })).not.toBeChecked();
+  });
+
   test('a contact page offers to merge with a searched contact and a chosen main contact @004-US10', async ({
     page,
   }) => {

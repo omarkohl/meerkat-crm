@@ -1155,6 +1155,7 @@
     "searchLabel": "Rechercher des contacts",
     "noResults": "Aucun autre contact trouvé",
     "selectContact": "Sélectionner {{name}}",
+    "clearSelection": "Effacer la sélection ({{count}})",
     "targetLegend": "Conserver ce contact",
     "targetHint": "Les autres contacts sont fusionnés dans celui-ci puis placés dans la corbeille.",
     "conflictsTitle": "Champs différents",

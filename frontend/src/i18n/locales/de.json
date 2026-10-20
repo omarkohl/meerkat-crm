@@ -1155,6 +1155,7 @@
     "searchLabel": "Kontakte suchen",
     "noResults": "Keine weiteren Kontakte gefunden",
     "selectContact": "{{name}} auswählen",
+    "clearSelection": "Auswahl aufheben ({{count}})",
     "targetLegend": "Diesen Kontakt behalten",
     "targetHint": "Die anderen Kontakte werden in ihn überführt und dann in den Papierkorb verschoben.",
     "conflictsTitle": "Abweichende Felder",

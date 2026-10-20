@@ -1155,6 +1155,7 @@
     "searchLabel": "Buscar contactos",
     "noResults": "No se encontraron otros contactos",
     "selectContact": "Seleccionar {{name}}",
+    "clearSelection": "Borrar selección ({{count}})",
     "targetLegend": "Conservar este contacto",
     "targetHint": "Los demás contactos se combinan con él y luego pasan a la papelera.",
     "conflictsTitle": "Campos que difieren",
