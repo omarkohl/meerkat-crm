@@ -125,8 +125,8 @@ covered too.
   at the wrong address. If your network needs an outbound proxy, these features cannot use it.
 - If blocking is off for any feature and more than one user exists, the server logs a warning at
   startup and admins see a dismissible banner on the Users page.
-- Photo URLs in vCards and photo uploads by URL are always checked, whatever the setting. They must
-  use port 80 or 443 ([ADR 0017](adr/0017-fetching-user-supplied-urls.md)).
+- Photo URLs in vCards, Monica gravatars and photo uploads by URL are always checked, whatever the
+  setting. They must use port 80 or 443 ([ADR 0017](adr/0017-fetching-user-supplied-urls.md)).
 - Not covered, on purpose: the OIDC provider (`OIDC_PROVIDER_URL`) and the SMTP host. Only the
   administrator sets them, and they are often internal services.
 

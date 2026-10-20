@@ -12,10 +12,10 @@ nav_order: 17
 ## Context
 
 The server fetches images from URLs that users choose: the image proxy of the profile picture dialog
-(the browser cannot fetch them itself because of CORS) and photo URLs in vCards (import, CardDAV
-clients, contact sync). Any user can supply such a URL, so the server can be told to request any
-address it can reach (server-side request forgery). An allow-list of hosts is not possible: users
-paste URLs from any site.
+(the browser cannot fetch them itself because of CORS), photo URLs in vCards (import, CardDAV
+clients, contact sync) and gravatar URLs from a Monica import. Any user can supply such a URL, so
+the server can be told to request any address it can reach (server-side request forgery). An
+allow-list of hosts is not possible: users paste URLs from any site.
 
 CodeQL reports `go/request-forgery` for this flow. It does not see a check made when the connection
 is opened, so the alert stays and is dismissed as a false positive with a link to this ADR.

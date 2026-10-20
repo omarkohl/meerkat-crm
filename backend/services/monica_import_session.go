@@ -744,15 +744,15 @@ func (m *MonicaImportManager) processAvatars(db *gorm.DB, s *monicaImportSession
 
 	for i, task := range tasks {
 		saved := false
-		// Photos hosted by Monica are only reachable through the API; every
-		// other source (gravatar) is a public URL fetched directly.
+		// Photos hosted by Monica are only reachable through the API; a gravatar
+		// is a user-supplied image URL (docs/adr/0017-fetching-user-supplied-urls.md).
 		var photoData []byte
 		var mediaType string
 		var err error
 		if task.source == avatarSourcePhoto {
 			photoData, mediaType, err = s.client.FetchContactPhoto(ctx, task.monicaID, task.avatarURL)
 		} else {
-			photoData, mediaType, err = s.client.FetchAvatar(ctx, task.avatarURL)
+			photoData, mediaType, err = carddav.FetchPhotoFromURL(ctx, task.avatarURL)
 		}
 		if err != nil {
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("source", task.source).Msg("Failed to fetch Monica avatar")

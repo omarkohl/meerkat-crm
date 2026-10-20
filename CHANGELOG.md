@@ -38,6 +38,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 - **Docker images include current Alpine fixes**: published images now contain package security
   fixes released after the base image.
+- **Monica import no longer loads avatars from internal addresses**: a Monica server could make
+  Meerkat load a picture from your local network.
 - **Safer loading of pictures from web addresses**: only the standard web ports are allowed, and the
   profile picture dialog loads at most 30 pictures per minute.
 

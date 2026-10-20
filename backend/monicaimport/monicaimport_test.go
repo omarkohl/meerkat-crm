@@ -567,3 +567,41 @@ func TestMonicaImportShowsASafeErrorWhenTheRemoteFailsDuringTheFetch(t *testing.
 	require.NoError(t, e.db.Model(&models.Contact{}).Count(&n).Error)
 	assert.Zero(t, n, "nothing was imported")
 }
+
+// @015-US2
+func TestMonicaImportNeverFetchesAnAvatarFromAnInternalAddress(t *testing.T) {
+	var avatarHits atomic.Int32
+	var buf bytes.Buffer
+	require.NoError(t, png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 60, 60))))
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paged := func(items []map[string]any) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": items, "meta": map[string]int{"current_page": 1, "last_page": 1, "total": len(items)}})
+		}
+		switch r.URL.Path {
+		case "/internal/avatar.png":
+			avatarHits.Add(1)
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(buf.Bytes())
+		case "/api/contacts":
+			paged([]map[string]any{{
+				"id": 301, "first_name": "Eve", "last_name": "Gravatar", "is_partial": false,
+				"information": map[string]any{"avatar": map[string]any{"url": srv.URL + "/internal/avatar.png", "source": "gravatar"}},
+			}})
+		default:
+			paged(nil)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	e := newEnv(t)
+	session := startMonicaFetch(t, e.asA, srv.URL, func() {})
+	waitForPhase(t, e.asA, session, "ready")
+
+	w := send(e.asA, "POST", prefix+"/confirm", map[string]any{"session_id": session, "actions": []map[string]any{{"row_index": 0, "action": "add"}}})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	st := waitForPhase(t, e.asA, session, "done")
+	assert.Equal(t, 1, st.Result.Created)
+	assert.Equal(t, 1, st.Result.PhotosFail)
+	assert.Zero(t, avatarHits.Load(), "a private Monica instance is allowed, an internal avatar URL is not")
+}
