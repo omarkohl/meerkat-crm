@@ -93,7 +93,7 @@ Set these variables in `.env` when running over HTTPS:
 | `FRONTEND_URL`       | Exact origin, e.g. `https://meerkat.example.com` (never `*`)                                                |
 | `COOKIE_SECURE`      | `true`                                                                                                      |
 | `COOKIE_DOMAIN`      | Leave empty. Only set it (e.g. `.example.com`) if frontend and API live on different subdomains             |
-| `JWT_SECRET_KEY`     | Generate with `openssl rand -base64 32`                                                                     |
+| `JWT_SECRET_KEY`     | Generate with `openssl rand -base64 32`. Meerkat warns about example values and obvious patterns            |
 | `ENCRYPTION_KEY`     | Generate with `openssl rand -base64 32` (see [Encryption key](#encryption-key))                             |
 | `BLOCK_PRIVATE_URLS` | `true` on any instance with more than one user (see [Private network access](#private-network-access-ssrf)) |
 

@@ -147,6 +147,8 @@ a separate listener.
 - Docker images get current Alpine package fixes at build time.
 - Stored secrets use `ENCRYPTION_KEY`, not `JWT_SECRET_KEY`; a wrong or missing key stops the server
   ([ADR 0018](docs/adr/0018-encryption-key.md)).
+- A published example, old dev default or obviously patterned `JWT_SECRET_KEY` gives a warning at
+  startup.
 
 ## Architecture
 

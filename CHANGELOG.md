@@ -42,6 +42,8 @@ of this fork (see [FORK.md](FORK.md)).
   Meerkat load a picture from your local network.
 - **Separate encryption key for stored secrets**: set `ENCRYPTION_KEY` (`openssl rand -base64 32`).
   Two-factor login needs it; two-factor set up before this version is turned off.
+- **Warning about a weak `JWT_SECRET_KEY`**: the server log warns when it is a published example
+  value or an obvious pattern.
 - **Safer loading of pictures from web addresses**: only the standard web ports are allowed, and the
   profile picture dialog loads at most 30 pictures per minute.
 

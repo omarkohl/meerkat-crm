@@ -68,7 +68,7 @@ const backend = spawn(join(backendDir, 'meerkat'), [], {
     PORT: String(BACKEND_PORT),
     SQLITE_DB_PATH: join(dataDir, 'test.db'),
     PROFILE_PHOTO_DIR: join(dataDir, 'photos'),
-    JWT_SECRET_KEY: 'test-secret-key-for-e2e-testing-minimum-32-chars',
+    JWT_SECRET_KEY: 'TESThmCqW032YZThAr7NlwUVzgSOSanJdBiaVT0PTfJX7/Rh8OAy',
     ENCRYPTION_KEY: 'TESTOSNhn3czhueriPkmUWzLFJ2kmE0BofVJ3yf9Bpk=',
     FRONTEND_URL: APP_URL,
     DISABLE_REGISTRATION: 'false',

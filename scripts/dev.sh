@@ -16,7 +16,7 @@ set +a
 : "${BACKEND_PORT:=$(node scripts/free-port.mjs 8080)}"
 : "${FRONTEND_PORT:=$(node scripts/free-port.mjs 7300)}"
 : "${SQLITE_DB_PATH:=$DEV_DATA_DIR/meerkat.db}" "${PROFILE_PHOTO_DIR:=$DEV_DATA_DIR/photos}"
-: "${JWT_SECRET_KEY:=insecure-dev-only-jwt-secret-key-do-not-use-in-production}"
+: "${JWT_SECRET_KEY:=TESThmCqW032YZThAr7NlwUVzgSOSanJdBiaVT0PTfJX7/Rh8OAy}"
 : "${ENCRYPTION_KEY:=TESTOSNhn3czhueriPkmUWzLFJ2kmE0BofVJ3yf9Bpk=}"
 : "${FRONTEND_URL:=http://localhost:$FRONTEND_PORT}"
 export SQLITE_DB_PATH PROFILE_PHOTO_DIR JWT_SECRET_KEY ENCRYPTION_KEY FRONTEND_URL
