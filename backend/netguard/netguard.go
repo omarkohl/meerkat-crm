@@ -34,6 +34,7 @@ var blockedPrefixes = mustPrefixes(
 	"2001::/32",      // Teredo (embeds an obfuscated IPv4 address)
 	"64:ff9b:1::/48", // local-use NAT64
 	"100::/64",       // discard-only
+	"fec0::/10",      // deprecated IPv6 site-local, still routed internally on some networks
 )
 
 var (

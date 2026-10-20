@@ -134,8 +134,8 @@ sync, CardDAV contact sync (including the `/.well-known/carddav` discovery) and 
 (including avatars). On a shared instance a user could point them at the server's own network (a
 database, the cloud metadata service at `169.254.169.254`, other containers).
 
-`BLOCK_PRIVATE_URLS=true` refuses loopback, private (RFC 1918, IPv6 unique local), link-local,
-carrier-grade NAT (`100.64.0.0/10`), multicast, `0.0.0.0/8`, the reserved `240.0.0.0/4`,
+`BLOCK_PRIVATE_URLS=true` refuses loopback, private (RFC 1918, IPv6 unique local and site-local),
+link-local, carrier-grade NAT (`100.64.0.0/10`), multicast, `0.0.0.0/8`, the reserved `240.0.0.0/4`,
 benchmarking (`198.18.0.0/15`) and IPv6 forms that embed an IPv4 address (IPv4-mapped
 `::ffff:127.0.0.1`, NAT64 `64:ff9b::/96`, 6to4 `2002::/16`, Teredo) addresses for all of these
 features at once. The check runs when the connection is made, on the address that is dialled (a name

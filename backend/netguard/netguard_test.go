@@ -23,7 +23,7 @@ func TestIsBlockedIP(t *testing.T) {
 		"0.1.2.3": true, "240.0.0.1": true, "198.18.0.1": true, "198.19.255.255": true, "192.0.0.192": true,
 		"64:ff9b::7f00:1": true, "64:ff9b::a00:1": true, "64:ff9b::a9fe:a9fe": true, "64:ff9b::808:808": false,
 		"2002:7f00:1::": true, "2002:a9fe:a9fe::1": true, "2002:808:808::1": false, "2001:0:4136:e378:8000:63bf:3fff:fdd2": true,
-		"64:ff9b:1::1": true, "198.20.0.1": false, "239.255.255.255": true,
+		"64:ff9b:1::1": true, "fec0::1": true, "feff::1": true, "198.20.0.1": false, "239.255.255.255": true,
 		"93.184.216.34": false, "8.8.8.8": false, "2606:4700:4700::1111": false, "::ffff:8.8.8.8": false, "100.128.0.1": false,
 	}
 	for s, want := range tests {

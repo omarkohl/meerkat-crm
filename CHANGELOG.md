@@ -46,6 +46,8 @@ of this fork (see [FORK.md](FORK.md)).
   value or an obvious pattern.
 - **Safer loading of pictures from web addresses**: only the standard web ports are allowed, and the
   profile picture dialog loads at most 30 pictures per minute.
+- **Old IPv6 site-local addresses are blocked**: with private addresses blocked, Meerkat no longer
+  connects to `fec0::/10` addresses.
 
 ### Internal
 
