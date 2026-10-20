@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { useState, useMemo, useEffect, ChangeEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Paper, TextField, Button, IconButton, Pagination, Popover } from '@mui/material';
+import { Box, Typography, Paper, TextField, Button, IconButton, Pagination, Popover, Stack } from '@mui/material';
 import {
   Timeline,
   TimelineItem,
@@ -155,16 +155,11 @@ const NotesPage: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 2, p: 2 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="h5">{t('notes.title')}</Typography>
-          <IconButton size="small" aria-describedby={infoPopoverId} onClick={handleInfoClick}>
-            <InfoOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Button variant="outlined" startIcon={<NoteIcon />} onClick={handleAddNote}>
-          {t('notes.addNote')}
-        </Button>
+      <Box display="flex" alignItems="center" gap={1} mb={2}>
+        <Typography variant="h5">{t('notes.title')}</Typography>
+        <IconButton size="small" aria-describedby={infoPopoverId} onClick={handleInfoClick}>
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
       </Box>
       <Popover
         id={infoPopoverId}
@@ -178,34 +173,40 @@ const NotesPage: React.FC = () => {
         </Box>
       </Popover>
 
-      <Paper sx={{ p: 1.5, mb: 2 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
-          <TextField
-            size="small"
-            label={t('notes.search')}
-            value={searchInput}
-            onChange={(e) => {
-              handleSearchChange(e.target.value);
-            }}
-            variant="outlined"
-            sx={{ flex: 1, minWidth: 200 }}
-          />
-          <DateField
-            size="small"
-            label={t('notes.fromDate')}
-            value={fromDate}
-            onChange={handleFromDateChange}
-            sx={{ width: 180 }}
-          />
-          <DateField
-            size="small"
-            label={t('notes.toDate')}
-            value={toDate}
-            onChange={handleToDateChange}
-            sx={{ width: 180 }}
-          />
-        </Box>
-      </Paper>
+      <TextField
+        size="small"
+        fullWidth
+        label={t('notes.search')}
+        value={searchInput}
+        onChange={(e) => {
+          handleSearchChange(e.target.value);
+        }}
+        sx={{ mb: 1.5 }}
+      />
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+        <DateField
+          size="small"
+          label={t('notes.fromDate')}
+          value={fromDate}
+          onChange={handleFromDateChange}
+          sx={{ width: { sm: 180 } }}
+        />
+        <DateField
+          size="small"
+          label={t('notes.toDate')}
+          value={toDate}
+          onChange={handleToDateChange}
+          sx={{ width: { sm: 180 } }}
+        />
+        <Button
+          variant="contained"
+          startIcon={<NoteIcon />}
+          onClick={handleAddNote}
+          sx={{ ml: { sm: 'auto' }, whiteSpace: 'nowrap' }}
+        >
+          {t('notes.addNote')}
+        </Button>
+      </Stack>
 
       {isInitialLoading ? (
         <ListSkeleton count={8} />

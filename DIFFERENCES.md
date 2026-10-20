@@ -125,7 +125,8 @@ longer, and a private Monica URL can be allowed.
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
 locale. One placeholder for empty values. The add-activity dialog preselects the contact and the
 edit-activity contact field searches all contacts. Header search clears on navigation and Escape.
-The sidebar collapses to icons.
+The sidebar collapses to icons. The contact, note and activity lists share one toolbar (search,
+filters, then actions on the right), and buttons are not upper case.
 
 **Thumbnails.** Contact thumbnails are files next to the photos, not base64 in the database. The
 database gets smaller and list queries get cheaper. Migration 30; see "Merge impact".

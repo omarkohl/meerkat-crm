@@ -22,6 +22,11 @@ of this fork (see [FORK.md](FORK.md)).
 - **Search box on the contact list**: finds contacts by any field. Contacts you selected for a merge
   stay selected while you search; you can show only them or clear the selection.
 
+### Changed
+
+- **Tidier list toolbars and buttons**: contacts, notes and activities show search, filters and
+  actions in the same order. Merge selection has its own bar, and buttons no longer use capitals.
+
 ### Fixed
 
 - **Birthday e-mail is sent once a day**: restarting the server on a birthday sent it again.

@@ -63,6 +63,18 @@ export const lightTheme = createTheme({
   },
 
   components: {
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
+        },
+      },
+    },
+
     MuiCard: {
       styleOverrides: {
         root: {
@@ -148,6 +160,18 @@ export const darkTheme = createTheme({
   },
 
   components: {
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
+        },
+      },
+    },
+
     MuiCard: {
       styleOverrides: {
         root: {

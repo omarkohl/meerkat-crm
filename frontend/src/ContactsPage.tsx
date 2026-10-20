@@ -168,7 +168,7 @@ export default function ContactsPage() {
         }}
         sx={{ mb: 1.5 }}
       />
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
         <FormControl sx={{ minWidth: 180 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
           <Select
@@ -218,7 +218,38 @@ export default function ContactsPage() {
           label={t('contacts.showArchived')}
           sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
         />
-        {selectedIds.length >= 1 && (
+        <Stack direction="row" spacing={1} sx={{ ml: { sm: 'auto' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<FileUploadIcon />}
+            onClick={() => {
+              setImportDialogOpen(true);
+            }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            {t('contacts.import.button', 'Import')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PersonAddIcon />}
+            onClick={() => {
+              setAddDialogOpen(true);
+            }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            {t('contacts.add.button')}
+          </Button>
+        </Stack>
+      </Stack>
+      {selectedIds.length >= 1 && (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mb: 2, p: 1, pl: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}
+        >
           <FormControlLabel
             control={
               <Switch
@@ -230,53 +261,34 @@ export default function ContactsPage() {
               />
             }
             label={t('merge.selectedOnly', { count: selectedIds.length })}
-            sx={{ ml: 0.5, whiteSpace: 'nowrap' }}
+            sx={{ mr: 0, whiteSpace: 'nowrap' }}
           />
-        )}
-        {selectedIds.length >= 1 && (
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSelected(new Map());
-            }}
-            sx={{ whiteSpace: 'nowrap' }}
-          >
-            {t('merge.clearSelection', { count: selectedIds.length })}
-          </Button>
-        )}
-        {selectedIds.length >= 2 && (
-          <Button
-            variant="contained"
-            startIcon={<MergeIcon />}
-            onClick={() => {
-              setMergeOpen(true);
-            }}
-            sx={{ whiteSpace: 'nowrap' }}
-          >
-            {t('merge.button')} ({selectedIds.length})
-          </Button>
-        )}
-        <Button
-          variant="outlined"
-          startIcon={<FileUploadIcon />}
-          onClick={() => {
-            setImportDialogOpen(true);
-          }}
-          sx={{ whiteSpace: 'nowrap' }}
-        >
-          {t('contacts.import.button', 'Import')}
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<PersonAddIcon />}
-          onClick={() => {
-            setAddDialogOpen(true);
-          }}
-          sx={{ whiteSpace: 'nowrap' }}
-        >
-          {t('contacts.add.button')}
-        </Button>
-      </Stack>
+          <Stack direction="row" spacing={1} sx={{ ml: 'auto' }}>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => {
+                setSelected(new Map());
+              }}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              {t('merge.clearSelection', { count: selectedIds.length })}
+            </Button>
+            {selectedIds.length >= 2 && (
+              <Button
+                variant="contained"
+                startIcon={<MergeIcon />}
+                onClick={() => {
+                  setMergeOpen(true);
+                }}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                {t('merge.button')} ({selectedIds.length})
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+      )}
       {!showSelectedOnly && (totalContacts > 0 || searchQuery || selectedCircle) && (
         <Box
           sx={{
