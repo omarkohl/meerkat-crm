@@ -101,7 +101,7 @@ func ContactNames(match string) string {
 }
 
 // ContactBasics limits a contacts_fts expression to names, e-mail addresses and phone numbers
-// (the contact list and the pickers); the other columns are for the global search.
+// (the pickers); the other columns are for the global search and the contact list.
 func ContactBasics(match string) string {
 	return "{firstname lastname nickname email phone emails phones} : (" + match + ")"
 }

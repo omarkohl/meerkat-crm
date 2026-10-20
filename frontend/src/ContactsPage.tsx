@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useContacts } from './hooks/useContacts';
+import { useDebouncedValue } from './hooks/useDebounce';
 import { getCircles } from './api/contacts';
 import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
@@ -22,6 +23,7 @@ import {
   Pagination,
   Button,
   FormControlLabel,
+  TextField,
   Switch,
   Checkbox,
 } from '@mui/material';
@@ -35,7 +37,9 @@ export default function ContactsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchQuery = searchParams.get('search') || '';
+  const urlSearch = searchParams.get('search') || '';
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const searchQuery = useDebouncedValue(searchInput, 400).trim();
   const page = parseInt(searchParams.get('page') || '1', 10);
   const [selectedCircle, setSelectedCircle] = useState('');
   const [circles, setCircles] = useState<string[]>([]);
@@ -57,6 +61,11 @@ export default function ContactsPage() {
   const [searchSortOption, setSearchSortOption] = useState('relevance');
   const activeSort = searching ? searchSortOption : sortOption;
   const [sortField, sortOrder] = activeSort.split('-');
+
+  // A link to this page with a term (from the search) replaces the typed one
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
 
   // Persist sort option to localStorage
   useEffect(() => {
@@ -85,6 +94,7 @@ export default function ContactsPage() {
       page,
       limit: pageSize,
       search: searchQuery,
+      searchAll: true,
       circle: selectedCircle,
       sort: sortField === 'relevance' ? undefined : sortField,
       order: sortField === 'relevance' ? undefined : sortOrder,
@@ -145,6 +155,16 @@ export default function ContactsPage() {
       <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
         {t('contacts.title')}
       </Typography>
+      <TextField
+        size="small"
+        fullWidth
+        label={t('contacts.search')}
+        value={searchInput}
+        onChange={(e) => {
+          setSearchInput(e.target.value);
+        }}
+        sx={{ mb: 1.5 }}
+      />
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={2} alignItems="center">
         <FormControl sx={{ minWidth: 180 }} size="small">
           <InputLabel id="circle-select-label">{t('contacts.filterByCircle')}</InputLabel>
@@ -258,7 +278,20 @@ export default function ContactsPage() {
                     })
                   : t('contacts.totalContacts', { count: totalContacts })}
           </Typography>
-          {searchQuery && <Chip label={`"${searchQuery}"`} size="small" onDelete={() => navigate('/contacts')} />}
+          {searchQuery && (
+            <Chip
+              label={`"${searchQuery}"`}
+              size="small"
+              onDelete={() => {
+                setSearchInput('');
+                setSearchParams((prev) => {
+                  const params = new URLSearchParams(prev);
+                  params.delete('search');
+                  return params;
+                });
+              }}
+            />
+          )}
           {selectedCircle && (
             <Chip
               label={selectedCircle}

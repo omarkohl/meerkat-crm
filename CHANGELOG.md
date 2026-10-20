@@ -17,6 +17,8 @@ of this fork (see [FORK.md](FORK.md)).
   contact, resolve differing values and combine their data. The others go to the trash.
 - **Search contacts, notes and activities from the header** (#118): grouped results with the match
   marked and named, over every contact field, and a results page with a tab per group.
+- **Search box on the contact list**: finds contacts by any field. Contacts you selected for a merge
+  stay selected while you search.
 
 ### Fixed
 

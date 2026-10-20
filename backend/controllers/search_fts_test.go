@@ -79,6 +79,34 @@ func TestContactSearchFoldsAccentsAndMatchesPrefixesAcrossFields(t *testing.T) {
 	assert.Empty(t, firstnames(getJSON(t, r, "/contacts", url.Values{"search": {"zoe smith"}})))
 }
 
+// @004-US2
+func TestContactSearchAllFieldsFindsOtherFieldsAndRanksNameMatchesFirst(t *testing.T) {
+	db, r, u := ftsRouter(t)
+	require.NoError(t, db.Create(&[]models.Contact{
+		{UserID: u.ID, Firstname: "Ann", Organization: "Initech 株式会社", HowWeMet: "Conference in Lisbon"},
+		{UserID: u.ID, Firstname: "Lisbon", Lastname: "Smith"},
+		{UserID: u.ID, Firstname: "Cy", Circles: []string{"Climbing"}, CustomFields: map[string]string{"Pet": "Rex"}},
+		{UserID: u.ID, Firstname: "太郎", Lastname: "山田"},
+		{UserID: u.ID, Firstname: "Dee", Note: "山田さんの紹介"},
+		{UserID: u.ID, Firstname: "Pia", Phones: []models.ContactPhone{{Value: "+41 79 5550101"}}},
+		{UserID: u.ID, Firstname: "Sure", HowWeMet: "100% by chance"},
+	}).Error)
+	all := func(term string) []string {
+		return firstnames(getJSON(t, r, "/contacts", url.Values{"search": {term}, "search_all": {"true"}}))
+	}
+
+	assert.Equal(t, []string{"Ann"}, all("initech"))
+	assert.Equal(t, []string{"Cy"}, all("climbing"))
+	assert.Equal(t, []string{"Cy"}, all("rex"))
+	assert.Equal(t, []string{"Lisbon", "Ann"}, all("lisbon"), "a name match ranks first")
+	assert.Equal(t, []string{"Ann"}, all("株式"), "CJK input is a substring search over every field")
+	assert.Equal(t, []string{"太郎", "Dee"}, all("山田"), "a name match ranks first in the substring search too")
+	assert.Equal(t, []string{"太郎"}, all("太郎 山田"), "the full name is one substring")
+	assert.Equal(t, []string{"Pia"}, all("795550"), "phone digits match across spaces")
+	assert.Equal(t, []string{"Sure"}, all("%"), "LIKE wildcards are ordinary characters")
+	assert.Empty(t, firstnames(getJSON(t, r, "/contacts", url.Values{"search": {"initech"}})), "without search_all only the basics are searched")
+}
+
 func TestPhoneNumberSearchMatchesInTheMiddleOfTheNumber(t *testing.T) {
 	db, r, u := ftsRouter(t)
 	require.NoError(t, db.Create(&[]models.Contact{

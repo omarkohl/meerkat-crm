@@ -3837,6 +3837,8 @@ export interface operations {
                 limit?: string;
                 /** @description Full-text search over names, nicknames, e-mail addresses and phone numbers */
                 search?: string;
+                /** @description true: search every text field, not only names, e-mail addresses and phone numbers; name matches come first */
+                search_all?: string;
                 /** @description Only contacts in this circle */
                 circle?: string;
                 /** @description firstname, lastname, id or random; with search and no sort the best match comes first */

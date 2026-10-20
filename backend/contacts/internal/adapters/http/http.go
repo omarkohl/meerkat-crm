@@ -87,6 +87,7 @@ type ListInput struct {
 	Page            string `query:"page" doc:"Page number, from 1"`
 	Limit           string `query:"limit" doc:"Page size, 1 to 100, default 25"`
 	Search          string `query:"search" doc:"Full-text search over names, nicknames, e-mail addresses and phone numbers"`
+	SearchAll       string `query:"search_all" doc:"true: search every text field, not only names, e-mail addresses and phone numbers; name matches come first"`
 	Circle          string `query:"circle" doc:"Only contacts in this circle"`
 	Sort            string `query:"sort" doc:"firstname, lastname, id or random; with search and no sort the best match comes first"`
 	Order           string `query:"order" doc:"asc or desc, default desc"`
@@ -158,7 +159,7 @@ func (h *handlers) list(ctx context.Context, in *ListInput) (*ContactListOutput,
 		return nil, err
 	}
 	page, err := h.uc.ListContacts(ctx, actor, app.ListQuery{
-		Search: in.Search, Circle: in.Circle, Sort: in.Sort, Order: in.Order,
+		Search: in.Search, SearchAll: in.SearchAll == "true", Circle: in.Circle, Sort: in.Sort, Order: in.Order,
 		IncludeArchived: in.IncludeArchived == "true", ArchivedOnly: in.Archived == "true",
 		Page: atoiOr0(in.Page), Limit: atoiOr0(in.Limit),
 		Fields: splitList(in.Fields), Includes: splitList(in.Includes),

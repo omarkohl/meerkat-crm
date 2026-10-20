@@ -107,7 +107,8 @@ does not send it again. Migration 35.
 **Full-text search.** Contact search uses SQLite FTS5. Migration 29. The header search finds
 contacts, notes and activities at once (`GET /search`), grouped, ranked, with the match marked and
 the matching field named; it covers every text field of a contact (migration 34), and a results page
-(`/search?q=`) has a tab per group with paging.
+(`/search?q=`) has a tab per group with paging. The contact list has a search box over the same
+fields (`search_all`).
 
 **Import.** The preview can filter, sort and set a value on many rows at once, and the result lists
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and

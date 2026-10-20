@@ -76,6 +76,25 @@ test.describe('Merge contacts', () => {
     await expect(page.getByText(`${firstname} Jones`)).toHaveCount(1);
   });
 
+  test('contacts selected in the list stay selected while the search changes @004-US10', async ({ page }) => {
+    const { firstname } = await duplicates(page.request, 'Keep');
+    const org = `Org${Date.now()}`;
+    await createTestContact(page.request, { firstname: `${firstname}Third`, lastname: 'Hidden', organization: org });
+    await page.goto('/contacts');
+    const search = page.getByRole('textbox', { name: 'Search Contacts' });
+
+    await search.fill(firstname);
+    await page.getByRole('checkbox', { name: `Select ${firstname} Smith` }).check();
+    await search.fill(org);
+    await expect(page.getByRole('link', { name: `${firstname}Third Hidden` })).toBeVisible();
+    await expect(page.getByRole('link', { name: `${firstname} Smith` })).toHaveCount(0);
+    await page.getByRole('checkbox', { name: `Select ${firstname}Third Hidden` }).check();
+
+    await expect(page.getByRole('button', { name: /^Merge \(2\)$/ })).toBeVisible();
+    await search.fill(firstname);
+    await expect(page.getByRole('checkbox', { name: `Select ${firstname} Smith` })).toBeChecked();
+  });
+
   test('a contact page offers to merge with a searched contact and a chosen main contact @004-US10', async ({
     page,
   }) => {

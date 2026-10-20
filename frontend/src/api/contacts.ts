@@ -28,6 +28,7 @@ export interface GetContactsParams {
   page?: number;
   limit?: number;
   search?: string;
+  searchAll?: boolean;
   circle?: string;
   sort?: string;
   order?: string;
@@ -37,7 +38,7 @@ export interface GetContactsParams {
 
 // Get all contacts with pagination and filters
 export async function getContacts(params: GetContactsParams): Promise<ContactsResponse> {
-  const { page = 1, limit = 25, search = '', circle = '', sort, order, includeArchived, archived } = params;
+  const { page = 1, limit = 25, search = '', searchAll, circle = '', sort, order, includeArchived, archived } = params;
 
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -45,6 +46,7 @@ export async function getContacts(params: GetContactsParams): Promise<ContactsRe
   });
 
   if (search) queryParams.append('search', search);
+  if (search && searchAll) queryParams.append('search_all', 'true');
   if (circle) queryParams.append('circle', circle);
   if (sort) queryParams.append('sort', sort);
   if (order) queryParams.append('order', order);

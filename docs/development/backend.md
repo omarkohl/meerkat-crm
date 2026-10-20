@@ -76,9 +76,10 @@ Search uses SQLite FTS5 tables `contacts_fts`, `notes_fts` and `activities_fts` 
 real table and filter `user_id` and `deleted_at` there. `search.MatchQuery` quotes every typed word
 as a prefix term, so user input can never be FTS5 syntax, caps the input (200 characters, 32 words)
 and hands phone-like digits and CJK text back to the LIKE code (`ok == false`). `contacts_fts` has a
-column for every free-text field of a contact; the contact list and the pickers wrap the expression
-in `search.ContactBasics` (names, e-mail addresses, phone numbers), the global search
-(`GET /search`) does not. `search.Available` remembers per database whether an index exists, so
+column for every free-text field of a contact; the pickers wrap the expression in
+`search.ContactBasics` (names, e-mail addresses, phone numbers); the global search (`GET /search`)
+and the contact list (`search_all=true`) do not; their LIKE code is `search.ContactAnyFieldLike`, so
+both find the same contacts. `search.Available` remembers per database whether an index exists, so
 create the tables before the first search on a database.
 
 - **Changing an indexed column** (the list in the trigger's `UPDATE OF`) or **recreating `contacts`,

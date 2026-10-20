@@ -6386,6 +6386,16 @@
             }
           },
           {
+            "description": "true: search every text field, not only names, e-mail addresses and phone numbers; name matches come first",
+            "explode": false,
+            "in": "query",
+            "name": "search_all",
+            "schema": {
+              "description": "true: search every text field, not only names, e-mail addresses and phone numbers; name matches come first",
+              "type": "string"
+            }
+          },
+          {
             "description": "Only contacts in this circle",
             "explode": false,
             "in": "query",

@@ -37,6 +37,7 @@ const (
 // sort fields and orders fall back to the default too.
 type ListQuery struct {
 	Search          string
+	SearchAll       bool
 	Circle          string
 	Sort            string
 	Order           string

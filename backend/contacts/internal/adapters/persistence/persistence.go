@@ -16,6 +16,7 @@ import (
 	"meerkat/services"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Repository implements app.Contacts and app.Store.
@@ -101,7 +102,7 @@ func (r *Repository) List(ctx context.Context, actor domain.UserID, q app.ListQu
 	}
 	filter := func(tx *gorm.DB) *gorm.DB {
 		if q.Search != "" {
-			tx = searchFilter(tx, q.Search, match)
+			tx = searchFilter(tx, q.Search, match, q.SearchAll)
 		}
 		if q.Circle != "" {
 			tx = tx.Where("EXISTS (SELECT 1 FROM json_each(contacts.circles) WHERE json_each.value = ?)", q.Circle)
@@ -114,8 +115,16 @@ func (r *Repository) List(ctx context.Context, actor domain.UserID, q app.ListQu
 		query = query.Order("archived ASC")
 	}
 	switch {
+	case match != "" && q.Sort == "" && q.SearchAll:
+		query = query.Joins("LEFT JOIN (SELECT rowid AS name_id FROM contacts_fts WHERE contacts_fts MATCH ?) AS names ON names.name_id = contacts.id", search.ContactNames(match)).
+			Order("names.name_id IS NULL").Order("hits.hit_rank").Order("contacts.id DESC")
 	case match != "" && q.Sort == "":
 		query = query.Order("hits.hit_rank").Order("contacts.id DESC")
+	case q.Search != "" && q.Sort == "" && q.SearchAll:
+		name, args := search.ContactNameLike(q.Search)
+		query = query.Clauses(clause.OrderBy{Expression: clause.Expr{
+			SQL: "CASE WHEN " + name + " THEN 0 ELSE 1 END, contacts.id DESC", Vars: args, WithoutParentheses: true,
+		}})
 	case q.Sort == "random":
 		query = query.Order("RANDOM()")
 	default:
@@ -186,9 +195,17 @@ func sortColumn(sort string) string {
 }
 
 // searchFilter uses the FTS index when there is a match expression, else a LIKE search.
-func searchFilter(query *gorm.DB, term, match string) *gorm.DB {
+func searchFilter(query *gorm.DB, term, match string, all bool) *gorm.DB {
 	if match != "" {
-		return query.Joins("JOIN "+search.Hits("contacts_fts")+" AS hits ON hits.hit_id = contacts.id", search.ContactBasics(match))
+		expr := search.ContactBasics(match)
+		if all {
+			expr = match
+		}
+		return query.Joins("JOIN "+search.Hits("contacts_fts")+" AS hits ON hits.hit_id = contacts.id", expr)
+	}
+	if all {
+		cond, args := search.ContactAnyFieldLike(term)
+		return query.Where(cond, args...)
 	}
 	like := "%" + term + "%"
 	return query.Where(
