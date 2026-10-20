@@ -21,7 +21,7 @@ test.describe('Backups (admin)', () => {
     const name = created!.name;
 
     try {
-      await expect(page.getByText(new RegExp(name.replace(/\./g, '\\.')))).toBeVisible();
+      await expect(page.getByText(name)).toBeVisible();
 
       const downloadPromise = page.waitForEvent('download');
       await page.getByRole('button', { name: `Download ${name}` }).click();
