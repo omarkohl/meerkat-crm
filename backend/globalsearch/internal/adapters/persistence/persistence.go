@@ -12,6 +12,7 @@ import (
 	"meerkat/search"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository struct{ db *gorm.DB }
@@ -33,7 +34,8 @@ func (r *Repository) Contacts(ctx context.Context, actor domain.UserID, term str
 		cond, args := search.ContactAnyFieldLike(term)
 		name, nameArgs := search.ContactNameLike(term)
 		base = base.Where(cond, args...)
-		order = []any{gorm.Expr("CASE WHEN "+name+" THEN 0 ELSE 1 END", nameArgs...), "contacts.id"}
+		// Order ignores a gorm.Expr, and a later Order replaces an OrderBy expression: one clause.
+		order = []any{clause.OrderBy{Expression: clause.Expr{SQL: "CASE WHEN " + name + " THEN 0 ELSE 1 END, contacts.id", Vars: nameArgs, WithoutParentheses: true}}}
 	}
 	var total int64
 	if err := base.Session(&gorm.Session{}).Count(&total).Error; err != nil {

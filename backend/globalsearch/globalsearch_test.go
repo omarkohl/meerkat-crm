@@ -278,6 +278,19 @@ func TestPhoneDigitsAndCJKTextAreFoundWithoutTheIndex(t *testing.T) {
 }
 
 // @022-US1
+func TestAContactMatchedByNameComesFirstWithoutTheIndexToo(t *testing.T) {
+	e := newEnv(t)
+	byNote := e.contact(t, e.a.ID, models.Contact{Firstname: "Dee", Note: "山田さんの紹介"})
+	byName := e.contact(t, e.a.ID, models.Contact{Firstname: "太郎", Lastname: "山田"})
+
+	res := search(t, e.asA, q("山田"))
+
+	require.Len(t, res.Contacts.Items, 2)
+	assert.Equal(t, byName.ID, res.Contacts.Items[0].ID)
+	assert.Equal(t, byNote.ID, res.Contacts.Items[1].ID)
+}
+
+// @022-US1
 func TestLikeWildcardsInTheTermAreOrdinaryCharacters(t *testing.T) {
 	e := newEnv(t)
 	e.note(t, e.a.ID, nil, "plain words only", 1)
