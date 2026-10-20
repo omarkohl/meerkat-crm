@@ -114,8 +114,9 @@ fields (`search_all`).
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and
 Apple labels work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported and
 synced as a contact note (migration 33). Rows with errors are never imported, and an unreadable card
-no longer shifts the cards after it. Importing a deleted contact asks whether to restore it. The
-Monica import timeout is longer, and a private Monica URL can be allowed.
+no longer shifts the cards after it. Importing a deleted contact asks whether to restore it. vCard
+photos load after the import, and the result shows their progress. The Monica import timeout is
+longer, and a private Monica URL can be allowed.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
 locale. One placeholder for empty values. The add-activity dialog preselects the contact and the

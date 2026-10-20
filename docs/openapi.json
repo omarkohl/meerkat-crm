@@ -2740,6 +2740,11 @@
             },
             "type": "array"
           },
+          "photos_queued": {
+            "description": "Photos that load in the background after the response; poll the vCard status",
+            "format": "int64",
+            "type": "integer"
+          },
           "skipped": {
             "format": "int64",
             "type": "integer"
@@ -2765,7 +2770,8 @@
           "updated",
           "skipped",
           "errors",
-          "skipped_rows"
+          "skipped_rows",
+          "photos_queued"
         ],
         "type": "object"
       },
@@ -3620,6 +3626,39 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "PhotoStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "description": "importing_photos or done",
+            "type": "string"
+          },
+          "photos_done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "photos_failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "photos_saved": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "photos_total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "phase",
+          "photos_done",
+          "photos_total",
+          "photos_saved",
+          "photos_failed"
         ],
         "type": "object"
       },
@@ -7024,7 +7063,50 @@
             "description": "Error"
           }
         },
-        "summary": "Import the previewed vCards with the chosen action per row, photos included",
+        "summary": "Import the previewed vCards with the chosen action per row; photos load in the background",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/contacts/import/vcf/status": {
+      "get": {
+        "operationId": "vcf-import-status",
+        "parameters": [
+          {
+            "description": "The session of the confirmed import",
+            "explode": false,
+            "in": "query",
+            "name": "session_id",
+            "schema": {
+              "description": "The session of the confirmed import",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoStatusResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Progress of the photos of a confirmed vCard import, for polling",
         "tags": [
           "import"
         ]

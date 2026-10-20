@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   DialogTitle,
@@ -44,6 +44,8 @@ import {
   getImportPreview,
   confirmImport,
   confirmVCFImport,
+  getVCFImportStatus,
+  VCFPhotoStatus,
   ColumnMapping,
   ImportUploadResponse,
   ImportPreviewResponse,
@@ -68,6 +70,7 @@ type ImportType = 'csv' | 'vcf';
 
 const CSV_STEP_KEYS = ['upload', 'mapColumns', 'review', 'done'] as const;
 const VCF_STEP_KEYS = ['upload', 'review', 'done'] as const;
+const PHOTO_POLL_INTERVAL_MS = 1000;
 
 export default function ImportContactsDialog({ open, onClose, onImportComplete }: ImportContactsDialogProps) {
   const { t } = useTranslation();
@@ -90,6 +93,8 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
 
   // Result state
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<VCFPhotoStatus | null>(null);
+  const [photoPollFailed, setPhotoPollFailed] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -108,10 +113,39 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
     setFilter(null);
     setSort({ key: 'row', direction: 'asc' });
     setImportResult(null);
+    setPhotoStatus(null);
+    setPhotoPollFailed(false);
     setLoading(false);
     setError(null);
     setDragOver(false);
   }, []);
+
+  const onImportCompleteRef = useRef(onImportComplete);
+  onImportCompleteRef.current = onImportComplete;
+  const photoSessionId =
+    importType === 'vcf' && importResult && importResult.photos_queued > 0 ? previewResponse?.session_id : undefined;
+
+  useEffect(() => {
+    if (!open || !photoSessionId) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const status = await getVCFImportStatus(photoSessionId);
+        if (stopped) return;
+        setPhotoStatus(status);
+        if (status.phase !== 'done') timer = setTimeout(() => void poll(), PHOTO_POLL_INTERVAL_MS);
+        else if (status.photos_saved > 0) onImportCompleteRef.current();
+      } catch {
+        if (!stopped) setPhotoPollFailed(true);
+      }
+    };
+    void poll();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [open, photoSessionId]);
 
   // Handle dialog close
   const handleClose = () => {
@@ -694,6 +728,37 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
   };
 
   // Render result step
+  const renderPhotoProgress = (queued: number) => {
+    const status = photoStatus ?? { phase: 'importing_photos', photos_done: 0, photos_total: queued, photos_saved: 0 };
+    if (status.phase === 'done') {
+      return (
+        <Typography>
+          {t('contacts.import.result.photosLoaded', 'Photos loaded: {{saved}} of {{total}}', {
+            saved: status.photos_saved,
+            total: status.photos_total,
+          })}
+        </Typography>
+      );
+    }
+    return (
+      <Box>
+        <Typography>
+          {t('contacts.import.result.photosLoading', 'Loading photos: {{done}} of {{total}}', {
+            done: status.photos_done,
+            total: status.photos_total,
+          })}
+        </Typography>
+        <LinearProgress variant="determinate" value={(status.photos_done / status.photos_total) * 100} sx={{ my: 1 }} />
+        <Typography variant="body2" color="text.secondary">
+          {t(
+            'contacts.import.result.photosKeepLoading',
+            'You can close this dialog. The photos keep loading on the server.',
+          )}
+        </Typography>
+      </Box>
+    );
+  };
+
   const renderResultStep = () => {
     if (!importResult) return null;
     const skippedRows = importResult.skipped_rows;
@@ -722,6 +787,7 @@ export default function ImportContactsDialog({ open, onClose, onImportComplete }
               count: importResult.skipped,
             })}
           </Typography>
+          {importResult.photos_queued > 0 && !photoPollFailed && renderPhotoProgress(importResult.photos_queued)}
         </Box>
 
         {skippedRows.length > 0 && (

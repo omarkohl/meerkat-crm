@@ -15,6 +15,8 @@ of this fork (see [FORK.md](FORK.md)).
 
 - **Merge duplicate contacts** (#109): select contacts in the list or use "Merge with…" on a
   contact, resolve differing values and combine their data. The others go to the trash.
+- **vCard import shows how far the photos have loaded**: the contacts are imported at once, and the
+  photos load afterwards with a progress bar. A large import no longer seems to stall.
 - **Search contacts, notes and activities from the header** (#118): grouped results with the match
   marked and named, over every contact field, and a results page with a tab per group.
 - **Search box on the contact list**: finds contacts by any field. Contacts you selected for a merge

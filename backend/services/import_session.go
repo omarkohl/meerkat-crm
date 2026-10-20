@@ -30,6 +30,8 @@ type importSessionData struct {
 	importType  string           // "csv" or "vcf"
 	vcfContacts []VCFContactData // VCF parsed contacts (nil for CSV imports)
 	csvContacts []models.Contact // CSV contacts built during preview (nil for VCF imports)
+	photos      *models.ImportPhotoStatus
+	confirmed   bool
 }
 
 // ImportSessionManager owns the lifecycle of in-progress import sessions: creation,
@@ -111,7 +113,10 @@ func (m *ImportSessionManager) get(sessionID string, userID uint) (*importSessio
 		return nil, apperrors.ErrNotFound("Import session expired or not found")
 	}
 
-	if m.now().After(sessionData.session.ExpiresAt) {
+	m.mu.RLock()
+	expiresAt := sessionData.session.ExpiresAt
+	m.mu.RUnlock()
+	if m.now().After(expiresAt) {
 		m.mu.Lock()
 		delete(m.sessions, sessionID)
 		m.mu.Unlock()
@@ -119,6 +124,23 @@ func (m *ImportSessionManager) get(sessionID string, userID uint) (*importSessio
 	}
 
 	return sessionData, nil
+}
+
+// claim marks a session as confirmed, so a repeated or concurrent confirm cannot import it twice.
+func (m *ImportSessionManager) claim(sd *importSessionData) *apperrors.AppError {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if sd.confirmed {
+		return apperrors.ErrInvalidInput("session", "This import was already confirmed")
+	}
+	sd.confirmed = true
+	return nil
+}
+
+func (m *ImportSessionManager) unclaim(sd *importSessionData) {
+	m.mu.Lock()
+	sd.confirmed = false
+	m.mu.Unlock()
 }
 
 // Delete removes a session, typically after a completed import.
@@ -216,6 +238,9 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 	if !sessionData.session.PreviewCached {
 		return nil, apperrors.ErrInvalidInput("session", "Please generate a preview first")
 	}
+	if err := m.claim(sessionData); err != nil {
+		return nil, err
+	}
 
 	actionMap := buildActionMap(req.Actions)
 	result := models.ImportResult{Errors: []string{}, SkippedRows: []models.SkippedRow{}}
@@ -309,6 +334,7 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 	})
 
 	if txErr != nil {
+		m.unclaim(sessionData)
 		return nil, apperrors.ErrDatabase("Import failed").WithError(txErr)
 	}
 
@@ -348,6 +374,10 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 
 	if !sessionData.session.PreviewCached {
 		return nil, apperrors.ErrInvalidInput("session", "Please generate a preview first")
+	}
+
+	if err := m.claim(sessionData); err != nil {
+		return nil, err
 	}
 
 	actionMap := buildActionMap(req.Actions)
@@ -441,55 +471,95 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 	})
 
 	if txErr != nil {
+		m.unclaim(sessionData)
 		return nil, apperrors.ErrDatabase("Import failed").WithError(txErr)
 	}
 
-	// Process photos outside the transaction (file I/O and network requests).
-	for _, task := range photoTasks {
-		var photoData []byte
-		var mediaType string
-
-		if len(task.photoData) > 0 {
-			// Use embedded photo data
-			photoData = task.photoData
-			mediaType = task.photoMediaType
-		} else if task.photoURL != "" {
-			// Fetch photo from URL
-			var err error
-			photoData, mediaType, err = carddav.FetchPhotoFromURL(context.Background(), task.photoURL)
-			if err != nil {
-				log.Warn().Err(err).Uint("contact_id", task.contactID).Str("photo_url", task.photoURL).Msg("Failed to fetch photo from URL")
-				continue
-			}
-		}
-
-		if len(photoData) == 0 {
-			continue
-		}
-
-		photoPath, thumbnailFile, err := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
-		if err != nil {
-			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to save imported photo")
-			continue
-		}
-
-		if err := replaceContactPhoto(db, cfg.ProfilePhotoDir, task.contactID, photoPath, thumbnailFile); err != nil {
-			log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to update contact with photo")
-		}
-	}
-
-	m.Delete(req.SessionID)
-
+	result.PhotosQueued = len(photoTasks)
 	log.Info().
 		Str("session_id", req.SessionID).
 		Int("created", result.Created).
 		Int("updated", result.Updated).
 		Int("skipped", result.Skipped).
-		Int("photos_processed", len(photoTasks)).
+		Int("photos_queued", len(photoTasks)).
 		Int("errors", len(result.Errors)).
 		Msg("VCF import completed")
 
+	if len(photoTasks) == 0 {
+		m.Delete(req.SessionID)
+		return &result, nil
+	}
+
+	m.mu.Lock()
+	sessionData.photos = &models.ImportPhotoStatus{Phase: "importing_photos", Total: len(photoTasks)}
+	sessionData.vcfContacts = nil
+	sessionData.session.PreviewRows = nil
+	sessionData.session.ExpiresAt = m.now().Add(sessionExpiry)
+	m.mu.Unlock()
+	go m.processPhotos(db.WithContext(context.Background()), sessionData, photoTasks, cfg, log)
+
 	return &result, nil
+}
+
+// processPhotos stores the photos of a confirmed vCard import (fetching photo URLs) and
+// reports progress through the session for status polling.
+func (m *ImportSessionManager) processPhotos(db *gorm.DB, sessionData *importSessionData, tasks []photoTask, cfg *config.Config, log *zerolog.Logger) {
+	for _, task := range tasks {
+		saved := m.savePhoto(db, task, cfg, log)
+		m.mu.Lock()
+		p := sessionData.photos
+		p.Done++
+		if saved {
+			p.Saved++
+		} else {
+			p.Failed++
+		}
+		if p.Done == p.Total {
+			p.Phase = "done"
+		}
+		sessionData.session.ExpiresAt = m.now().Add(sessionExpiry)
+		m.mu.Unlock()
+	}
+}
+
+func (m *ImportSessionManager) savePhoto(db *gorm.DB, task photoTask, cfg *config.Config, log *zerolog.Logger) bool {
+	photoData, mediaType := task.photoData, task.photoMediaType
+	if len(photoData) == 0 {
+		var err error
+		photoData, mediaType, err = carddav.FetchPhotoFromURL(context.Background(), task.photoURL)
+		if err != nil {
+			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("photo_url", task.photoURL).Msg("Failed to fetch photo from URL")
+			return false
+		}
+	}
+	if len(photoData) == 0 {
+		return false
+	}
+
+	photoPath, thumbnailFile, err := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
+	if err != nil {
+		log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to save imported photo")
+		return false
+	}
+	if err := replaceContactPhoto(db, cfg.ProfilePhotoDir, task.contactID, photoPath, thumbnailFile); err != nil {
+		log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to update contact with photo")
+		return false
+	}
+	return true
+}
+
+// PhotoStatus returns the photo progress of a confirmed vCard import.
+func (m *ImportSessionManager) PhotoStatus(userID uint, sessionID string) (models.ImportPhotoStatus, *apperrors.AppError) {
+	sessionData, err := m.get(sessionID, userID)
+	if err != nil {
+		return models.ImportPhotoStatus{}, err
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if sessionData.photos == nil {
+		return models.ImportPhotoStatus{}, apperrors.ErrNotFound("This import has no photos to load")
+	}
+	return *sessionData.photos, nil
 }
 
 // buildActionMap indexes per-row import actions by row index.

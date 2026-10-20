@@ -9,6 +9,7 @@ vi.mock('../api/import', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/import')>()),
   uploadVCFForImport: vi.fn(),
   confirmVCFImport: vi.fn(),
+  getVCFImportStatus: vi.fn(),
 }));
 
 const row = (
@@ -25,7 +26,7 @@ const row = (
   ...extra,
 });
 
-const uploadVCF = async () => {
+const uploadVCF = async (onImportComplete = () => {}) => {
   vi.mocked(importApi.uploadVCFForImport).mockResolvedValue({
     session_id: 's',
     rows: [
@@ -40,7 +41,7 @@ const uploadVCF = async () => {
   });
   render(
     <SnackbarProvider>
-      <ImportContactsDialog open onClose={() => {}} onImportComplete={() => {}} />
+      <ImportContactsDialog open onClose={() => {}} onImportComplete={onImportComplete} />
     </SnackbarProvider>,
   );
   const input = document.getElementById('import-file-input') as HTMLInputElement;
@@ -106,6 +107,7 @@ describe('ImportContactsDialog preview', { timeout: 20_000 }, () => {
         { row: 2, name: '', reason: 'invalid', detail: 'First name is required' },
         { row: 3, name: 'Bob', reason: 'skipped' },
       ],
+      photos_queued: 0,
     });
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
@@ -122,5 +124,36 @@ describe('ImportContactsDialog preview', { timeout: 20_000 }, () => {
       ['2', '—', 'Invalid: First name is required'],
       ['3', 'Bob', 'Skipped in the review'],
     ]);
+  });
+
+  test('the result shows how far the photos have loaded', async () => {
+    const onImportComplete = vi.fn();
+    await uploadVCF(onImportComplete);
+    vi.mocked(importApi.confirmVCFImport).mockResolvedValue({
+      total_processed: 3,
+      created: 2,
+      updated: 0,
+      skipped: 1,
+      errors: [],
+      skipped_rows: [],
+      photos_queued: 2,
+    });
+    vi.mocked(importApi.getVCFImportStatus)
+      .mockResolvedValueOnce({
+        phase: 'importing_photos',
+        photos_done: 1,
+        photos_total: 2,
+        photos_saved: 1,
+        photos_failed: 0,
+      })
+      .mockResolvedValue({ phase: 'done', photos_done: 2, photos_total: 2, photos_saved: 1, photos_failed: 1 });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    expect(await screen.findByText('Loading photos: 1 of 2')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+    expect(await screen.findByText('Photos loaded: 1 of 2', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(importApi.getVCFImportStatus).toHaveBeenCalledWith('s');
+    expect(onImportComplete).toHaveBeenCalledTimes(2);
   });
 });

@@ -196,13 +196,14 @@ everywhere else (lists, search, circles, birthdays, graph, ICS feed, reminders, 
 
 ### Import
 
-| Method | Path                           | Description                                                                                                                                    |
-| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/contacts/import/upload`      | Upload a CSV file, returns parsed preview data                                                                                                 |
-| `POST` | `/contacts/import/preview`     | Apply column mapping, returns contacts with duplicate detection                                                                                |
-| `POST` | `/contacts/import/confirm`     | Execute the import with per-row decisions                                                                                                      |
-| `POST` | `/contacts/import/vcf/upload`  | Upload a VCF file, returns contacts with duplicate detection. Invalid emails, phones and dates are dropped and listed in each row's `warnings` |
-| `POST` | `/contacts/import/vcf/confirm` | Execute the VCF import. Like `/contacts/import/confirm`, the result lists each skipped row with its reason in `skipped_rows`                   |
+| Method | Path                           | Description                                                                                                                                                              |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST` | `/contacts/import/upload`      | Upload a CSV file, returns parsed preview data                                                                                                                           |
+| `POST` | `/contacts/import/preview`     | Apply column mapping, returns contacts with duplicate detection                                                                                                          |
+| `POST` | `/contacts/import/confirm`     | Execute the import with per-row decisions                                                                                                                                |
+| `POST` | `/contacts/import/vcf/upload`  | Upload a VCF file, returns contacts with duplicate detection. Invalid emails, phones and dates are dropped and listed in each row's `warnings`                           |
+| `POST` | `/contacts/import/vcf/confirm` | Execute the VCF import. Like `/contacts/import/confirm`, the result lists each skipped row with its reason in `skipped_rows`. The `photos_queued` photos load afterwards |
+| `GET`  | `/contacts/import/vcf/status`  | Progress of the photos of a confirmed import. Query parameter `session_id`; `404` when the import has no photos or has expired                                           |
 
 #### Monica CRM import
 

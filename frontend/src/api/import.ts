@@ -37,6 +37,10 @@ export interface ImportResult extends Omit<Schemas['ImportResult'], 'skipped_row
   skipped_rows: SkippedRow[];
 }
 
+export interface VCFPhotoStatus extends Omit<Schemas['PhotoStatusResponse'], 'phase'> {
+  phase: 'importing_photos' | 'done';
+}
+
 // Contact fields that can be imported (mirrors backend models.ImportableContactFields)
 export const IMPORTABLE_CONTACT_FIELDS = [
   // Name
@@ -206,4 +210,17 @@ export async function confirmVCFImport(sessionId: string, actions: RowImportActi
   }
 
   return response.json();
+}
+
+// Progress of the photos that a confirmed VCF import loads in the background
+export async function getVCFImportStatus(sessionId: string): Promise<VCFPhotoStatus> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/import/vcf/status?session_id=${encodeURIComponent(sessionId)}`,
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+
+  return (await response.json()) as VCFPhotoStatus;
 }

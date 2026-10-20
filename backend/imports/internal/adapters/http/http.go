@@ -27,7 +27,9 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 	api.RegisterOn(a, group, reg("preview-csv-import", "/contacts/import/preview", "Apply column mappings and preview the rows with duplicate detection"), h.preview)
 	api.RegisterOn(a, group, reg("confirm-csv-import", "/contacts/import/confirm", "Import the previewed CSV rows with the chosen action per row"), h.confirmCSV)
 	api.RegisterOn(a, group, reg("upload-vcf-import", "/contacts/import/vcf/upload", "Upload a VCF file; answers the preview directly"), h.uploadVCF)
-	api.RegisterOn(a, group, reg("confirm-vcf-import", "/contacts/import/vcf/confirm", "Import the previewed vCards with the chosen action per row, photos included"), h.confirmVCF)
+	api.RegisterOn(a, group, reg("confirm-vcf-import", "/contacts/import/vcf/confirm", "Import the previewed vCards with the chosen action per row; photos load in the background"), h.confirmVCF)
+	api.RegisterOn(a, group, huma.Operation{OperationID: "vcf-import-status", Method: http.MethodGet, Path: "/contacts/import/vcf/status",
+		Summary: "Progress of the photos of a confirmed vCard import, for polling", Tags: tags}, h.vcfStatus)
 }
 
 type handlers struct{ uc *app.UseCases }
@@ -93,7 +95,22 @@ type ImportResult struct {
 	Skipped        int          `json:"skipped"`
 	Errors         []string     `json:"errors" nullable:"false"`
 	SkippedRows    []SkippedRow `json:"skipped_rows" nullable:"false"`
+	PhotosQueued   int          `json:"photos_queued" doc:"Photos that load in the background after the response; poll the vCard status"`
 }
+
+type SessionQuery struct {
+	SessionID string `query:"session_id" doc:"The session of the confirmed import"`
+}
+
+type PhotoStatusResponse struct {
+	Phase        string `json:"phase" doc:"importing_photos or done"`
+	PhotosDone   int    `json:"photos_done"`
+	PhotosTotal  int    `json:"photos_total"`
+	PhotosSaved  int    `json:"photos_saved"`
+	PhotosFailed int    `json:"photos_failed"`
+}
+
+type PhotoStatusOutput struct{ Body PhotoStatusResponse }
 
 type FileForm struct {
 	File huma.FormFile `form:"file" required:"false" doc:"The file; leaving it out is a 400"`
@@ -236,6 +253,20 @@ func (h *handlers) confirmVCF(ctx context.Context, in *ConfirmInput) (*ResultOut
 	return &ResultOutput{Body: resultResponse(r)}, nil
 }
 
+func (h *handlers) vcfStatus(ctx context.Context, in *SessionQuery) (*PhotoStatusOutput, error) {
+	actor, err := actorOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+	st, err := h.uc.PhotoStatus(actor, in.SessionID)
+	if err != nil {
+		return nil, toAppError(err)
+	}
+	return &PhotoStatusOutput{Body: PhotoStatusResponse{
+		Phase: st.Phase, PhotosDone: st.Done, PhotosTotal: st.Total, PhotosSaved: st.Saved, PhotosFailed: st.Failed,
+	}}, nil
+}
+
 func previewResponse(p domain.Preview) PreviewResponse {
 	out := PreviewResponse{
 		SessionID: p.SessionID, TotalRows: p.TotalRows, ValidRows: p.ValidRows, DuplicateCount: p.DuplicateCount,
@@ -260,7 +291,7 @@ func previewResponse(p domain.Preview) PreviewResponse {
 func resultResponse(r domain.Result) ImportResult {
 	out := ImportResult{
 		TotalProcessed: r.TotalProcessed, Created: r.Created, Updated: r.Updated, Skipped: r.Skipped, Errors: nonNil(r.Errors),
-		SkippedRows: make([]SkippedRow, len(r.SkippedRows)),
+		SkippedRows: make([]SkippedRow, len(r.SkippedRows)), PhotosQueued: r.PhotosQueued,
 	}
 	for i, s := range r.SkippedRows {
 		out.SkippedRows[i] = SkippedRow{Row: s.Row, Name: s.Name, Reason: s.Reason, Detail: s.Detail}

@@ -20,6 +20,7 @@ type Wizard interface {
 	Preview(ctx context.Context, actor domain.UserID, session string, mappings []domain.Mapping) (domain.Preview, error)
 	ConfirmCSV(ctx context.Context, actor domain.UserID, session string, actions []domain.Action, log *zerolog.Logger) (domain.Result, error)
 	ConfirmVCF(ctx context.Context, actor domain.UserID, session string, actions []domain.Action, log *zerolog.Logger) (domain.Result, error)
+	PhotoStatus(actor domain.UserID, session string) (domain.PhotoStatus, error)
 }
 
 type UseCases struct{ wizard Wizard }
@@ -63,4 +64,8 @@ func (u *UseCases) ConfirmCSV(ctx context.Context, actor domain.UserID, session 
 
 func (u *UseCases) ConfirmVCF(ctx context.Context, actor domain.UserID, session string, actions []domain.Action, log *zerolog.Logger) (domain.Result, error) {
 	return u.wizard.ConfirmVCF(ctx, actor, session, actions, log)
+}
+
+func (u *UseCases) PhotoStatus(actor domain.UserID, session string) (domain.PhotoStatus, error) {
+	return u.wizard.PhotoStatus(actor, session)
 }

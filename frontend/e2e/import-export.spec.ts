@@ -9,13 +9,16 @@ async function readDownload(download: { createReadStream(): Promise<NodeJS.Reada
 }
 
 test.describe('Import and export', () => {
-  test('import a vCard file: review it, import it and find the contact in the list @015-US1', async ({ page }) => {
+  test('import a vCard file: review it, import it with its photo and find the contact in the list @015-US1', async ({
+    page,
+  }) => {
     const firstname = `E2EFixtureImport${Date.now()}`;
     const vcf = [
       'BEGIN:VCARD',
       'VERSION:3.0',
       `FN:${firstname} Imported`,
       `N:Imported;${firstname};;;`,
+      'PHOTO;ENCODING=b;TYPE=PNG:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       'END:VCARD',
       '',
     ].join('\r\n');
@@ -32,6 +35,7 @@ test.describe('Import and export', () => {
       await expect(dialog.getByText('Valid')).toBeVisible();
       await dialog.getByRole('button', { name: 'Import' }).click();
       await expect(dialog.getByText('1 contacts created')).toBeVisible();
+      await expect(dialog.getByText('Photos loaded: 1 of 1')).toBeVisible();
       await dialog.getByRole('button', { name: 'Done' }).click();
 
       await searchContact(page, firstname);

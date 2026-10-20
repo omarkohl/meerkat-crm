@@ -297,10 +297,12 @@ func TestAVCFImportSessionBelongsToItsUploader(t *testing.T) {
 	e.db.Model(&models.Contact{}).Count(&n)
 	assert.Zero(t, n, "nothing was imported for the other user")
 	assert.Equal(t, http.StatusOK, post(e.asA, "/contacts/import/vcf/confirm", confirm).Code, "the uploader's session is still there")
+	assert.Equal(t, http.StatusNotFound, get(e.asB, "/contacts/import/vcf/status?session_id="+pv.SessionID).Code)
 }
 
 type confirmResp struct {
 	Created, Updated, Skipped int
+	PhotosQueued              int `json:"photos_queued"`
 	Errors                    []string
 	SkippedRows               []struct{ Name, Reason string } `json:"skipped_rows"`
 }
@@ -327,6 +329,32 @@ func confirm(t *testing.T, e *env, path, session string, actions ...map[string]a
 	var res confirmResp
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &res))
 	return res
+}
+
+type photoStatus struct {
+	Phase        string
+	PhotosDone   int `json:"photos_done"`
+	PhotosTotal  int `json:"photos_total"`
+	PhotosSaved  int `json:"photos_saved"`
+	PhotosFailed int `json:"photos_failed"`
+}
+
+func get(r http.Handler, path string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+	return w
+}
+
+func waitForPhotos(t *testing.T, e *env, session string) photoStatus {
+	t.Helper()
+	var st photoStatus
+	require.Eventually(t, func() bool {
+		w := get(e.asA, "/contacts/import/vcf/status?session_id="+session)
+		require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &st))
+		return st.Phase == "done"
+	}, 5*time.Second, 10*time.Millisecond)
+	return st
 }
 
 func action(row int, name string) map[string]any {
@@ -401,6 +429,13 @@ func TestVCFImportKeepsTheEmbeddedPhotoAndMergesADuplicate(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &pv))
 	res := confirm(t, e, "/contacts/import/vcf/confirm", pv.SessionID, action(0, "add"))
 	assert.Equal(t, 1, res.Created)
+	assert.Equal(t, 1, res.PhotosQueued)
+	st := waitForPhotos(t, e, pv.SessionID)
+	assert.Equal(t, photoStatus{Phase: "done", PhotosDone: 1, PhotosTotal: 1, PhotosSaved: 1}, st)
+	again := map[string]any{"session_id": pv.SessionID, "actions": []map[string]any{action(0, "add")}}
+	assert.NotEqual(t, http.StatusOK, post(e.asA, "/contacts/import/vcf/confirm", again).Code, "a confirmed import cannot run twice")
+	assert.NotEqual(t, http.StatusOK, post(e.asA, "/contacts/import/confirm", again).Code, "not through the CSV route either")
+	assert.Equal(t, http.StatusOK, get(e.asA, "/contacts/import/vcf/status?session_id="+pv.SessionID).Code)
 	var ada models.Contact
 	require.NoError(t, e.db.Where("user_id = ? AND firstname = ?", e.a.ID, "Ada").First(&ada).Error)
 	assert.NotEmpty(t, ada.Photo, "the card's picture is the contact's profile picture")

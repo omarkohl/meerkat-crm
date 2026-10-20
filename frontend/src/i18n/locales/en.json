@@ -253,7 +253,10 @@
           "invalid": "Invalid",
           "failed": "Failed"
         },
-        "done": "Done"
+        "done": "Done",
+        "photosLoading": "Loading photos: {{done}} of {{total}}",
+        "photosLoaded": "Photos loaded: {{saved}} of {{total}}",
+        "photosKeepLoading": "You can close this dialog. The photos keep loading on the server."
       },
       "errors": {
         "invalidFile": "Please select a valid CSV file",

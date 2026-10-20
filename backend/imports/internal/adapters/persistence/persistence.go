@@ -108,6 +108,14 @@ func (w *Wizard) ConfirmVCF(ctx context.Context, actor domain.UserID, session st
 	return result(res), nil
 }
 
+func (w *Wizard) PhotoStatus(actor domain.UserID, session string) (domain.PhotoStatus, error) {
+	st, appErr := w.sessions.PhotoStatus(uint(actor), session)
+	if appErr != nil {
+		return domain.PhotoStatus{}, appErr
+	}
+	return domain.PhotoStatus{Phase: st.Phase, Done: st.Done, Total: st.Total, Saved: st.Saved, Failed: st.Failed}, nil
+}
+
 func preview(p *models.ImportPreviewResponse) domain.Preview {
 	out := domain.Preview{
 		SessionID: p.SessionID, TotalRows: p.TotalRows, ValidRows: p.ValidRows,
@@ -130,7 +138,7 @@ func preview(p *models.ImportPreviewResponse) domain.Preview {
 }
 
 func result(r *models.ImportResult) domain.Result {
-	out := domain.Result{TotalProcessed: r.TotalProcessed, Created: r.Created, Updated: r.Updated, Skipped: r.Skipped, Errors: r.Errors}
+	out := domain.Result{TotalProcessed: r.TotalProcessed, Created: r.Created, Updated: r.Updated, Skipped: r.Skipped, Errors: r.Errors, PhotosQueued: r.PhotosQueued}
 	for _, s := range r.SkippedRows {
 		out.SkippedRows = append(out.SkippedRows, domain.SkippedRow{Row: s.Row, Name: s.Name, Reason: s.Reason, Detail: s.Detail})
 	}

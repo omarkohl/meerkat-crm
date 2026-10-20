@@ -253,7 +253,10 @@
           "invalid": "No válida",
           "failed": "Error"
         },
-        "done": "Listo"
+        "done": "Listo",
+        "photosLoading": "Cargando fotos: {{done}} de {{total}}",
+        "photosLoaded": "Fotos cargadas: {{saved}} de {{total}}",
+        "photosKeepLoading": "Puedes cerrar este diálogo: las fotos se siguen cargando en el servidor."
       },
       "errors": {
         "invalidFile": "Selecciona un archivo CSV válido",

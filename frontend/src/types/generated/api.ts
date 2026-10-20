@@ -569,8 +569,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Import the previewed vCards with the chosen action per row, photos included */
+        /** Import the previewed vCards with the chosen action per row; photos load in the background */
         post: operations["confirm-vcf-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import/vcf/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress of the photos of a confirmed vCard import, for polling */
+        get: operations["vcf-import-status"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2153,6 +2170,11 @@ export interface components {
             /** Format: int64 */
             created: number;
             errors: string[];
+            /**
+             * Format: int64
+             * @description Photos that load in the background after the response; poll the vCard status
+             */
+            photos_queued: number;
             /** Format: int64 */
             skipped: number;
             skipped_rows: components["schemas"]["SkippedRow"][];
@@ -2439,6 +2461,18 @@ export interface components {
         PhoneInput: {
             type?: string;
             value: string;
+        };
+        PhotoStatusResponse: {
+            /** @description importing_photos or done */
+            phase: string;
+            /** Format: int64 */
+            photos_done: number;
+            /** Format: int64 */
+            photos_failed: number;
+            /** Format: int64 */
+            photos_saved: number;
+            /** Format: int64 */
+            photos_total: number;
         };
         PhotoUploadedOutputBody: {
             message: string;
@@ -4291,6 +4325,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "vcf-import-status": {
+        parameters: {
+            query?: {
+                /** @description The session of the confirmed import */
+                session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoStatusResponse"];
                 };
             };
             /** @description Error */

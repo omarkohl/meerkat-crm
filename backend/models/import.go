@@ -92,7 +92,17 @@ type ImportResult struct {
 	Skipped        int      `json:"skipped"`
 	Errors         []string `json:"errors"`
 	// SkippedRows lists every row counted in Skipped, so the result can say which.
-	SkippedRows []SkippedRow `json:"skipped_rows"`
+	SkippedRows  []SkippedRow `json:"skipped_rows"`
+	PhotosQueued int          `json:"photos_queued"`
+}
+
+// ImportPhotoStatus is the progress of the photos of a confirmed vCard import.
+type ImportPhotoStatus struct {
+	Phase  string // "importing_photos" or "done"
+	Done   int
+	Total  int
+	Saved  int
+	Failed int
 }
 
 // SkippedRow names a row that was not imported and why.

@@ -110,4 +110,13 @@ type Result struct {
 	Skipped        int
 	Errors         []string
 	SkippedRows    []SkippedRow
+	PhotosQueued   int
+}
+
+type PhotoStatus struct {
+	Phase  string
+	Done   int
+	Total  int
+	Saved  int
+	Failed int
 }
