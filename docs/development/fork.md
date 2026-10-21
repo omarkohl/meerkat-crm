@@ -1,9 +1,9 @@
-# Fork releases
+# Fork: branches, versions and releases
 
 This fork of [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm) publishes its own
 images to `ghcr.io/omarkohl/meerkat-crm{,-backend,-frontend}`.
 
-See [DIFFERENCES.md](DIFFERENCES.md) for what the fork changes compared to upstream.
+See [DIFFERENCES.md](../../DIFFERENCES.md) for what the fork changes compared to upstream.
 
 ## Branches
 

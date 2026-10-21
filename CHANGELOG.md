@@ -7,7 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Versions `X.Y.Z` are upstream releases of
 [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm). Versions `X.Y.Z-omk.N` are releases
-of this fork (see [FORK.md](FORK.md)).
+of this fork (see [fork.md](docs/development/fork.md)).
 
 ## [Unreleased]
 

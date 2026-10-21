@@ -10,7 +10,7 @@ nav_order: 5
 
 1. Fork the repository and clone your fork locally.
 2. Follow the setup steps in [Backend](backend.md) and [Frontend](frontend.md).
-3. Create a feature branch from `omk` (the fork branch, see [FORK.md](../../FORK.md)).
+3. Create a feature branch from `omk` (the fork branch, see [fork.md](fork.md)).
 
 ## Development Workflow
 

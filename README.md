@@ -18,8 +18,8 @@
 > continue under a new name. For now it is only a fork with images in a different namespace.
 >
 > To try the fork, follow the [installation instructions](#installation) below. They are adapted to
-> the fork. See [`DIFFERENCES.md`](DIFFERENCES.md) for what changed and [`FORK.md`](FORK.md) for
-> branches and versions.
+> the fork. See [`DIFFERENCES.md`](DIFFERENCES.md) for what changed and
+> [`fork.md`](docs/development/fork.md) for branches and versions.
 
 Meerkat CRM (Contact Relationship Management) is a self-hosted solution to keep track of your
 important contacts. As your digital rolodex it reminds you of birthdays, helps you to keep in mind
@@ -28,7 +28,7 @@ dietary habits as well as names of spouses of contacts - and much more.
 You can find the detailed documentation here:
 [fbuchner.github.io/meerkat-crm/](https://fbuchner.github.io/meerkat-crm/). That site is published
 by upstream. Documentation of things specific to this fork is in [`docs/`](docs/) and
-[`FORK.md`](FORK.md) on GitHub and is not published as a site.
+[`fork.md`](docs/development/fork.md) on GitHub and is not published as a site.
 
 > [!TIP]
 > **[Click here to try the Demo!](https://meerkat-crm-demo.fly.dev/login?username=demo&password=test_12345)**

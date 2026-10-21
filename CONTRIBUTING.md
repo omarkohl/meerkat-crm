@@ -29,5 +29,5 @@ site. Upstream publishes the user documentation at
 - [Testing](docs/development/testing.md)
 - [Contributing and CI](docs/development/contributing.md)
 - [Decisions (ADRs)](docs/adr/README.md)
-- [Fork branches, versions and releases](FORK.md)
+- [Fork branches, versions and releases](docs/development/fork.md)
 - [Rules for AI agents](AGENTS.md)

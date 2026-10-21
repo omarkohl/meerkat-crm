@@ -3,7 +3,8 @@
 How this fork ([omarkohl/meerkat-crm](https://github.com/omarkohl/meerkat-crm), branch `omk`)
 differs from [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm) `main`. It describes
 the **current** difference, not the history ([CHANGELOG.md](CHANGELOG.md) has that). When upstream
-takes a change, its entry is deleted. For branches, versions and releases see [FORK.md](FORK.md).
+takes a change, its entry is deleted. For branches, versions and releases see
+[fork.md](docs/development/fork.md).
 
 Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 [`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (765
