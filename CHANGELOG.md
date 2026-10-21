@@ -11,6 +11,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ## [Unreleased]
 
+## [1.7.0-omk.3] - 2026-10-20
+
 ### Added
 
 - **Merge duplicate contacts** (https://github.com/omarkohl/meerkat-crm/issues/109): select contacts
@@ -311,7 +313,8 @@ First fork release. Based on upstream 1.7.0 plus later upstream changes.
 
 - **`/health` endpoint** is reachable through the frontend.
 
-[Unreleased]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.1...HEAD
+[Unreleased]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.3...HEAD
+[1.7.0-omk.3]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.2...v1.7.0-omk.3
 [1.7.0-omk.2]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.1...v1.7.0-omk.2
 [1.7.0-omk.1]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0...v1.7.0-omk.1
 [1.7.0]: https://github.com/fbuchner/meerkat-crm/compare/v1.6.2...v1.7.0
