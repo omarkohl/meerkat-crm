@@ -173,6 +173,42 @@ const handcrafted = [
     note: 'Long name with special characters to test sorting and display.',
   },
   { firstname: 'Yuki', lastname: 'Tanaka', circles: [] },
+  // Duplicates as they arise in real life: once typed into a mail client, once saved on the phone.
+  {
+    firstname: 'Katharina',
+    lastname: 'Meier',
+    emails: [{ type: 'work', value: 'katharina.meier@stadtwerke.example' }],
+    birthday: '1988-11-14',
+    organization: 'Stadtwerke Freiburg',
+    circles: ['Work'],
+  },
+  {
+    firstname: 'Kathi',
+    lastname: 'Meyer',
+    nickname: 'Kathi',
+    emails: [{ type: 'home', value: 'kathi.meier@example.org' }],
+    phones: [{ type: 'mobile', value: '+49 171 5550123' }],
+    birthday: '1988-11-04',
+    circles: ['Friends'],
+    note: 'Met at the climbing gym.',
+  },
+  {
+    firstname: 'Jonathan',
+    lastname: 'Becker',
+    phones: [{ type: 'mobile', value: '+49 160 5550177' }],
+    addresses: [
+      { type: 'home', street: 'Lindenstr. 8', city: 'Leipzig', region: '', postal: '04109', country: 'Germany' },
+    ],
+  },
+  {
+    firstname: 'Jonas',
+    lastname: 'Becker',
+    emails: [{ type: 'home', value: 'jonas.becker@example.net' }],
+    phones: [{ type: 'mobile', value: '+49 160 5550177' }],
+    birthday: '1992-02-19',
+    job_title: 'Teacher',
+    circles: ['Neighbours'],
+  },
 ];
 
 function generated(count) {
@@ -245,7 +281,7 @@ async function main() {
   };
 
   const created = [];
-  for (const contact of [...handcrafted, ...generated(55)]) {
+  for (const contact of [...handcrafted, ...generated(51)]) {
     const name = `${contact.firstname} ${contact.lastname}`;
     const found = await fetch(`${base}/contacts?search=${encodeURIComponent(name)}&limit=5`, { headers: auth });
     if (!found.ok) throw new Error(`Contact search failed: ${found.status} ${await found.text()}`);
