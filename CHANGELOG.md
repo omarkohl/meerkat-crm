@@ -16,6 +16,11 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
 
+### Security
+
+- **Go runtime update to 1.27.3**: fixes a high-severity certificate validation issue
+  (CVE-2026-111943).
+
 ## [1.7.0-omk.3] - 2026-10-20
 
 ### Added
