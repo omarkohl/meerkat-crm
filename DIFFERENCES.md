@@ -6,16 +6,44 @@ the **current** difference, not the history ([CHANGELOG.md](CHANGELOG.md) has th
 takes a change, its entry is deleted. For branches, versions and releases see [FORK.md](FORK.md).
 
 Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
-[`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk)
-(about 740 files; roughly 25k of the added lines are tests).
+[`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (765
+files, +93.7k and -27.1k lines; see [Size of the diff](#size-of-the-diff)).
+
+Issue numbers such as `#109` in [CHANGELOG.md](CHANGELOG.md) are issues of the fork
+(`omarkohl/meerkat-crm`), not of upstream. Links to upstream issues and pull requests are written in
+full.
+
+## Summary
+
+The fork keeps upstream's product and its wire format. It adds features, a hexagonal backend
+structure with a generated API contract, and a much larger automated test and check set.
+
+**Benefits**
+
+- Go statement coverage 48% to 85%; unit tests, fuzz tests and E2E tests all grow
+  ([numbers](#tests-in-numbers)).
+- Rules are machine checks (layering, `user_id` scope on every query, locales, OpenAPI drift,
+  changelog), not review comments.
+- A typed API contract: OpenAPI is generated from the code, and the frontend types come from it.
+- New features (see [Overview](#overview)).
+- Faster local setup: `make dev` and `make test-e2e` need no Docker.
+
+**Downsides**
+
+- A very large diff, a one-time reformat and a toolchain change (see [Merge impact](#merge-impact)).
+- More tooling to learn: ADRs, architecture rules, a stricter commit and changelog process.
+- The structure is only partly migrated (see "Not yet converted" under Architecture). Two styles
+  exist side by side.
+- Newer toolchain than upstream: Go 1.27 and Node 26.
 
 ## Merge impact
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000036.** No upstream migration is changed. Each has a down migration
-  and a round-trip test. 000030 adds a column for thumbnail files and copies old thumbnails into
-  files at startup; the old column stays.
+- **New migrations 000024 to 000036.** No upstream migration is changed. Each has a down migration.
+  A test steps every migration down and up on a seeded database and compares the schema. 000030 adds
+  a column for thumbnail files and copies old thumbnails into files at startup; the old column
+  stays.
 - **Whole-repo reformat.** Go (`gofmt`), TypeScript, JSON, YAML and Markdown (wrapped at 100
   characters) were formatted once. The commits are in `.git-blame-ignore-revs`. Expect conflicts in
   any file you changed.
@@ -42,40 +70,55 @@ What can hurt when you merge, or when you look at the diff.
 - **SQLite settings.** WAL, `busy_timeout` 5 s, `synchronous=NORMAL`, foreign keys on. One instance
   per database file.
 
+## Size of the diff
+
+| Part                                  | Files | Added | Removed |
+| ------------------------------------- | ----: | ----: | ------: |
+| Tests (Go, Vitest, Playwright, data)  |   245 | 25.5k |    4.6k |
+| Backend code                          |   225 | 22.8k |    6.9k |
+| Frontend code                         |   121 |  7.7k |    3.5k |
+| Documentation (ADRs, guides, designs) |    54 |  4.3k |    0.5k |
+| Build, CI and tooling                 |    48 |  3.3k |    0.1k |
+| Translations (five locales)           |    10 |  1.8k |    0.1k |
+| Generated files and lockfiles         |     9 | 25.4k |   11.2k |
+| Other                                 |    53 |  2.7k |    0.2k |
+
+Without generated files, tests are 37% of the added lines and backend code is 33%. The sizes mix new
+code with moved code: the module move rewrites many existing files.
+
 ## Overview
 
-Size: S (a day or less), M (days), L (a week or more). "Upstream" is where you can see discussion or
-an open pull request. "Separable" means it can be taken without the other rows.
+"Upstream" is where you can see discussion or an open pull request.
 
-| Area          | Change                                 | Size | Migration | Separable       | Upstream                                                                                                                                 |
-| ------------- | -------------------------------------- | ---- | --------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Users         | Two-factor login (TOTP)                | M    | 28        | yes             | not proposed                                                                                                                             |
-| Users         | Sessions and audit log                 | M    | 27        | yes             | not proposed                                                                                                                             |
-| Contacts      | Trash                                  | M    | 25        | yes             | not proposed                                                                                                                             |
-| Contacts      | Merge duplicate contacts               | S    | –         | needs trash     | not proposed                                                                                                                             |
-| Calendar      | Subscribable ICS feed                  | M    | 24, 26    | yes             | not proposed                                                                                                                             |
-| Reminders     | Birthday mail once a day               | S    | 35        | yes             | not proposed                                                                                                                             |
-| Operations    | Scheduled backups                      | M    | 31        | yes             | not proposed                                                                                                                             |
-| Search        | Full-text search (FTS5)                | M    | 29        | yes             | not proposed                                                                                                                             |
-| Import        | Preview filter, sort, bulk set         | M    | –         | yes             | not proposed                                                                                                                             |
-| Import        | vCard fixes and NOTE field             | S    | 33        | yes             | [PR #251](https://github.com/fbuchner/meerkat-crm/pull/251), [#250](https://github.com/fbuchner/meerkat-crm/issues/250) (vCard 2.1 part) |
-| UI            | Date format, placeholder, small fixes  | S    | –         | yes             | not proposed                                                                                                                             |
-| Storage       | Thumbnails as files                    | S    | 30        | yes             | not proposed                                                                                                                             |
-| Integrations  | Outbox with retries                    | M    | 32        | yes             | not proposed                                                                                                                             |
-| Operations    | Prometheus metrics                     | S    | –         | yes             | not proposed                                                                                                                             |
-| Security      | One SSRF switch, CSP, session checks   | M    | –         | partly          | not proposed                                                                                                                             |
-| Security      | Separate `ENCRYPTION_KEY`              | S    | 36        | yes             | not proposed                                                                                                                             |
-| Architecture  | Hexagonal modules                      | L    | –         | no (needs huma) | not proposed                                                                                                                             |
-| Architecture  | huma API contract, OpenAPI, TS types   | L    | –         | no              | not proposed                                                                                                                             |
-| Architecture  | Injected clock, `FAKE_NOW`             | S    | –         | yes             | not proposed                                                                                                                             |
-| Build         | Vite, npm, Node 26, strict TS/ESLint   | M    | –         | yes             | not proposed                                                                                                                             |
-| Build         | Root Makefile, Docker-free E2E         | M    | –         | yes             | [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                                                              |
-| CI            | ESLint, tsc, Prettier, gofmt gates     | S    | –         | yes             | [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                                                              |
-| CI            | golangci-lint                          | S    | –         | yes             | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247)                                                                              |
-| CI            | Scans, pinned actions, attestation     | M    | –         | yes             | not proposed                                                                                                                             |
-| Testing       | Coverage thresholds, fuzzing, more     | M    | –         | yes             | not proposed                                                                                                                             |
-| Docs          | ADRs, API reference test, CONTRIBUTING | S    | –         | yes             | not proposed                                                                                                                             |
-| Design drafts | Relationships, "myself", phonebook     | –    | –         | not implemented | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184)                   |
+| Area          | Change                                  | Size | Migration | Upstream                                                                                                                                 |
+| ------------- | --------------------------------------- | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Users         | Two-factor login (TOTP)                 | M    | 28        | not proposed                                                                                                                             |
+| Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                                             |
+| Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                                             |
+| Contacts      | Merge duplicate contacts                | S    | –         | not proposed                                                                                                                             |
+| Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                                             |
+| Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                                             |
+| Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                                             |
+| Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                                             |
+| Import        | Preview filter, sort, bulk set          | M    | –         | not proposed                                                                                                                             |
+| Import        | vCard fixes and NOTE field              | S    | 33        | [PR #251](https://github.com/fbuchner/meerkat-crm/pull/251), [#250](https://github.com/fbuchner/meerkat-crm/issues/250) (vCard 2.1 part) |
+| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed                                                                                                                             |
+| Storage       | Thumbnails as files                     | S    | 30        | not proposed                                                                                                                             |
+| Integrations  | Outbox with retries                     | M    | 32        | not proposed                                                                                                                             |
+| Operations    | Prometheus metrics                      | S    | –         | not proposed                                                                                                                             |
+| Security      | One SSRF switch, CSP, session checks    | M    | –         | not proposed                                                                                                                             |
+| Security      | Separate `ENCRYPTION_KEY`               | S    | 36        | not proposed                                                                                                                             |
+| Architecture  | Hexagonal modules                       | L    | –         | not proposed                                                                                                                             |
+| Architecture  | huma API contract, OpenAPI, TS types    | L    | –         | not proposed                                                                                                                             |
+| Architecture  | Injected clock, `FAKE_NOW`              | S    | –         | not proposed                                                                                                                             |
+| Build         | Vite, npm, Node 26, strict TS/ESLint    | M    | –         | not proposed                                                                                                                             |
+| Build         | Root Makefile, Docker-free E2E          | M    | –         | [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                                                              |
+| CI            | ESLint, tsc, Prettier, gofmt gates      | S    | –         | [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                                                              |
+| CI            | golangci-lint                           | S    | –         | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247)                                                                              |
+| CI            | Scans, pinned actions, SBOM, provenance | M    | –         | not proposed                                                                                                                             |
+| Testing       | Coverage thresholds, fuzzing, more      | M    | –         | not proposed                                                                                                                             |
+| Docs          | ADRs, API reference test, CONTRIBUTING  | S    | –         | not proposed                                                                                                                             |
+| Design drafts | Relationships, "myself", phonebook      | –    | –         | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184)                   |
 
 ## User-visible changes
 
@@ -90,9 +133,13 @@ Migration 27.
 `contact.restored` webhook and a purge marker so CardDAV does not bring a purged contact back.
 Migration 25.
 
+![The trash page lists deleted contacts with restore and purge buttons](docs/assets/differences/trash.png)
+
 **Merge contacts.** Select two or more contacts in the list (or use "Merge with…" on a contact) to
 merge them into one. The browser does the work with the ordinary endpoints; there is no merge
 endpoint.
+
+![Merge dialog for two entries of the same person: choose the contact to keep and one value for each field that differs](docs/assets/differences/merge-dialog.png)
 
 **ICS feed.** A private URL that calendar apps subscribe to for birthdays and reminders. The
 settings page shows when the feed was last fetched. Migrations 24 and 26.
@@ -113,6 +160,8 @@ contacts, notes and activities at once (`GET /search`), grouped, ranked, with th
 the matching field named; it covers every text field of a contact (migration 34), and a results page
 (`/search?q=`) has a tab per group with paging. The contact list has a search box over the same
 fields (`search_all`).
+
+![Search results for "book", grouped into contacts and notes with the match marked and the matching field named](docs/assets/differences/search.png)
 
 **Import.** The preview can filter, sort and set a value on many rows at once, and the result lists
 skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and
@@ -153,6 +202,47 @@ a separate listener.
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  subgraph Client
+    SPA["React SPA<br/>(types generated from OpenAPI)"]
+    EXT["Calendar apps,<br/>CardDAV clients"]
+  end
+
+  subgraph Backend["Go backend"]
+    MW["Gin middleware<br/>auth, CSP, rate limit, AppError"]
+    subgraph Module["One of 16 modules (contacts, notes, users, ...)"]
+      HTTP["adapters/http<br/>huma operations"]
+      APP["app<br/>use cases and ports"]
+      DOM["domain"]
+      PERSIST["adapters/persistence<br/>GORM, scoped by user_id"]
+    end
+    SVC["services/<br/>sync engines, outbox,<br/>import parsers, backups"]
+    JOBS["Scheduler<br/>reminders, backups,<br/>calendar sync, outbox"]
+    NG["netguard<br/>private-URL guard"]
+    CLK["Injected clock"]
+  end
+
+  DB[("SQLite<br/>WAL, FTS5")]
+  FILES[("Photo and<br/>thumbnail files")]
+  OUT["Outside: webhooks, SMTP,<br/>CalDAV, CardDAV, Monica, images"]
+
+  SPA -->|"/api/v1"| MW
+  EXT -->|"ICS, CardDAV"| MW
+  MW --> HTTP --> APP --> DOM
+  APP -->|port| PERSIST --> DB
+  PERSIST --> FILES
+  APP -.-> SVC
+  JOBS --> SVC
+  JOBS --> CLK
+  SVC --> DB
+  SVC --> NG --> OUT
+```
+
+Module code depends inward only: `adapters` use `app`, `app` uses `domain`. Only the persistence
+adapter imports GORM. `make arch` fails on a rule break. `services/` holds what modules share; it is
+the part not yet moved.
+
 Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
 ([ADR 0002](docs/adr/0002-rules-are-machine-checks.md)).
 
@@ -164,6 +254,13 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   `adapters/persistence` and `adapters/http`. Only the persistence adapter imports GORM. Routes that
   send bytes or redirect stay Gin handlers inside the module. Sync engines, webhook delivery, the
   e-mail outbox and the import parsers stay in `services/`. The CardDAV server is not converted yet.
+- **Not yet converted** (remaining work:
+  [#208](https://github.com/omarkohl/meerkat-crm/issues/208)). About 9.1k lines in `services/` (28
+  files, 20 of them use GORM directly), 1.8k lines in `carddav/`, and the auth middleware. The
+  largest parts are the sync engines (CardDAV 1.4k lines, CalDAV 0.8k), the import and Monica import
+  sessions and parsers (3.5k), the backup, webhook, e-mail outbox, two-factor, single sign-on and
+  session services, and the scheduler. Modules call these through adapters. The module rule "only
+  the persistence adapter imports GORM" does not apply to them.
 - **API contract** ([ADR 0011](docs/adr/0011-api-contract-with-huma.md)). huma operations are
   mounted on the existing Gin groups, so middleware and the error format stay. `make openapi` writes
   `docs/openapi.json` and `frontend/src/types/generated/api.ts`; a check fails on drift. Only
@@ -176,6 +273,32 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   clock; a lint rule enforces this. `FAKE_NOW` sets the server clock for tests and previews.
 - **`AppError`** ([ADR 0007](docs/adr/0007-apperror.md)) for all error responses.
 
+## Tests in numbers
+
+Upstream `main` is `0c2aaab`. Both columns were measured the same way on a clean checkout.
+
+| Measure                                   | Upstream `main` |  Fork |
+| ----------------------------------------- | --------------: | ----: |
+| Go test functions                         |             260 |   950 |
+| Go test files                             |              30 |   155 |
+| Go fuzz tests                             |               0 |     8 |
+| Go statement coverage                     |           47.9% | 84.7% |
+| Vitest tests                              |              53 |   206 |
+| Vitest test files                         |               5 |    40 |
+| Frontend unit-test statement coverage (1) |            9.0% | 35.9% |
+| Playwright E2E tests                      |              27 |    65 |
+| Playwright spec files                     |               7 |    19 |
+| Coverage threshold enforced in CI         |            none |   yes |
+
+Go coverage: `go test -coverpkg=./... -coverprofile`. Frontend: Vitest with the v8 provider. Test
+functions are counted with `grep` for `func Test`/`func Fuzz`, `it(`/`test(`; table-driven cases and
+subtests are not counted, so the real numbers are higher.
+
+(1) Upstream `main` has no frontend coverage setup. It was measured by adding `@vitest/coverage-v8`
+to a copy of `main` and by running it with the fork's Vitest version (5.0.4). Older Vitest versions
+count statements differently and give a different total, so the versions must match. Coverage from
+the Playwright E2E tests is not measured on either side, so both frontend values are too low.
+
 ## Build, CI and testing
 
 - **Frontend:** Vite, npm, Node 26, `noUncheckedIndexedAccess` and related flags, ESLint 9 with
@@ -186,16 +309,21 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
   Optional `lefthook`.
 - **Side-by-side checkouts:** `make dev` and `make test-e2e` pick free ports and keep their data per
   checkout or in a temporary directory, so several checkouts and a dev server can run together.
-- **`make seed`:** adds a demo user (`demo`) and 60 realistic contacts with notes, activities,
+- **`make seed`:** adds a demo user (`demo`) and about 60 realistic contacts with notes, activities,
   reminders and relationships to the running `make dev` backend. Safe to run again.
-- **Tests:** coverage thresholds for Go and Vitest, race detector in CI, fuzzing of the vCard, CSV,
-  Monica and ICS parsers, migration round-trip tests, upgrade tests on databases made by past
-  releases, CardDAV server and client tests through the HTTP handlers and against Radicale, SMTP and
-  OIDC tests against fake servers, Playwright E2E that drive the UI by visible names, invariant
-  tests for auth and user isolation of every route and model, and a use-case catalogue
-  (`docs/use-cases.yml`, `make use-cases`) that tags the tests.
-- **CI hardening:** pinned actions and base images, image scan and attestation, Dependabot for all
-  ecosystems, daily with a 7-day cooldown and one group each.
+- **Tests:** coverage thresholds for Go and Vitest, and the race detector in CI. Fuzz tests for the
+  vCard, CSV, Monica and ICS parsers. A test steps every migration down and up on a seeded database.
+  An upgrade test opens 13 databases made by real releases (v0.7.5 to v1.7.0, plus one fork release,
+  3.3 MB in the repository) and migrates each to the newest schema. CardDAV tests go through the
+  HTTP handlers and against a real Radicale server (own CI job). SMTP and OIDC tests use fake
+  servers. Playwright E2E tests drive the UI by visible names.
+- **Invariant tests** (`backend/routes/invariants_test.go`): every mutating route needs a login or
+  is listed as public with a reason. Every mutating route, search route and model with a `user_id`
+  must name an isolation test, and the check fails when the named test does not exist. It checks
+  that the test exists, not what it asserts.
+- **Use cases:** a catalogue (`docs/use-cases.yml`, `make use-cases`) that tags the tests.
+- **CI hardening:** actions pinned by commit, base images by exact version, image scan, SBOM and
+  provenance, Dependabot for all ecosystems, daily with a 7-day cooldown and one group each.
 - **Docs:** ADRs, `CONTRIBUTING.md` (replaces `README-developer.md`), an API reference checked
   against the router.
 
@@ -210,7 +338,7 @@ Not meant for upstream.
 
 ## Not implemented yet
 
-Design drafts in [design/](design/) that need your input before any code:
+Design drafts in [design/](design/) that need human input before any code:
 [symmetric relationships](design/symmetric-relationships.md) (upstream
 [#185](https://github.com/fbuchner/meerkat-crm/issues/185)), [myself](design/myself.md) (upstream
 [#184](https://github.com/fbuchner/meerkat-crm/issues/184)),
