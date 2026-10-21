@@ -28,6 +28,9 @@ jj git push -b main -b omk
 
 ## Release
 
+First rename `[Unreleased]` in `CHANGELOG.md` to the version and date, add the compare link, and
+commit it to `omk`. The release notes are that section.
+
 ```sh
 git tag v1.8.0-omk.1 <commit on omk>
 git push origin v1.8.0-omk.1

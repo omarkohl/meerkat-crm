@@ -27,6 +27,9 @@ jobs:
           git merge-base --is-ancestor "$GITHUB_SHA" origin/omk ||
             { echo "::error::$GITHUB_REF_NAME is not on the omk branch"; exit 1; }
 
+      - name: Require a CHANGELOG.md section for the tag
+        run: node scripts/changelog-section.mjs "$GITHUB_REF_NAME" > /dev/null
+
   create-release:
     needs: check-branch
     runs-on: ubuntu-latest
@@ -45,25 +48,21 @@ jobs:
         id: version
         run: echo "image_tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Write release notes from CHANGELOG.md
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          TAG: ${{ steps.version.outputs.image_tag }}
+        run: |
+          {
+            node scripts/changelog-section.mjs "$GITHUB_REF_NAME"
+            printf '\n## Docker Images\n\nAll-in-one image (frontend + backend in one container):\n```\n%s:%s\n```\n\nSeparate images:\n```\n%s-backend:%s\n%s-frontend:%s\n```\n' \
+              "$IMAGE" "$TAG" "$IMAGE" "$TAG" "$IMAGE" "$TAG"
+          } > "$RUNNER_TEMP/notes.md"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          generate_release_notes: true
-          append_body: true
-          body: |
-
-            ## Docker Images
-
-            All-in-one image (frontend + backend in one container):
-            ```
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.image_tag }}
-            ```
-
-            Separate images:
-            ```
-            ghcr.io/${{ github.repository }}-backend:${{ steps.version.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}-frontend:${{ steps.version.outputs.image_tag }}
-            ```
+          body_path: ${{ runner.temp }}/notes.md
 
   build-and-push:
     needs: check-branch
