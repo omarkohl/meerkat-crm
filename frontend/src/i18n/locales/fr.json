@@ -372,7 +372,12 @@
     "selectContacts": "Sélectionnez des contacts...",
     "cancel": "Annuler",
     "save": "Enregistrer",
-    "required": "Le titre et la date sont requis"
+    "required": "Le titre et la date sont requis",
+    "newActivity": "Nouvelle activité",
+    "existingActivities": "Activités existantes",
+    "activities": "Activités",
+    "selectActivities": "Sélectionner des activités...",
+    "noActivities": "Aucune activité trouvée"
   },
   "activities": {
     "title": "Activités",

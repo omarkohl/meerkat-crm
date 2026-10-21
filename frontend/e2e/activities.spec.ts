@@ -42,4 +42,41 @@ test.describe('Activities', () => {
       await deleteTestContact(page.request, second.ID);
     }
   });
+
+  test('a contact can be added to several existing activities from its page @005-US5', async ({ page }) => {
+    const host = await createTestContact(page.request);
+    const guest = await createTestContact(page.request, { lastname: 'Guest' });
+    const stamp = Date.now();
+    const titles = [`E2E dinner ${stamp}`, `E2E hike ${stamp}`];
+
+    try {
+      await openContact(page, host);
+      for (const title of titles) {
+        await page.getByRole('button', { name: /^add activity$/i }).click();
+        const addDialog = page.getByRole('dialog');
+        await addDialog.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
+        await addDialog.getByRole('button', { name: /^save$/i }).click();
+        await expect(addDialog).toBeHidden();
+      }
+
+      await openContact(page, guest);
+      await page.getByRole('button', { name: /^add activity$/i }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('button', { name: 'Existing activities' }).click();
+      for (const title of titles) {
+        await dialog.getByRole('combobox', { name: 'Activities' }).fill(title);
+        await page.getByRole('option', { name: new RegExp(title) }).click();
+      }
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+
+      for (const title of titles) {
+        const entry = page.getByRole('listitem').filter({ hasText: title });
+        await expect(entry.getByText(`${host.firstname} Temp`)).toBeVisible();
+      }
+    } finally {
+      await deleteTestContact(page.request, host.ID);
+      await deleteTestContact(page.request, guest.ID);
+    }
+  });
 });

@@ -9,11 +9,15 @@ import {
   Autocomplete,
   Chip,
   CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import DateField from './DateField';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
+import { Activity } from '../api/activities';
+import ExistingActivitiesPicker from './ExistingActivitiesPicker';
 import { now } from '../utils/now';
 
 interface AddActivityDialogProps {
@@ -26,11 +30,20 @@ interface AddActivityDialogProps {
     date: string;
     contact_ids: number[];
   }) => Promise<void>;
+  onAddToActivities?: (activities: Activity[]) => Promise<void>;
   preselectedContact?: Contact;
 }
 
-export default function AddActivityDialog({ open, onClose, onSave, preselectedContact }: AddActivityDialogProps) {
+export default function AddActivityDialog({
+  open,
+  onClose,
+  onSave,
+  onAddToActivities,
+  preselectedContact,
+}: AddActivityDialogProps) {
   const { t } = useTranslation();
+  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [existingActivities, setExistingActivities] = useState<Activity[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -75,6 +88,20 @@ export default function AddActivityDialog({ open, onClose, onSave, preselectedCo
   }, [searchInput, open, loadContacts]);
 
   const handleSave = async () => {
+    if (mode === 'existing') {
+      if (!onAddToActivities || existingActivities.length === 0) return;
+      setSaving(true);
+      try {
+        await onAddToActivities(existingActivities);
+        handleClose();
+      } catch {
+        // The notifier already showed the error; the dialog stays open to retry.
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (!title.trim() || !date) {
       setError(t('activityDialog.required'));
       return;
@@ -98,6 +125,8 @@ export default function AddActivityDialog({ open, onClose, onSave, preselectedCo
   };
 
   const handleClose = () => {
+    setMode('new');
+    setExistingActivities([]);
     setTitle('');
     setDescription('');
     setLocation('');
@@ -118,89 +147,118 @@ export default function AddActivityDialog({ open, onClose, onSave, preselectedCo
       <DialogTitle>{t('activityDialog.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField
-            label={t('activityDialog.activityTitle')}
-            placeholder={t('activityDialog.titlePlaceholder')}
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setError('');
-            }}
-            error={!!error}
-            helperText={error}
-            fullWidth
-            required
-            autoFocus
-          />
+          {preselectedContact && onAddToActivities && (
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              size="small"
+              value={mode}
+              onChange={(_, value: 'new' | 'existing' | null) => {
+                if (value) setMode(value);
+              }}
+            >
+              <ToggleButton value="new">{t('activityDialog.newActivity')}</ToggleButton>
+              <ToggleButton value="existing">{t('activityDialog.existingActivities')}</ToggleButton>
+            </ToggleButtonGroup>
+          )}
 
-          <TextField
-            label={t('activityDialog.description')}
-            placeholder={t('activityDialog.descriptionPlaceholder')}
-            multiline
-            rows={3}
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
-            }}
-            fullWidth
-          />
-
-          <TextField
-            label={t('activityDialog.location')}
-            placeholder={t('activityDialog.locationPlaceholder')}
-            value={location}
-            onChange={(e) => {
-              setLocation(e.target.value);
-            }}
-            fullWidth
-          />
-
-          <DateField label={t('activityDialog.date')} value={date} onChange={setDate} fullWidth required />
-
-          <Autocomplete
-            multiple
-            options={contacts}
-            getOptionLabel={getContactLabel}
-            value={selectedContacts}
-            onChange={(_, newValue) => {
-              setSelectedContacts(newValue);
-            }}
-            onInputChange={(_, value) => {
-              setSearchInput(value);
-            }}
-            inputValue={searchInput}
-            loading={loading}
-            filterOptions={(x) => x}
-            isOptionEqualToValue={(option, value) => option.ID === value.ID}
-            renderInput={(params) => (
+          {mode === 'existing' && preselectedContact ? (
+            <ExistingActivitiesPicker
+              contactId={preselectedContact.ID}
+              value={existingActivities}
+              onChange={setExistingActivities}
+            />
+          ) : (
+            <>
               <TextField
-                {...params}
-                label={t('activityDialog.contacts')}
-                placeholder={t('activityDialog.selectContacts')}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
+                label={t('activityDialog.activityTitle')}
+                placeholder={t('activityDialog.titlePlaceholder')}
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setError('');
                 }}
+                error={!!error}
+                helperText={error}
+                fullWidth
+                required
+                autoFocus
               />
-            )}
-            renderTags={(value, getTagProps) =>
-              value.map((contact, index) => (
-                <Chip label={getContactLabel(contact)} {...getTagProps({ index })} key={contact.ID} />
-              ))
-            }
-          />
+
+              <TextField
+                label={t('activityDialog.description')}
+                placeholder={t('activityDialog.descriptionPlaceholder')}
+                multiline
+                rows={3}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                }}
+                fullWidth
+              />
+
+              <TextField
+                label={t('activityDialog.location')}
+                placeholder={t('activityDialog.locationPlaceholder')}
+                value={location}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                }}
+                fullWidth
+              />
+
+              <DateField label={t('activityDialog.date')} value={date} onChange={setDate} fullWidth required />
+
+              <Autocomplete
+                multiple
+                options={contacts}
+                getOptionLabel={getContactLabel}
+                value={selectedContacts}
+                onChange={(_, newValue) => {
+                  setSelectedContacts(newValue);
+                }}
+                onInputChange={(_, value) => {
+                  setSearchInput(value);
+                }}
+                inputValue={searchInput}
+                loading={loading}
+                filterOptions={(x) => x}
+                isOptionEqualToValue={(option, value) => option.ID === value.ID}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={t('activityDialog.contacts')}
+                    placeholder={t('activityDialog.selectContacts')}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((contact, index) => (
+                    <Chip label={getContactLabel(contact)} {...getTagProps({ index })} key={contact.ID} />
+                  ))
+                }
+              />
+            </>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={saving}>
           {t('activityDialog.cancel')}
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving}>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={saving || (mode === 'existing' && existingActivities.length === 0)}
+        >
           {t('activityDialog.save')}
         </Button>
       </DialogActions>

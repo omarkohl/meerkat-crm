@@ -160,6 +160,12 @@
   priority: medium
   status: implemented
 
+- id: 005-US5
+  title: Add a contact to several existing activities from the contact page
+  actor: user
+  priority: medium
+  status: implemented
+
 - id: 006-US1
   title: Create and complete reminders for a contact
   actor: user

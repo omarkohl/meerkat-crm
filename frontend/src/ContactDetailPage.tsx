@@ -157,6 +157,7 @@ export default function ContactDetailPage() {
     setActivityDialogOpen,
     handleSaveNote,
     handleSaveActivity,
+    handleAddToActivities,
   } = useContactDialogs(id, refreshNotesAndActivities, { showError });
 
   const {
@@ -829,6 +830,7 @@ export default function ContactDetailPage() {
           setActivityDialogOpen(false);
         }}
         onSave={handleSaveActivity}
+        onAddToActivities={handleAddToActivities}
         preselectedContact={contact ?? undefined}
       />
 

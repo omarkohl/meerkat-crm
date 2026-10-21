@@ -11,6 +11,11 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ## [Unreleased]
 
+### Added
+
+- **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
+  "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
+
 ## [1.7.0-omk.3] - 2026-10-20
 
 ### Added

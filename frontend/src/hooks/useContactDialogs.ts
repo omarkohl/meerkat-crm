@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createNote } from '../api/notes';
-import { createActivity } from '../api/activities';
+import { createActivity, updateActivity, Activity } from '../api/activities';
 import { handleError, ErrorNotifier, getErrorMessage } from '../utils/errorHandler';
 
 export function useContactDialogs(
@@ -49,6 +49,28 @@ export function useContactDialogs(
     }
   };
 
+  const handleAddToActivities = async (activities: Activity[]) => {
+    if (!contactId) return;
+
+    try {
+      for (const activity of activities) {
+        const contactIds = (activity.contacts ?? []).map((c) => c.ID);
+        await updateActivity(activity.ID, {
+          title: activity.title,
+          description: activity.description,
+          location: activity.location,
+          date: activity.date,
+          contact_ids: [...contactIds, parseInt(contactId)],
+        });
+      }
+    } catch (err) {
+      handleError(err, { operation: 'adding contact to activities' }, notifier);
+      throw new Error(getErrorMessage(err));
+    } finally {
+      await onRefresh();
+    }
+  };
+
   return {
     noteDialogOpen,
     activityDialogOpen,
@@ -56,5 +78,6 @@ export function useContactDialogs(
     setActivityDialogOpen,
     handleSaveNote,
     handleSaveActivity,
+    handleAddToActivities,
   };
 }
