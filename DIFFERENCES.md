@@ -25,6 +25,8 @@ structure with a generated API contract, and a much larger automated test and ch
   changelog), not review comments.
 - A typed API contract: OpenAPI is generated from the code, and the frontend types come from it.
 - New features (see [Overview](#overview)).
+- Fixes upstream bug [#232](https://github.com/fbuchner/meerkat-crm/issues/232) and implements
+  requested feature [#190](https://github.com/fbuchner/meerkat-crm/issues/190).
 - Faster local setup: `make dev` and `make test-e2e` need no Docker.
 
 **Downsides**
@@ -94,14 +96,14 @@ code with moved code: the module move rewrites many existing files.
 | Users         | Two-factor login (TOTP)                 | M    | 28        | not proposed                                                                                                                             |
 | Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                                             |
 | Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                                             |
-| Contacts      | Merge duplicate contacts                | S    | –         | not proposed                                                                                                                             |
+| Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                                      |
 | Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                                             |
 | Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                                             |
 | Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                                             |
 | Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                                             |
 | Import        | Preview filter, sort, bulk set          | M    | –         | not proposed                                                                                                                             |
 | Import        | vCard fixes and NOTE field              | S    | 33        | [PR #251](https://github.com/fbuchner/meerkat-crm/pull/251), [#250](https://github.com/fbuchner/meerkat-crm/issues/250) (vCard 2.1 part) |
-| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed                                                                                                                             |
+| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed; fixes [#232](https://github.com/fbuchner/meerkat-crm/issues/232) (open upstream bug)                                       |
 | Storage       | Thumbnails as files                     | S    | 30        | not proposed                                                                                                                             |
 | Integrations  | Outbox with retries                     | M    | 32        | not proposed                                                                                                                             |
 | Operations    | Prometheus metrics                      | S    | –         | not proposed                                                                                                                             |
@@ -135,8 +137,9 @@ Migration 25.
 ![The trash page lists deleted contacts with restore and purge buttons](docs/assets/differences/trash.png)
 
 **Merge contacts.** Select two or more contacts in the list (or use "Merge with…" on a contact) to
-merge them into one. The browser does the work with the ordinary endpoints; there is no merge
-endpoint.
+merge them into one (upstream feature request
+[#190](https://github.com/fbuchner/meerkat-crm/issues/190)). The browser does the work with the
+ordinary endpoints; there is no merge endpoint.
 
 ![Merge dialog for two entries of the same person: choose the contact to keep and one value for each field that differs](docs/assets/differences/merge-dialog.png)
 
@@ -171,10 +174,11 @@ photos load after the import, and the result shows their progress. The Monica im
 longer, and a private Monica URL can be allowed.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
-locale. One placeholder for empty values. The add-activity dialog preselects the contact and the
-edit-activity contact field searches all contacts. Header search clears on navigation and Escape.
-The sidebar collapses to icons. The contact, note and activity lists share one toolbar (search,
-filters, then actions on the right), and buttons are not upper case.
+locale. This fixes upstream bug [#232](https://github.com/fbuchner/meerkat-crm/issues/232). One
+placeholder for empty values. The add-activity dialog preselects the contact and the edit-activity
+contact field searches all contacts. Header search clears on navigation and Escape. The sidebar
+collapses to icons. The contact, note and activity lists share one toolbar (search, filters, then
+actions on the right), and buttons are not upper case.
 
 **Thumbnails.** Contact thumbnails are files next to the photos, not base64 in the database. The
 database gets smaller and list queries get cheaper. Migration 30; see "Merge impact".
