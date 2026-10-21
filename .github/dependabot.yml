@@ -27,19 +27,19 @@ updates:
       # Blocked by: eslint-plugin-jsx-a11y does not list ESLint 10 in its peerDependencies. Check
       # `npm view eslint-plugin-jsx-a11y peerDependencies.eslint`. The same blocker is tracked for
       # eslint-plugin-react in https://github.com/jsx-eslint/eslint-plugin-react/issues/3977; no
-      # issue is known for jsx-a11y itself. Tracked in #156.
+      # issue is known for jsx-a11y itself. Tracked in https://github.com/omarkohl/meerkat-crm/issues/156.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
       # Blocked by: openapi-typescript's peer range is `^5.x`, so TypeScript 6 and 7 are refused
       # (`npm view openapi-typescript peerDependencies.typescript`); typescript-eslint's is
-      # `>=4.8.4 <6.1.0`, which also refuses 7. Tracked in #157.
+      # `>=4.8.4 <6.1.0`, which also refuses 7. Tracked in https://github.com/omarkohl/meerkat-crm/issues/157.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       # Blocked by: @mui/lab has no stable release for the next MUI major (v9 only has betas), and
       # the code is not migrated: MUI 9 breaks Stack props, TextField InputProps and Snackbar
-      # onClose types. Tracked in #158.
+      # onClose types. Tracked in https://github.com/omarkohl/meerkat-crm/issues/158.
       - dependency-name: "@mui/*"
         update-types: ["version-update:semver-major"]
 

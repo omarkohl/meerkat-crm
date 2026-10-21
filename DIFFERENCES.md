@@ -9,9 +9,8 @@ Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 [`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (765
 files, +93.7k and -27.1k lines; see [Size of the diff](#size-of-the-diff)).
 
-Issue numbers such as `#109` in [CHANGELOG.md](CHANGELOG.md) are issues of the fork
-(`omarkohl/meerkat-crm`), not of upstream. Links to upstream issues and pull requests are written in
-full.
+Issue links in [CHANGELOG.md](CHANGELOG.md) point to issues of the fork (`omarkohl/meerkat-crm`),
+not of upstream.
 
 ## Summary
 

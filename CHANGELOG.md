@@ -13,12 +13,14 @@ of this fork (see [FORK.md](FORK.md)).
 
 ### Added
 
-- **Merge duplicate contacts** (#109): select contacts in the list or use "Merge with…" on a
-  contact, resolve differing values and combine their data. The others go to the trash.
+- **Merge duplicate contacts** (https://github.com/omarkohl/meerkat-crm/issues/109): select contacts
+  in the list or use "Merge with…" on a contact, resolve differing values and combine their data.
+  The others go to the trash.
 - **vCard import shows how far the photos have loaded**: the contacts are imported at once, and the
   photos load afterwards with a progress bar. A large import no longer seems to stall.
-- **Search contacts, notes and activities from the header** (#118): grouped results with the match
-  marked and named, over every contact field, and a results page with a tab per group.
+- **Search contacts, notes and activities from the header**
+  (https://github.com/omarkohl/meerkat-crm/issues/118): grouped results with the match marked and
+  named, over every contact field, and a results page with a tab per group.
 - **Search box on the contact list**: finds contacts by any field. Contacts you selected for a merge
   stay selected while you search; you can show only them or clear the selection.
 
@@ -30,14 +32,17 @@ of this fork (see [FORK.md](FORK.md)).
 ### Fixed
 
 - **Birthday e-mail is sent once a day**: restarting the server on a birthday sent it again.
-- **Imports skip invalid rows and survive broken vCards** (#107): rows without a first name were
-  still added, and one unreadable vCard in a file shifted every later card or crashed the import.
-- **CardDAV clients no longer overwrite newer changes** (#107): a quick second save could replace
-  newer changes, "create only" saves replaced existing contacts, and missing contacts gave an error.
+- **Imports skip invalid rows and survive broken vCards**
+  (https://github.com/omarkohl/meerkat-crm/issues/107): rows without a first name were still added,
+  and one unreadable vCard in a file shifted every later card or crashed the import.
+- **CardDAV clients no longer overwrite newer changes**
+  (https://github.com/omarkohl/meerkat-crm/issues/107): a quick second save could replace newer
+  changes, "create only" saves replaced existing contacts, and missing contacts gave an error.
 - **Asking CardDAV for another user's address book answers "not found"**: it answered with a server
   error.
-- **Editing an activity finds every contact** (#140): the contact field only offered some contacts
-  when you had many. It now searches all of them as you type.
+- **Editing an activity finds every contact** (https://github.com/omarkohl/meerkat-crm/issues/140):
+  the contact field only offered some contacts when you had many. It now searches all of them as you
+  type.
 
 ### Security
 

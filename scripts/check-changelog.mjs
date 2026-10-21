@@ -63,14 +63,16 @@ export function checkChangelog(md) {
         );
         return;
       }
-      const m = /^- \*\*([^*]+)\*\*(?: \((#[^)]*)\))?(:?)/.exec(line);
+      const next = lines[i + 1] ?? '';
+      const head = /^ {2}\(https:/.test(next) ? `${line} ${next.trim()}` : line;
+      const m = /^- \*\*([^*]+)\*\*(?: \(([^)]*)\))?(:?)/.exec(head);
       const where = `${version} / ${section}: line ${i + 1}`;
       if (!m) {
         problems.push(`${where} needs a bold lead phrase: - **Lead phrase**: text`);
         return;
       }
-      if (m[2] !== undefined && !/^#\d+$/.test(m[2]))
-        problems.push(`${where} has a bad issue reference (${m[2]}): write (#123)`);
+      if (m[2] !== undefined && !/^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+$/.test(m[2]))
+        problems.push(`${where} has a bad issue reference (${m[2]}): write the full issue URL`);
       if (m[3] !== ':') problems.push(`${where} needs a colon after the lead phrase`);
       if (section === 'Internal') internal++;
       entry = { text: line.slice(2) };

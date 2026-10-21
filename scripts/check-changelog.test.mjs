@@ -6,7 +6,14 @@ const wrap = (body) =>
   `# Changelog\n\n## [Unreleased]\n\n${body}\n## [1.0.0] - 2026-01-01\n\n### Added\n\n- old bullet without bold\n`;
 
 test('accepts a well-formed entry with and without an issue', () => {
-  const md = wrap('### Fixed\n\n- **Saving works** (#12): it failed before.\n- **Another fix**: one line.\n');
+  const md = wrap(
+    '### Fixed\n\n- **Saving works** (https://github.com/o/r/issues/12): it failed before.\n- **Another fix**: one line.\n',
+  );
+  assert.deepEqual(checkChangelog(md), []);
+});
+
+test('accepts an issue URL wrapped onto the next line', () => {
+  const md = wrap('### Fixed\n\n- **Saving works**\n  (https://github.com/o/r/issues/12): it failed before.\n');
   assert.deepEqual(checkChangelog(md), []);
 });
 
@@ -23,7 +30,7 @@ test('rejects an entry without a bold lead phrase', () => {
 });
 
 test('rejects a bad issue reference and a missing colon', () => {
-  assert.match(checkChangelog(wrap('### Fixed\n\n- **A** (#abc): text.\n')).join(), /issue/);
+  assert.match(checkChangelog(wrap('### Fixed\n\n- **A** (#12): text.\n')).join(), /issue/);
   assert.match(checkChangelog(wrap('### Fixed\n\n- **A** text without colon.\n')).join(), /colon/);
 });
 

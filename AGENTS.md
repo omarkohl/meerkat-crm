@@ -72,15 +72,15 @@ admins of the CRM, so keep it non-technical. Use the
 `Removed`, `Fixed`, `Security`. Dev-only changes go under `Internal`.
 
 **Format**:
-`- **Bold lead phrase** (#123): what changed, and, only where it is not obvious, what was wrong before.`
+`- **Bold lead phrase** (https://github.com/omarkohl/meerkat-crm/issues/123): what changed, and, only where it is not obvious, what was wrong before.`
 
 **Hard limits** (limits, not targets):
 
 - One bullet per change. **Two lines of prose, ~40 words, maximum.** No sub-bullets, no second
   paragraph.
-- Reference the GitHub issue where one exists, `(#123)`, straight after the lead phrase. Take the
-  number from the commit's `fixes #123` / `issue #123` footer, never from the PR number GitHub
-  appends to a squashed subject. No issue, no reference.
+- Reference the GitHub issue where one exists as a full URL in parentheses, straight after the lead
+  phrase. Take the number from the commit's `fixes #123` / `issue #123` footer, never from the PR
+  number GitHub appends to a squashed subject. No issue, no reference.
 - Several commits that deliver one feature get **one** bullet.
 - `Internal` is **not a second commit history**. It lists only internal changes that are valuable or
   disruptive: roughly **3 entries per release, one line each (~25 words)**. Tests, refactors,
@@ -95,7 +95,7 @@ Bad  - **Interrupting a profile slide no longer restarts it**: pressing Next or 
        (or swiping again) while a profile was still sliding used to snap the card back
        to the start and replay the whole slide, putting off the arrival a little more
        with every press. Repeated presses now let the first slide finish.
-Good - **Interrupting a profile slide no longer restarts it** (#123): pressing Next or
+Good - **Interrupting a profile slide no longer restarts it** (https://github.com/omarkohl/meerkat-crm/issues/123): pressing Next or
        Prev mid-slide used to replay the animation from the start.
 ```
 

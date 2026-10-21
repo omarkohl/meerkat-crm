@@ -20,10 +20,10 @@ changelog and the release notes could not be derived from them.
 - Commits use conventional prefixes and a subject of at most 72 characters; the body says why. A CI
   job on pull requests checks the subjects (`scripts/check-commits.mjs`).
 - `CHANGELOG.md` is for the users and admins of the CRM. One bullet per change, a bold lead phrase,
-  `(#123)` only when a commit footer names the issue, at most about 40 words, no sub-bullets.
-  `Internal` lists only valuable or disruptive internal changes, at most three per release, 25 words
-  each. `scripts/check-changelog.mjs` checks the `[Unreleased]` section in `make lint` and CI. The
-  exact rules are in [AGENTS.md](../../AGENTS.md).
+  the issue URL in parentheses only when a commit footer names the issue, at most about 40 words, no
+  sub-bullets. `Internal` lists only valuable or disruptive internal changes, at most three per
+  release, 25 words each. `scripts/check-changelog.mjs` checks the `[Unreleased]` section in
+  `make lint` and CI. The exact rules are in [AGENTS.md](../../AGENTS.md).
 - Fork releases are written from the commits since the previous release; upstream releases from the
   upstream release notes.
 

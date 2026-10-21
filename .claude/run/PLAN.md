@@ -5,7 +5,8 @@ step: test first, own commit, `make precommit` green.
 
 ## Next steps
 
-- [x] Copy the final #107 audit into the issue. Source: section "Final #107 audit" in
+- [x] Copy the final https://github.com/omarkohl/meerkat-crm/issues/107 audit into the issue.
+      Source: section "Final https://github.com/omarkohl/meerkat-crm/issues/107 audit" in
       `.claude/plans/coverage-and-search-summary.md`, in the parent of the commit that deletes it.
 - [ ] https://github.com/omarkohl/meerkat-crm/issues/109 (merge contacts). Settle first: merge
       dialog and conflict UI, removal from synced CardDAV devices, undo or confirmation, API shape.
@@ -40,10 +41,12 @@ step: test first, own commit, `make precommit` green.
 
 ## Settled, no step
 
-- CardDAV login with an API token as password: part of #130 (app passwords), not a separate step.
+- CardDAV login with an API token as password: part of
+  https://github.com/omarkohl/meerkat-crm/issues/130 (app passwords), not a separate step.
 - `AddNoteDialog`, `AddRelationshipDialog`, `ProfilePictureUploadDialog`, `ContactHeader`,
   `ContactTimeline` and the settings components: no unit tests (thin; E2E covers them).
 
 ## Open Questions
 
-- #130: should an API token with a CardDAV scope be the app-password model, or a separate model?
+- https://github.com/omarkohl/meerkat-crm/issues/130: should an API token with a CardDAV scope be
+  the app-password model, or a separate model?
