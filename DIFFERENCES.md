@@ -9,6 +9,9 @@ Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
 [`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (765
 files, +93.7k and -27.1k lines; see [Size of the diff](#size-of-the-diff)).
 
+To try the fork, follow the installation instructions in the [README](README.md#installation). They
+are adapted to the fork (images from `ghcr.io/omarkohl`).
+
 Issue links in [CHANGELOG.md](CHANGELOG.md) point to issues of the fork (`omarkohl/meerkat-crm`),
 not of upstream.
 
