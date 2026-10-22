@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DialogTitle, DialogContent, DialogActions, TextField, Button, Box, Typography } from '@mui/material';
 import AppDialog from './AppDialog';
 import DateField from './DateField';
+import PhotoDateHint from './images/PhotoDateHint';
 import { useTranslation } from 'react-i18next';
 import { now } from '../utils/now';
 import { useImageUploads } from '../hooks/useImageUploads';
@@ -17,6 +18,7 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
   const { t } = useTranslation();
   const [content, setContent] = useState('');
   const [date, setDate] = useState(now().toISOString().slice(0, 10));
+  const [dateTouched, setDateTouched] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const uploads = useImageUploads();
@@ -41,6 +43,7 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
   const handleClose = () => {
     setContent('');
     setDate(now().toISOString().slice(0, 10));
+    setDateTouched(false);
     setError('');
     uploads.reset();
     onClose();
@@ -67,7 +70,16 @@ export default function AddNoteDialog({ open, onClose, onSave }: AddNoteDialogPr
             autoFocus
           />
           <ImageAttachmentField uploads={uploads} disabled={saving} />
-          <DateField label={t('noteDialog.date')} value={date} onChange={setDate} fullWidth />
+          <DateField
+            label={t('noteDialog.date')}
+            value={date}
+            onChange={(next) => {
+              setDate(next);
+              setDateTouched(true);
+            }}
+            fullWidth
+          />
+          <PhotoDateHint takenAt={uploads.items[0]?.takenAt} date={date} touched={dateTouched} onUse={setDate} />
         </Box>
       </DialogContent>
       <DialogActions>

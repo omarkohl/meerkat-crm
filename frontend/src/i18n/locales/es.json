@@ -1236,6 +1236,7 @@
     "actions": "Acciones de la imagen {{n}}",
     "setMain": "Establecer como principal",
     "adjustCrop": "Ajustar el recorte",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "usePhotoDate": "Usar la fecha de la foto ({{date}})"
   }
 }

@@ -375,3 +375,9 @@
   actor: user
   priority: medium
   status: implemented
+
+- id: 023-US5
+  title: Use the date of a photo for a new note or activity
+  actor: user
+  priority: low
+  status: implemented

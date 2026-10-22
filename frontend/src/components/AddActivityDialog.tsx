@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import ActivityDateFields from './ActivityDateFields';
+import PhotoDateHint from './images/PhotoDateHint';
 import { endsBeforeStart } from '../utils/activityDates';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
@@ -54,6 +55,7 @@ export default function AddActivityDialog({
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(now().toISOString().slice(0, 10));
+  const [dateTouched, setDateTouched] = useState(false);
   const [endDate, setEndDate] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -142,6 +144,7 @@ export default function AddActivityDialog({
     setDescription('');
     setLocation('');
     setDate(now().toISOString().slice(0, 10));
+    setDateTouched(false);
     setEndDate('');
     setSelectedContacts([]);
     setSearchInput('');
@@ -226,9 +229,11 @@ export default function AddActivityDialog({
                 onChange={(next) => {
                   setDate(next.date);
                   setEndDate(next.endDate);
+                  setDateTouched(true);
                 }}
                 required
               />
+              <PhotoDateHint takenAt={uploads.items[0]?.takenAt} date={date} touched={dateTouched} onUse={setDate} />
 
               <Autocomplete
                 multiple

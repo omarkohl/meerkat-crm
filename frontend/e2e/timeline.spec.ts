@@ -27,6 +27,23 @@ test.describe('Timeline', () => {
     }
   });
 
+  test('offer the date of a photo for a new note @023-US5', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await pasteImage(page, 'dated-jpeg');
+
+      await dialog.getByRole('button', { name: /use photo date/i }).click();
+      await expect(dialog.getByRole('button', { name: /use photo date/i })).toBeHidden();
+      await expect(dialog.getByLabel('Date')).toHaveValue(/2026-10-20|20\.10\.2026|10\/20\/2026/);
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
   test('attach a pasted image to a note and open it @023-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
 

@@ -8,6 +8,7 @@ export interface UploadItem {
   key: string;
   id?: number;
   previewUrl: string;
+  takenAt?: string | null;
   status: 'uploading' | 'done' | 'error';
   progress: number;
   error?: string;
@@ -18,6 +19,7 @@ const fromRef = (ref: ImageRef): UploadItem => ({
   key: `image-${String(ref.id)}`,
   id: ref.id,
   previewUrl: apiUrl(ref.thumb_url),
+  takenAt: ref.taken_at,
   status: 'done',
   progress: 1,
 });
@@ -62,7 +64,14 @@ export function useImageUploads(initial: ImageRef[] = []) {
             prev.map((i) => {
               if (i.key !== key) return i;
               revoke(i.previewUrl);
-              return { ...i, id: ref.id, previewUrl: apiUrl(ref.thumb_url), status: 'done', progress: 1 };
+              return {
+                ...i,
+                id: ref.id,
+                previewUrl: apiUrl(ref.thumb_url),
+                takenAt: ref.taken_at,
+                status: 'done',
+                progress: 1,
+              };
             }),
           );
         })

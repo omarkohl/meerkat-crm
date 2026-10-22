@@ -1236,6 +1236,7 @@
     "actions": "Actions pour l'image {{n}}",
     "setMain": "Définir comme principale",
     "adjustCrop": "Ajuster le cadrage",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "usePhotoDate": "Utiliser la date de la photo ({{date}})"
   }
 }

@@ -27,6 +27,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **Several photos per contact** (https://github.com/omarkohl/meerkat-crm/issues/112): keep a
   gallery on each contact and frame the face. Photos from CardDAV and imports are added instead of
   replacing the old one.
+- **Photo date suggestion**: when the first image of a new note or activity has a capture date, a
+  chip offers to use it as the date.
 
 ### Internal
 

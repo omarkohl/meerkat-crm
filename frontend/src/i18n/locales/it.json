@@ -1236,6 +1236,7 @@
     "actions": "Azioni per l'immagine {{n}}",
     "setMain": "Imposta come principale",
     "adjustCrop": "Regola il ritaglio",
-    "delete": "Elimina"
+    "delete": "Elimina",
+    "usePhotoDate": "Usa la data della foto ({{date}})"
   }
 }

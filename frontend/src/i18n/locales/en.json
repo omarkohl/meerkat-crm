@@ -1236,6 +1236,7 @@
     "actions": "Actions for image {{n}}",
     "setMain": "Set as main",
     "adjustCrop": "Adjust crop",
-    "delete": "Delete"
+    "delete": "Delete",
+    "usePhotoDate": "Use photo date ({{date}})"
   }
 }
