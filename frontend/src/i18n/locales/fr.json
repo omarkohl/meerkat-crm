@@ -455,7 +455,7 @@
     "invalidDate": "Date invalide"
   },
   "profilePicture": {
-    "title": "Télécharger une photo de profil",
+    "title": "Ajouter une photo",
     "selectImage": "Sélectionner une image",
     "dragOrClick": "Cliquez pour parcourir ou glissez-déposez",
     "pasteHint": "Vous pouvez aussi coller une image ({{shortcut}})",
@@ -464,10 +464,11 @@
     "uploading": "Téléchargement en cours...",
     "uploadError": "Échec du téléchargement de la photo de profil",
     "invalidFileType": "Veuillez sélectionner un fichier image",
-    "fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de 10 Mo.",
     "or": "ou",
     "urlPlaceholder": "Collez l'URL de l'image...",
-    "fetch": "Récupérer"
+    "fetch": "Récupérer",
+    "adjustCrop": "Ajuster le cadrage",
+    "change": "Changer la photo de profil"
   },
   "settings": {
     "title": "Paramètres",
@@ -1228,6 +1229,13 @@
       "zoomIn": "Agrandir",
       "zoomOut": "Réduire",
       "download": "Télécharger"
-    }
+    },
+    "addPhoto": "Ajouter une photo",
+    "photos": "Photos",
+    "mainImage": "Photo principale",
+    "actions": "Actions pour l'image {{n}}",
+    "setMain": "Définir comme principale",
+    "adjustCrop": "Ajuster le cadrage",
+    "delete": "Supprimer"
   }
 }

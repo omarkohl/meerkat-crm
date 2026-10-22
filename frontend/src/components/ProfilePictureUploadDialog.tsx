@@ -1,13 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Cropper, { Area } from 'react-easy-crop';
 import {
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
   Box,
-  Slider,
   Typography,
   CircularProgress,
   Alert,
@@ -15,106 +13,74 @@ import {
   Divider,
 } from '@mui/material';
 import AppDialog from './AppDialog';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LinkIcon from '@mui/icons-material/Link';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { useImageInput } from '../hooks/useImageInput';
+import FaceCropper from './images/FaceCropper';
+import { toServerCrop, type Area, type Size } from '../utils/faceCrop';
 import { API_BASE_URL, apiFetch, parseErrorResponse } from '../api/client';
+import { MAX_IMAGE_BYTES, uploadImage, type ImageRef } from '../api/images';
+import { apiUrl } from '../utils/thumbnail';
 
 interface ProfilePictureUploadDialogProps {
   open: boolean;
   onClose: () => void;
-  onUpload: (croppedImageBlob: Blob) => Promise<void>;
-}
-
-// Helper function to create a cropped image blob
-async function getCroppedImg(imageSrc: string, pixelCrop: Area, outputSize: number = 400): Promise<Blob> {
-  const image = await createImage(imageSrc);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  if (!ctx) {
-    throw new Error('Could not get canvas context');
-  }
-
-  // Set canvas size to desired output size
-  canvas.width = outputSize;
-  canvas.height = outputSize;
-
-  // Draw the cropped image
-  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, outputSize, outputSize);
-
-  // Return as blob
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Canvas is empty'));
-        }
-      },
-      'image/jpeg',
-      0.9,
-    );
-  });
-}
-
-// Helper function to load an image
-function createImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener('load', () => {
-      resolve(image);
-    });
-    image.addEventListener('error', (error) => {
-      reject(error);
-    });
-    image.src = url;
-  });
+  onSave: (image: ImageRef, crop: { x: number; y: number; size: number } | null) => Promise<void>;
+  initialFile?: File | null;
+  // False when the photo is only added to the gallery: no crop is asked for.
+  crop?: boolean;
 }
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
 
-export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: ProfilePictureUploadDialogProps) {
+export default function ProfilePictureUploadDialog({
+  open,
+  onClose,
+  onSave,
+  initialFile,
+  crop = true,
+}: ProfilePictureUploadDialogProps) {
   const { t } = useTranslation();
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [image, setImage] = useState<ImageRef | null>(null);
+  const [picked, setPicked] = useState<{ area: Area; natural: Size } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [fetchingUrl, setFetchingUrl] = useState(false);
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const loadFile = (file: File) => {
+  // The server converts the file, so the crop is drawn on its copy and HEIC works in every browser.
+  const loadFile = async (chosen: File) => {
     setError(null);
 
-    if (file.size > MAX_FILE_SIZE) {
-      setError(t('profilePicture.fileTooLarge'));
+    if (chosen.size > MAX_IMAGE_BYTES) {
+      setError(t('images.tooLarge'));
       return;
     }
 
-    const reader = new FileReader();
-    reader.addEventListener('load', () => {
-      setImageSrc(reader.result as string);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-    });
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const uploaded = await uploadImage(chosen, () => undefined).promise;
+      setImage(uploaded);
+      setPicked(null);
+    } catch (err) {
+      handleError(err, { operation: 'uploading profile picture' });
+      setError(getErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
   };
 
+  useEffect(() => {
+    if (open && initialFile) void loadFile(initialFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per opening, not per render
+  }, [open, initialFile]);
+
   const { dropProps } = useImageInput({
-    enabled: open && !uploading,
+    enabled: open && !uploading && !saving,
     onFiles: ([file]) => {
-      if (file) loadFile(file);
+      if (file) void loadFile(file);
     },
     onReject: () => {
       setError(t('profilePicture.invalidFileType'));
@@ -129,7 +95,7 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
       setError(t('profilePicture.invalidFileType'));
       return;
     }
-    loadFile(file);
+    void loadFile(file);
   };
 
   const handleFetchFromUrl = async () => {
@@ -154,18 +120,12 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
 
       const blob = await response.blob();
 
-      if (blob.size > MAX_FILE_SIZE) {
-        throw new Error(t('profilePicture.fileTooLarge'));
+      if (blob.size > MAX_IMAGE_BYTES) {
+        throw new Error(t('images.tooLarge'));
       }
 
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        setImageSrc(reader.result as string);
-        setCrop({ x: 0, y: 0 });
-        setZoom(1);
-        setImageUrl('');
-      });
-      reader.readAsDataURL(blob);
+      await loadFile(new File([blob], 'image', { type: blob.type }));
+      setImageUrl('');
     } catch (err) {
       handleError(err, { operation: 'fetching image from URL' });
       setError(getErrorMessage(err));
@@ -174,29 +134,26 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
     }
   };
 
-  const handleUpload = async () => {
-    if (!imageSrc || !croppedAreaPixels) return;
+  const handleSave = async () => {
+    if (!image || (crop && !picked)) return;
 
-    setUploading(true);
+    setSaving(true);
     setError(null);
 
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-      await onUpload(croppedImage);
+      await onSave(image, crop && picked ? toServerCrop(picked.area, picked.natural, image) : null);
       handleClose();
     } catch (err) {
-      handleError(err, { operation: 'uploading profile picture' });
+      handleError(err, { operation: 'saving profile picture' });
       setError(getErrorMessage(err));
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   };
 
   const handleClose = () => {
-    setImageSrc(null);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setCroppedAreaPixels(null);
+    setImage(null);
+    setPicked(null);
     setError(null);
     setImageUrl('');
     setFetchingUrl(false);
@@ -213,7 +170,7 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
           </Alert>
         )}
 
-        {!imageSrc ? (
+        {!image ? (
           // File selection view
           <Box>
             <Box
@@ -237,7 +194,11 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
               {...dropProps}
             >
               <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
-              <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+              {uploading ? (
+                <CircularProgress sx={{ mb: 1 }} />
+              ) : (
+                <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+              )}
               <Typography variant="h6" color="text.secondary">
                 {t('profilePicture.selectImage')}
               </Typography>
@@ -264,7 +225,7 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
                 onChange={(e) => {
                   setImageUrl(e.target.value);
                 }}
-                disabled={fetchingUrl}
+                disabled={fetchingUrl || uploading}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -278,53 +239,31 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
               <Button
                 variant="outlined"
                 onClick={handleFetchFromUrl}
-                disabled={!imageUrl.trim() || fetchingUrl}
+                disabled={!imageUrl.trim() || fetchingUrl || uploading}
                 sx={{ minWidth: 100 }}
               >
-                {fetchingUrl ? <CircularProgress size={20} /> : t('profilePicture.fetch')}
+                {fetchingUrl || uploading ? <CircularProgress size={20} /> : t('profilePicture.fetch')}
               </Button>
             </Box>
           </Box>
         ) : (
           // Cropping view
           <Box>
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                height: 350,
-                bgcolor: 'black',
-                borderRadius: 1,
-                overflow: 'hidden',
-              }}
-            >
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-                cropShape="round"
-                showGrid={false}
-              />
-            </Box>
-
-            {/* Zoom slider */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, px: 2 }}>
-              <ZoomInIcon sx={{ mr: 2, color: 'text.secondary' }} />
-              <Slider
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                onChange={(_, value) => {
-                  setZoom(value);
+            {crop ? (
+              <FaceCropper
+                src={apiUrl(image.url)}
+                onChange={(area, natural) => {
+                  setPicked({ area, natural });
                 }}
-                aria-label={t('profilePicture.zoom')}
               />
-            </Box>
+            ) : (
+              <Box
+                component="img"
+                src={apiUrl(image.thumb_url)}
+                alt=""
+                sx={{ display: 'block', maxWidth: '100%', maxHeight: 360, mx: 'auto', borderRadius: 1 }}
+              />
+            )}
 
             {/* Change image button */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
@@ -337,16 +276,16 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={uploading}>
+        <Button onClick={handleClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
         <Button
-          onClick={handleUpload}
+          onClick={handleSave}
           variant="contained"
-          disabled={!imageSrc || uploading}
-          startIcon={uploading ? <CircularProgress size={20} /> : undefined}
+          disabled={!image || (crop && !picked) || saving}
+          startIcon={saving ? <CircularProgress size={20} /> : undefined}
         >
-          {uploading ? t('profilePicture.uploading') : t('common.save')}
+          {saving ? t('profilePicture.uploading') : t('common.save')}
         </Button>
       </DialogActions>
     </AppDialog>

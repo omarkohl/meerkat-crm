@@ -83,6 +83,8 @@ type SystemStatusOutput struct {
 		UserCount          int64    `json:"user_count"`
 		PrivateURLWarning  bool     `json:"private_url_warning" doc:"Outbound features may reach private addresses on an instance with more than one user"`
 		Features           []string `json:"features" doc:"The outbound features that still allow private addresses"`
+		ImageCount         int64    `json:"image_count"`
+		ImageBytes         int64    `json:"image_bytes" doc:"Size of the stored images on disk, all users"`
 		Setting            string   `json:"setting" doc:"The setting that fixes the warning"`
 	}
 }
@@ -212,6 +214,7 @@ func (h *handlers) status(ctx context.Context, _ *struct{}) (*SystemStatusOutput
 	}
 	out := &SystemStatusOutput{}
 	out.Body.PrivateURLsAllowed, out.Body.UserCount, out.Body.PrivateURLWarning = s.PrivateURLsAllowed, s.UserCount, s.PrivateURLWarning
+	out.Body.ImageCount, out.Body.ImageBytes = s.ImageCount, s.ImageBytes
 	out.Body.Features, out.Body.Setting = s.Features, "BLOCK_PRIVATE_URLS"
 	return out, nil
 }
@@ -459,7 +462,7 @@ func toAppError(err error, lastAdmin ...string) *apperrors.AppError {
 			return apperrors.ErrDatabase("count").WithError(f.Err)
 		case app.StageAuditQuery:
 			return apperrors.ErrDatabase("query").WithError(f.Err)
-		case app.StageCountUsers, app.StageListUsers, app.StageGetUser, app.StageCountAdmins, app.StageUpdateUser, app.StageDeleteUser, app.StageResetTwoFA:
+		case app.StageCountUsers, app.StageCountImages, app.StageListUsers, app.StageGetUser, app.StageCountAdmins, app.StageUpdateUser, app.StageDeleteUser, app.StageResetTwoFA:
 			return apperrors.ErrDatabase(string(f.Stage)).WithError(f.Err)
 		case app.StageReminders:
 			return apperrors.ErrInternal("Failed to send reminder emails").WithError(f.Err)

@@ -35,7 +35,7 @@ func (r *Repository) Get(ctx context.Context, actor domain.UserID, id domain.Con
 	return first(r.db.WithContext(ctx), actor, id)
 }
 
-var showable = []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "note"}
+var showable = []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "main_image_id", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "note"}
 
 func first(db *gorm.DB, actor domain.UserID, id domain.ContactID) (domain.Contact, error) {
 	var m models.Contact
@@ -77,6 +77,17 @@ func (r *Repository) Show(ctx context.Context, actor domain.UserID, id domain.Co
 	c := toDomain(m)
 	if len(columns) == 0 && c.Relationships == nil {
 		c.Relationships = []domain.Relationship{}
+	}
+	byContact, err := services.ImagesFor(r.db.WithContext(ctx), uint(actor), services.ImageOfContact, []uint{m.ID})
+	if err != nil {
+		return domain.Contact{}, err
+	}
+	for _, img := range byContact[m.ID] {
+		ref := domain.ImageRef{ID: img.ID, Width: img.Width, Height: img.Height, Mime: img.Mime, Bytes: img.Bytes, TakenAt: img.TakenAt, URL: img.URL, ThumbURL: img.ThumbURL}
+		if img.Crop != nil {
+			ref.CropX, ref.CropY, ref.CropSize = img.Crop.X, img.Crop.Y, img.Crop.Size
+		}
+		c.Images = append(c.Images, ref)
 	}
 	return c, nil
 }
@@ -348,6 +359,7 @@ func toDomain(m models.Contact) domain.Contact {
 
 		Firstname: m.Firstname, Lastname: m.Lastname, Nickname: m.Nickname, Gender: m.Gender,
 		Email: m.Email, Phone: m.Phone, Birthday: m.Birthday, Photo: m.Photo, PhotoThumbnailFile: m.PhotoThumbnailFile, PhotoThumbnail: models.ThumbnailURL(m.ID, m.PhotoThumbnailFile),
+		MainImageID: m.MainImageID,
 
 		Address: m.Address, HowWeMet: m.HowWeMet, FoodPreference: m.FoodPreference,
 		WorkInformation: m.WorkInformation, ContactInformation: m.ContactInformation,

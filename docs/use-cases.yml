@@ -363,3 +363,9 @@
   actor: user
   priority: medium
   status: implemented
+
+- id: 023-US3
+  title: Keep several photos of a contact
+  actor: user
+  priority: medium
+  status: implemented

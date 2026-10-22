@@ -14,6 +14,8 @@ type UserID uint
 
 type ImageID uint
 
+type ContactID uint
+
 const (
 	MaxUploadBytes = 25 << 20
 	MaxPerNote     = 20
@@ -24,11 +26,14 @@ const (
 )
 
 var (
-	ErrNotFound     = errors.New("image not found")
-	ErrTooLarge     = errors.New("image file too large")
-	ErrInvalidImage = errors.New("invalid image")
-	ErrFileMissing  = errors.New("image file missing")
-	ErrUnsafeName   = errors.New("invalid image path")
+	ErrNotFound        = errors.New("image not found")
+	ErrContactNotFound = errors.New("contact not found")
+	ErrTooManyImages   = errors.New("too many images")
+	ErrInvalidCrop     = errors.New("crop is not a square inside the image")
+	ErrTooLarge        = errors.New("image file too large")
+	ErrInvalidImage    = errors.New("invalid image")
+	ErrFileMissing     = errors.New("image file missing")
+	ErrUnsafeName      = errors.New("invalid image path")
 )
 
 type Variant string

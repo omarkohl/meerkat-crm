@@ -4,19 +4,16 @@ package files
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"meerkat/imageproc"
 	"meerkat/images/internal/app"
 	"meerkat/images/internal/domain"
 	"meerkat/photofile"
-
-	"github.com/google/uuid"
+	"meerkat/services"
 )
 
 const root = "images"
@@ -28,29 +25,16 @@ func New(dir string) *Directory { return &Directory{dir: dir} }
 var _ app.Files = (*Directory)(nil)
 
 func (d *Directory) Save(ctx context.Context, actor domain.UserID, data []byte) (domain.Stored, error) {
-	res, err := imageproc.Prepare(ctx, data)
+	img, err := services.StoreImage(ctx, d.dir, uint(actor), data)
 	if err != nil {
 		if errors.Is(err, imageproc.ErrUnsupported) || errors.Is(err, imageproc.ErrInvalid) || errors.Is(err, imageproc.ErrTooLarge) {
 			return domain.Stored{}, errors.Join(domain.ErrInvalidImage, err)
 		}
 		return domain.Stored{}, err
 	}
-	userDir := filepath.Join(root, "u"+strconv.FormatUint(uint64(actor), 10))
-	if err := photofile.EnsureDir(filepath.Join(d.dir, userDir)); err != nil {
-		return domain.Stored{}, fmt.Errorf("create image directory: %w", err)
-	}
-	base := uuid.New().String()
-	file, thumb := filepath.Join(userDir, base+"_image.webp"), filepath.Join(userDir, base+"_thumb.webp")
-	if err := photofile.WriteFile(filepath.Join(d.dir, file), res.Image); err != nil {
-		return domain.Stored{}, err
-	}
-	if err := photofile.WriteFile(filepath.Join(d.dir, thumb), res.Thumb); err != nil {
-		_ = os.Remove(filepath.Join(d.dir, file))
-		return domain.Stored{}, err
-	}
 	return domain.Stored{
-		File: file, ThumbFile: thumb, Mime: res.Mime, Width: res.Width, Height: res.Height,
-		Bytes: int64(len(res.Image)), TakenAt: res.TakenAt,
+		File: img.File, ThumbFile: img.ThumbFile, Mime: img.Mime, Width: img.Width, Height: img.Height,
+		Bytes: img.Bytes, TakenAt: img.TakenAt,
 	}, nil
 }
 

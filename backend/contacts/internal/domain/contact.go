@@ -111,6 +111,18 @@ type Birthday struct {
 	AssociatedContactName string
 }
 
+// ImageRef is an image of a contact as it is shown: sizes, the face crop and where to fetch it.
+type ImageRef struct {
+	ID            uint
+	Width, Height int
+	Mime          string
+	Bytes         int64
+	TakenAt       *time.Time
+	CropX, CropY  int
+	CropSize      int // 0: no crop
+	URL, ThumbURL string
+}
+
 // Contact is a person in a user's address book.
 type Contact struct {
 	ID        ContactID
@@ -131,6 +143,9 @@ type Contact struct {
 	// it is served from.
 	PhotoThumbnailFile string
 	PhotoThumbnail     string
+	// MainImageID is the image the photo is cut from. Images is loaded in full only.
+	MainImageID *uint
+	Images      []ImageRef
 
 	Address            string
 	HowWeMet           string
@@ -194,6 +209,7 @@ func (c *Contact) SyncPrimary() {
 func (c *Contact) Replace(in Contact) {
 	in.ID, in.UserID, in.CreatedAt, in.UpdatedAt, in.DeletedAt = c.ID, c.UserID, c.CreatedAt, c.UpdatedAt, c.DeletedAt
 	in.Photo, in.PhotoThumbnailFile, in.PhotoThumbnail, in.Archived, in.Relationships = c.Photo, c.PhotoThumbnailFile, c.PhotoThumbnail, c.Archived, c.Relationships
+	in.MainImageID, in.Images = c.MainImageID, c.Images
 	in.Notes, in.Activities, in.Reminders = c.Notes, c.Activities, c.Reminders
 	*c = in
 	c.SyncPrimary()

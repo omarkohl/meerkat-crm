@@ -681,6 +681,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the images of a contact and their order; the first one becomes the main image when there is none */
+        put: operations["set-contact-images"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/{id}/incoming-relationships": {
         parameters: {
             query?: never;
@@ -691,6 +708,23 @@ export interface paths {
         /** The relationships that point at a contact */
         get: operations["list-incoming-relationships"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/{id}/main_image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Make an image of the contact its main image; the avatar is cut from the crop */
+        put: operations["set-main-image"];
         post?: never;
         delete?: never;
         options?: never;
@@ -725,7 +759,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Replace a contact's profile picture with an uploaded JPEG, PNG or HEIC image */
+        /** Add an uploaded JPEG, PNG, HEIC, WebP or GIF image to a contact and make it the main image, cropped to a centred square */
         post: operations["upload-profile-picture"];
         delete?: never;
         options?: never;
@@ -1852,6 +1886,10 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        ContactImagesInputBody: {
+            /** @description Uploaded images (POST /images) or images of another contact of yours, in order, at most 50. Images left out are deleted. */
+            image_ids?: number[];
+        };
         ContactListItem: {
             /** Format: date-time */
             CreatedAt: string;
@@ -1879,9 +1917,12 @@ export interface components {
             food_preference: string;
             gender: string;
             how_we_met: string;
+            images?: components["schemas"]["ImageRef"][] | null;
             impps: components["schemas"]["ContactValue"][] | null;
             job_title: string;
             lastname: string;
+            /** Format: int64 */
+            main_image_id: number | null;
             middle_name: string;
             nickname: string;
             note: string;
@@ -2000,9 +2041,12 @@ export interface components {
             food_preference: string;
             gender: string;
             how_we_met: string;
+            images?: components["schemas"]["ImageRef"][] | null;
             impps: components["schemas"]["ContactValue"][] | null;
             job_title: string;
             lastname: string;
+            /** Format: int64 */
+            main_image_id: number | null;
             middle_name: string;
             nickname: string;
             note: string;
@@ -2060,6 +2104,14 @@ export interface components {
         ContactValue: {
             type: string;
             value: string;
+        };
+        CropStruct: {
+            /** Format: int64 */
+            size?: number;
+            /** Format: int64 */
+            x?: number;
+            /** Format: int64 */
+            y?: number;
         };
         CurrentUserOutputBody: {
             /** Format: date-time */
@@ -2264,6 +2316,20 @@ export interface components {
             language?: string;
             /** @description True when the password was right and the second step is still due */
             totp_required?: boolean;
+        };
+        MainImageInputBody: {
+            /** @description The face square, in pixels of the image */
+            crop?: components["schemas"]["CropStruct"];
+            /**
+             * Format: int64
+             * @description An image of this contact
+             */
+            image_id?: number;
+        };
+        MainImageOutputBody: {
+            image: components["schemas"]["ImageRef"];
+            /** Format: int64 */
+            main_image_id: number;
         };
         MessageOutputBody: {
             message: string;
@@ -2759,6 +2825,13 @@ export interface components {
         SystemStatusOutputBody: {
             /** @description The outbound features that still allow private addresses */
             features: string[] | null;
+            /**
+             * Format: int64
+             * @description Size of the stored images on disk, all users
+             */
+            image_bytes: number;
+            /** Format: int64 */
+            image_count: number;
             /** @description Outbound features may reach private addresses on an instance with more than one user */
             private_url_warning: boolean;
             private_urls_allowed: boolean;
@@ -4673,6 +4746,42 @@ export interface operations {
             };
         };
     };
+    "set-contact-images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactImagesInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageRef"][] | null;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     "list-incoming-relationships": {
         parameters: {
             query?: never;
@@ -4692,6 +4801,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RelationshipIncomingOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "set-main-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MainImageInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MainImageOutputBody"];
                 };
             };
             /** @description Error */

@@ -7,42 +7,51 @@ import (
 	"context"
 	"errors"
 
+	"meerkat/imageproc"
 	"meerkat/models"
 	"meerkat/photos/internal/app"
 	"meerkat/photos/internal/domain"
+	"meerkat/services"
 
 	"gorm.io/gorm"
 )
 
-type Repository struct{ db *gorm.DB }
+type Repository struct {
+	db  *gorm.DB
+	dir string
+}
 
-func New(db *gorm.DB) *Repository { return &Repository{db: db} }
+func New(db *gorm.DB, dir string) *Repository { return &Repository{db: db, dir: dir} }
 
-var (
-	_ app.Contacts = (*Repository)(nil)
-	_ app.Store    = (*Repository)(nil)
-)
+var _ app.Contacts = (*Repository)(nil)
 
 func (r *Repository) Photos(ctx context.Context, actor domain.UserID, id domain.ContactID, trashed bool) (domain.Photos, error) {
 	return photos(r.db.WithContext(ctx), actor, id, trashed)
 }
 
-func (r *Repository) InTx(ctx context.Context, fn func(app.Tx) error) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return fn(&txRepo{tx: tx})
+func (r *Repository) AddPhoto(ctx context.Context, actor domain.UserID, id domain.ContactID, data []byte) (domain.Photos, error) {
+	img, err := services.StoreImage(ctx, r.dir, uint(actor), data)
+	if err != nil {
+		if errors.Is(err, imageproc.ErrUnsupported) || errors.Is(err, imageproc.ErrInvalid) || errors.Is(err, imageproc.ErrTooLarge) {
+			return domain.Photos{}, errors.Join(domain.ErrInvalidPhoto, err)
+		}
+		return domain.Photos{}, err
+	}
+	eff := &services.ImageEffects{}
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		_, err := services.AttachContactImage(tx, r.dir, uint(actor), uint(id), img, false, eff)
+		return err
 	})
-}
-
-type txRepo struct{ tx *gorm.DB }
-
-func (t *txRepo) Photos(ctx context.Context, actor domain.UserID, id domain.ContactID, trashed bool) (domain.Photos, error) {
-	return photos(t.tx.WithContext(ctx), actor, id, trashed)
-}
-
-func (t *txRepo) Replace(ctx context.Context, actor domain.UserID, id domain.ContactID, photo, thumbnail string) error {
-	contact := models.Contact{Model: gorm.Model{ID: uint(id)}}
-	return t.tx.WithContext(ctx).Model(&contact).Where("user_id = ?", uint(actor)).
-		Updates(map[string]any{"photo": photo, "photo_thumbnail_file": thumbnail, "photo_thumbnail": ""}).Error
+	eff.Finish(r.dir, err)
+	switch {
+	case errors.Is(err, services.ErrContactNotFound):
+		return domain.Photos{}, domain.ErrContactNotFound
+	case errors.Is(err, services.ErrTooManyImages):
+		return domain.Photos{}, domain.ErrTooManyImages
+	case err != nil:
+		return domain.Photos{}, err
+	}
+	return photos(r.db.WithContext(ctx), actor, id, false)
 }
 
 func photos(db *gorm.DB, actor domain.UserID, id domain.ContactID, trashed bool) (domain.Photos, error) {

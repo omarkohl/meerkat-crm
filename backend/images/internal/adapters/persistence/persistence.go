@@ -11,13 +11,17 @@ import (
 	"meerkat/images/internal/app"
 	"meerkat/images/internal/domain"
 	"meerkat/models"
+	"meerkat/services"
 
 	"gorm.io/gorm"
 )
 
-type Repository struct{ db *gorm.DB }
+type Repository struct {
+	db  *gorm.DB
+	dir string
+}
 
-func New(db *gorm.DB) *Repository { return &Repository{db: db} }
+func New(db *gorm.DB, dir string) *Repository { return &Repository{db: db, dir: dir} }
 
 var _ app.Store = (*Repository)(nil)
 
@@ -73,6 +77,57 @@ func (r *Repository) Files(ctx context.Context) (map[string]bool, error) {
 		keep[m.File], keep[m.ThumbFile] = true, true
 	}
 	return keep, nil
+}
+
+func (r *Repository) SetContactImages(ctx context.Context, actor domain.UserID, contact domain.ContactID, ids []uint) ([]domain.Image, error) {
+	eff := &services.ImageEffects{}
+	var rows []models.Image
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := services.SetContactImages(tx, r.dir, uint(actor), uint(contact), ids, eff); err != nil {
+			return err
+		}
+		return tx.Where("user_id = ? AND contact_id = ?", uint(actor), uint(contact)).Order("position, id").Find(&rows).Error
+	})
+	eff.Finish(r.dir, err)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]domain.Image, len(rows))
+	for i, m := range rows {
+		out[i] = toDomain(m)
+	}
+	return out, nil
+}
+
+func (r *Repository) SetMainImage(ctx context.Context, actor domain.UserID, contact domain.ContactID, image domain.ImageID, crop domain.Crop) (domain.Image, error) {
+	eff := &services.ImageEffects{}
+	var m models.Image
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		in := services.ImageCropInput{X: crop.X, Y: crop.Y, Size: crop.Size}
+		if err := services.SetMainImage(tx, r.dir, uint(actor), uint(contact), uint(image), in, eff); err != nil {
+			return err
+		}
+		return tx.Where("user_id = ?", uint(actor)).First(&m, uint(image)).Error
+	})
+	eff.Finish(r.dir, err)
+	if err != nil {
+		return domain.Image{}, mapError(err)
+	}
+	return toDomain(m), nil
+}
+
+func mapError(err error) error {
+	switch {
+	case errors.Is(err, services.ErrContactNotFound):
+		return domain.ErrContactNotFound
+	case errors.Is(err, services.ErrImageNotFound):
+		return domain.ErrNotFound
+	case errors.Is(err, services.ErrTooManyImages):
+		return domain.ErrTooManyImages
+	case errors.Is(err, services.ErrInvalidCrop):
+		return domain.ErrInvalidCrop
+	}
+	return err
 }
 
 func ids(rows []models.Image) []uint {

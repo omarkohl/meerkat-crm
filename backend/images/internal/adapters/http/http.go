@@ -30,6 +30,16 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 		Summary:      "Upload a JPEG, PNG, HEIC, WebP or GIF image; it stays pending until a note, activity or contact claims it",
 		Tags:         []string{"images"},
 	}, h.upload, middleware.ImageUploadRateLimitMiddleware())
+	api.RegisterOn(a, group, huma.Operation{
+		OperationID: "set-contact-images", Method: http.MethodPut, Path: "/contacts/{id}/images",
+		Summary: "Set the images of a contact and their order; the first one becomes the main image when there is none",
+		Tags:    []string{"images"},
+	}, h.setContactImages)
+	api.RegisterOn(a, group, huma.Operation{
+		OperationID: "set-main-image", Method: http.MethodPut, Path: "/contacts/{id}/main_image",
+		Summary: "Make an image of the contact its main image; the avatar is cut from the crop",
+		Tags:    []string{"images"},
+	}, h.setMainImage)
 	if group == nil { // cmd/openapi describes operations only; the download is not
 		return
 	}
@@ -77,6 +87,65 @@ func (h *handlers) upload(ctx context.Context, in *UploadInput) (*UploadOutput, 
 	return &UploadOutput{Body: body(img)}, nil
 }
 
+type ContactImagesInput struct {
+	ID   uint `path:"id" minimum:"1" doc:"The contact's ID"`
+	Body struct {
+		ImageIDs []uint `json:"image_ids" nullable:"false" doc:"Uploaded images (POST /images) or images of another contact of yours, in order, at most 50. Images left out are deleted."`
+	}
+}
+
+type ContactImagesOutput struct{ Body []api.ImageRef }
+
+func (h *handlers) setContactImages(ctx context.Context, in *ContactImagesInput) (*ContactImagesOutput, error) {
+	actor, ok := api.UserID(ctx)
+	if !ok {
+		return nil, apperrors.ErrUnauthorized("Authentication required")
+	}
+	list, err := h.uc.SetContactImages(ctx, domain.UserID(actor), domain.ContactID(in.ID), in.Body.ImageIDs)
+	if err != nil {
+		return nil, toAppError(err)
+	}
+	out := &ContactImagesOutput{Body: make([]api.ImageRef, len(list))}
+	for i, img := range list {
+		out.Body[i] = body(img)
+	}
+	return out, nil
+}
+
+type MainImageInput struct {
+	ID   uint `path:"id" minimum:"1" doc:"The contact's ID"`
+	Body struct {
+		ImageID uint `json:"image_id" minimum:"1" doc:"An image of this contact"`
+		Crop    struct {
+			X    int `json:"x" minimum:"0"`
+			Y    int `json:"y" minimum:"0"`
+			Size int `json:"size" minimum:"1"`
+		} `json:"crop" doc:"The face square, in pixels of the image"`
+	}
+}
+
+type MainImageOutput struct {
+	Body struct {
+		MainImageID uint         `json:"main_image_id"`
+		Image       api.ImageRef `json:"image"`
+	}
+}
+
+func (h *handlers) setMainImage(ctx context.Context, in *MainImageInput) (*MainImageOutput, error) {
+	actor, ok := api.UserID(ctx)
+	if !ok {
+		return nil, apperrors.ErrUnauthorized("Authentication required")
+	}
+	c := in.Body.Crop
+	img, err := h.uc.SetMainImage(ctx, domain.UserID(actor), domain.ContactID(in.ID), domain.ImageID(in.Body.ImageID), domain.Crop{X: c.X, Y: c.Y, Size: c.Size})
+	if err != nil {
+		return nil, toAppError(err)
+	}
+	out := &MainImageOutput{}
+	out.Body.MainImageID, out.Body.Image = uint(img.ID), body(img)
+	return out, nil
+}
+
 func (h *handlers) download(c *gin.Context) {
 	id, err := idutil.Parse(c.Param("id"))
 	variant, validVariant := domain.ParseVariant(c.Param("variant"))
@@ -112,6 +181,12 @@ func toAppError(err error) *apperrors.AppError {
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return apperrors.ErrNotFound("Image")
+	case errors.Is(err, domain.ErrContactNotFound):
+		return apperrors.ErrNotFound("Contact")
+	case errors.Is(err, domain.ErrTooManyImages):
+		return apperrors.ErrInvalidInput("image_ids", "A contact can have at most 50 images")
+	case errors.Is(err, domain.ErrInvalidCrop):
+		return apperrors.ErrInvalidInput("crop", "must be a square inside the image")
 	case errors.Is(err, domain.ErrFileMissing):
 		return apperrors.ErrNotFound("Image file")
 	case errors.Is(err, domain.ErrUnsafeName):

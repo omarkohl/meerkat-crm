@@ -1,5 +1,13 @@
 // Merging contacts is done with the ordinary endpoints, one step after the other.
-import { getContact, updateContact, deleteContact, getContactProfilePicture, uploadProfilePicture } from './contacts';
+import {
+  getContact,
+  getContactProfilePicture,
+  updateContact,
+  deleteContact,
+  setContactImages,
+  setMainImage,
+} from './contacts';
+import { uploadImage, type ImageRef } from './images';
 import type { ContactResponse } from './contacts';
 import { updateNote } from './notes';
 import { updateReminder, type ReminderFormData } from './reminders';
@@ -17,17 +25,36 @@ export function getFullContact(id: number): Promise<ContactResponse> {
   return getContact(id) as Promise<ContactResponse>;
 }
 
+// A contact whose photo is not yet migrated to an image has only the avatar; upload it as an image
+// so that it neither blocks nor loses to the photos of the others.
+async function legacyPhoto(contact: MergePlan['target']): Promise<ImageRef[]> {
+  if ((contact.images ?? []).length > 0 || !contact.photo) return [];
+  const blob = await getContactProfilePicture(contact.ID);
+  if (!blob) return [];
+  return [await uploadImage(new File([blob], 'photo', { type: blob.type }), () => undefined).promise];
+}
+
+async function mergeImages({ target, sources }: MergePlan): Promise<void> {
+  const own = [...(target.images ?? []), ...(await legacyPhoto(target))];
+  const incoming = [...sources.flatMap((s) => s.images ?? [])];
+  for (const source of sources) incoming.push(...(await legacyPhoto(source)));
+  if (incoming.length === 0) return;
+
+  const donor = own.length === 0 ? sources.find((s) => s.main_image_id != null) : undefined;
+  const main = incoming.find((i) => i.id === donor?.main_image_id);
+  const rest = incoming.filter((i) => i !== main);
+  const ids = [...own, ...(main ? [main] : []), ...rest].map((i) => i.id);
+  await setContactImages(target.ID, ids);
+  if (main?.crop) await setMainImage(target.ID, main.id, main.crop);
+}
+
 export async function mergeContacts(plan: MergePlan, choices: Record<string, string>): Promise<void> {
   const targetId = plan.target.ID;
   const sourceIds = plan.sources.map((s) => s.ID);
 
   await updateContact(targetId, buildMergedInput(plan, choices));
 
-  const photoSource = plan.target.photo ? undefined : plan.sources.find((s) => s.photo);
-  if (photoSource) {
-    const photo = await getContactProfilePicture(photoSource.ID);
-    if (photo) await uploadProfilePicture(targetId, photo);
-  }
+  await mergeImages(plan);
 
   for (const id of plan.moves.activityIds) {
     const activity = await getActivity(id);

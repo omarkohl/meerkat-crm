@@ -455,7 +455,7 @@
     "invalidDate": "Data non valida"
   },
   "profilePicture": {
-    "title": "Carica Foto Profilo",
+    "title": "Aggiungi foto",
     "selectImage": "Seleziona un'immagine",
     "dragOrClick": "Clicca per sfogliare o trascina e rilascia",
     "pasteHint": "Puoi anche incollare un'immagine ({{shortcut}})",
@@ -464,10 +464,11 @@
     "uploading": "Caricamento in corso...",
     "uploadError": "Caricamento foto profilo fallito",
     "invalidFileType": "Seleziona un file immagine",
-    "fileTooLarge": "Il file è troppo grande. La dimensione massima è 10MB.",
     "or": "o",
     "urlPlaceholder": "Incolla URL immagine...",
-    "fetch": "Recupera"
+    "fetch": "Recupera",
+    "adjustCrop": "Regola il ritaglio",
+    "change": "Cambia immagine del profilo"
   },
   "settings": {
     "title": "Impostazioni",
@@ -1228,6 +1229,13 @@
       "zoomIn": "Ingrandisci",
       "zoomOut": "Riduci",
       "download": "Scarica"
-    }
+    },
+    "addPhoto": "Aggiungi foto",
+    "photos": "Foto",
+    "mainImage": "Foto principale",
+    "actions": "Azioni per l'immagine {{n}}",
+    "setMain": "Imposta come principale",
+    "adjustCrop": "Regola il ritaglio",
+    "delete": "Elimina"
   }
 }

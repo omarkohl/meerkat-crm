@@ -165,6 +165,8 @@ type SystemStatus struct {
 	UserCount          int64
 	PrivateURLWarning  bool
 	Features           []string
+	ImageCount         int64
+	ImageBytes         int64
 }
 
 // PrivateURLWarning is true when outbound features can reach private addresses on an instance

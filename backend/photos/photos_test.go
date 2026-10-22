@@ -45,7 +45,7 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}))
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Image{}))
 	e := &env{db: db, dir: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
@@ -212,8 +212,20 @@ func TestAThumbnailIsServedForTheOwnersTrashedContactsOnly(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, get(e.asA, pic(mine.ID)).Code, "the full photo stays with live contacts")
 }
 
-// @004-US9
-func TestUploadStoresAJPEGUnderAGeneratedNameAndDropsTheOldPicture(t *testing.T) {
+func filesUnder(t *testing.T, dir string) []string {
+	t.Helper()
+	var names []string
+	require.NoError(t, filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err == nil && d.Type().IsRegular() {
+			names = append(names, path)
+		}
+		return err
+	}))
+	return names
+}
+
+// @023-US3
+func TestUploadAddsTheImageMakesItMainAndCutsTheAvatarFromIt(t *testing.T) {
 	e := newEnv(t)
 	c := e.contact(t, e.a.ID, models.Contact{LegacyThumbnail: "data:image/jpeg;base64,anBlZw=="})
 
@@ -224,17 +236,19 @@ func TestUploadStoresAJPEGUnderAGeneratedNameAndDropsTheOldPicture(t *testing.T)
 	assert.True(t, strings.HasSuffix(first.Photo, "_photo.jpg"))
 	assert.True(t, strings.HasSuffix(first.PhotoThumbnailFile, "_thumb.jpg"))
 	assert.Empty(t, first.LegacyThumbnail, "the old picture's database copy is dropped")
-	entries, _ := os.ReadDir(e.dir)
-	assert.Len(t, entries, 2)
+	require.NotNil(t, first.MainImageID)
+	assert.Len(t, filesUnder(t, e.dir), 4, "avatar and thumbnail, image and its thumbnail")
 
 	require.Equal(t, http.StatusOK, upload(e.asA, c.ID, "p.png", goodPNG(t)).Code)
 	var second models.Contact
 	require.NoError(t, e.db.First(&second, c.ID).Error)
 	assert.NotEqual(t, first.Photo, second.Photo)
-	entries, _ = os.ReadDir(e.dir)
-	assert.Len(t, entries, 2, "the old photo and thumbnail are gone")
-	_, err := os.Stat(filepath.Join(e.dir, first.PhotoThumbnailFile))
-	assert.True(t, os.IsNotExist(err))
+	assert.NotEqual(t, *first.MainImageID, *second.MainImageID, "the new image is the main one")
+	var images int64
+	e.db.Model(&models.Image{}).Where("contact_id = ?", c.ID).Count(&images)
+	assert.EqualValues(t, 2, images, "the old image stays in the gallery")
+	assert.Len(t, filesUnder(t, e.dir), 6)
+	assert.NoFileExists(t, filepath.Join(e.dir, first.PhotoThumbnailFile), "the old avatar is gone")
 	assert.Equal(t, http.StatusOK, get(e.asA, pic(c.ID)).Code, "the new photo is served")
 }
 
@@ -324,6 +338,5 @@ func TestAFailedDatabaseUpdateLeavesNoNewFilesBehind(t *testing.T) {
 	w := upload(e.asA, c.ID, "p.png", goodPNG(t))
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
-	entries, _ := os.ReadDir(e.dir)
-	assert.Empty(t, entries)
+	assert.Empty(t, filesUnder(t, e.dir))
 }

@@ -26,6 +26,7 @@ var (
 	ErrBadLegacyThumbnail    = errors.New("invalid thumbnail format")
 	ErrLegacyThumbnailDecode = errors.New("cannot decode thumbnail")
 	ErrInvalidPhoto          = errors.New("invalid photo")
+	ErrTooManyImages         = errors.New("too many images")
 	ErrFileMissing           = errors.New("file does not exist or is not a regular file")
 )
 

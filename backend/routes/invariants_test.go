@@ -60,6 +60,8 @@ var isolation = map[string]proof{
 	"POST /api/v1/contacts/:id/unarchive":            proof{"contacts/contacts_test.go", "TestOtherUsersContactsAreNotFound"},
 	"POST /api/v1/contacts/:id/profile_picture":      proof{"photos/photos_test.go", "TestUploadRefusesWhatTheUserCanFixAndWritesNothing"},
 	"POST /api/v1/images":                            proof{"images/images_test.go", "TestImagesBelongToTheirUploader"},
+	"PUT /api/v1/contacts/:id/images":                proof{"images/images_test.go", "TestContactImagesAreIsolatedBetweenUsers"},
+	"PUT /api/v1/contacts/:id/main_image":            proof{"images/images_test.go", "TestContactImagesAreIsolatedBetweenUsers"},
 	"POST /api/v1/trash/contacts/:id/restore":        proof{"trash/trash_test.go", "TestPurgeAndRestoreRefuseLiveForeignAndMalformedContacts"},
 	"DELETE /api/v1/trash/contacts/:id":              proof{"trash/trash_test.go", "TestPurgeAndRestoreRefuseLiveForeignAndMalformedContacts"},
 	"DELETE /api/v1/trash/contacts":                  proof{"trash/trash_test.go", "TestEmptyingTheTrashPurgesOnlyTheActorsDeletedContacts"},

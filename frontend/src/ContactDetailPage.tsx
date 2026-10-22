@@ -7,7 +7,8 @@ import {
   updateContact,
   getContactProfilePicture,
   deleteContact,
-  uploadProfilePicture,
+  addContactPhoto,
+  type ImageRef,
   getCircles,
   archiveContact,
   unarchiveContact,
@@ -33,6 +34,9 @@ import MergeContactsDialog from './components/MergeContactsDialog';
 import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
 import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
+import ContactPhotos from './components/images/ContactPhotos';
+import ImageLightbox from './components/images/ImageLightbox';
+import type { Crop } from './utils/faceCrop';
 import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
@@ -65,6 +69,7 @@ const CONTACT_FIELDS = [
   'contact_information',
   'circles',
   'photo',
+  'main_image_id',
   'custom_fields',
   'archived',
   'emails',
@@ -124,6 +129,9 @@ export default function ContactDetailPage() {
 
   // Profile picture upload state
   const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
+  const [photoAsMain, setPhotoAsMain] = useState(true);
+  const [droppedPhoto, setDroppedPhoto] = useState<File | null>(null);
+  const [photoLightbox, setPhotoLightbox] = useState<number | null>(null);
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
@@ -602,20 +610,33 @@ export default function ContactDetailPage() {
     setReminderDialogOpen(true);
   };
 
-  const handleUploadProfilePicture = async (croppedImageBlob: Blob) => {
+  const refreshProfilePicture = async () => {
     if (!id) return;
-
-    await uploadProfilePicture(id, croppedImageBlob);
-
-    // Refresh the profile picture
     const blob = await getContactProfilePicture(id);
-    if (blob) {
-      // Revoke old URL to prevent memory leaks
-      if (profilePic) {
-        URL.revokeObjectURL(profilePic);
-      }
-      setProfilePic(URL.createObjectURL(blob));
-    }
+    if (profilePic) URL.revokeObjectURL(profilePic);
+    setProfilePic(blob ? URL.createObjectURL(blob) : '');
+  };
+
+  const reloadPhotos = async () => {
+    if (!id) return;
+    const updated = await getContact(id);
+    setContact((current) =>
+      current
+        ? { ...current, images: updated.images, main_image_id: updated.main_image_id, photo: updated.photo }
+        : updated,
+    );
+    await refreshProfilePicture();
+  };
+
+  const handleAddPhoto = async (image: ImageRef, crop: Crop | null) => {
+    if (!id) return;
+    await addContactPhoto(
+      Number(id),
+      (contact?.images ?? []).map((i) => i.id),
+      image,
+      crop,
+    );
+    await reloadPhotos();
   };
 
   // Lazy-load circles only when entering edit mode
@@ -667,14 +688,34 @@ export default function ContactDetailPage() {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => {
+          setPhotoAsMain(true);
           setProfilePictureDialogOpen(true);
         }}
+        onOpenProfilePicture={
+          contact.images?.length
+            ? () => {
+                setPhotoLightbox(Math.max(0, contact.images?.findIndex((i) => i.id === contact.main_image_id) ?? 0));
+              }
+            : undefined
+        }
         onStayInTouch={contact.archived ? undefined : handleStayInTouch}
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
         onUnarchiveContact={contact.archived ? handleUnarchiveContact : undefined}
         onMergeContact={() => {
           setMergePickerOpen(true);
         }}
+      />
+      <ContactPhotos
+        contactId={contact.ID}
+        images={contact.images ?? []}
+        mainId={contact.main_image_id ?? null}
+        onOpen={setPhotoLightbox}
+        onAdd={(file) => {
+          setDroppedPhoto(file ?? null);
+          setPhotoAsMain(false);
+          setProfilePictureDialogOpen(true);
+        }}
+        onChanged={reloadPhotos}
       />
       {mergePickerOpen && (
         <MergePickerDialog
@@ -875,8 +916,18 @@ export default function ContactDetailPage() {
         open={profilePictureDialogOpen}
         onClose={() => {
           setProfilePictureDialogOpen(false);
+          setDroppedPhoto(null);
         }}
-        onUpload={handleUploadProfilePicture}
+        onSave={handleAddPhoto}
+        initialFile={droppedPhoto}
+        crop={photoAsMain || !contact.images?.length}
+      />
+      <ImageLightbox
+        images={contact.images ?? []}
+        index={photoLightbox}
+        onClose={() => {
+          setPhotoLightbox(null);
+        }}
       />
 
       <AddRelationshipDialog

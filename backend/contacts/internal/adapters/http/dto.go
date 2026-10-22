@@ -3,6 +3,7 @@ package httpadapter
 import (
 	"time"
 
+	"meerkat/api"
 	"meerkat/contacts/internal/domain"
 )
 
@@ -38,6 +39,9 @@ type ContactResponse struct {
 	Phone     string `json:"phone"`
 	Birthday  string `json:"birthday"`
 	Photo     string `json:"photo"`
+	// MainImageID is the image the photo is cut from; Images (ordered) comes with a single contact only.
+	MainImageID *uint          `json:"main_image_id" nullable:"true"`
+	Images      []api.ImageRef `json:"images,omitempty"`
 
 	// Relationships is null unless the endpoint loads them.
 	Relationships []ContactRelationship `json:"relationships" nullable:"true"`
@@ -134,7 +138,7 @@ func NewContactResponse(c domain.Contact) ContactResponse {
 	r := ContactResponse{
 		ID: uint(c.ID), CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt, DeletedAt: c.DeletedAt,
 		Firstname: c.Firstname, Lastname: c.Lastname, Nickname: c.Nickname, Gender: c.Gender,
-		Email: c.Email, Phone: c.Phone, Birthday: c.Birthday, Photo: c.Photo,
+		Email: c.Email, Phone: c.Phone, Birthday: c.Birthday, Photo: c.Photo, MainImageID: c.MainImageID,
 		Address: c.Address, HowWeMet: c.HowWeMet, FoodPreference: c.FoodPreference,
 		WorkInformation: c.WorkInformation, ContactInformation: c.ContactInformation,
 		Circles: c.Circles,
@@ -142,6 +146,13 @@ func NewContactResponse(c domain.Contact) ContactResponse {
 		Organization: c.Organization, Department: c.Department, JobTitle: c.JobTitle, Role: c.Role,
 		Anniversary: c.Anniversary, Note: c.Note,
 		CustomFields: c.CustomFields, Archived: c.Archived,
+	}
+	for _, img := range c.Images {
+		ref := api.ImageRef{ID: img.ID, Width: img.Width, Height: img.Height, Mime: img.Mime, Bytes: img.Bytes, TakenAt: img.TakenAt, URL: img.URL, ThumbURL: img.ThumbURL}
+		if img.CropSize > 0 {
+			ref.Crop = api.Nullable[api.ImageCrop]{Value: &api.ImageCrop{X: img.CropX, Y: img.CropY, Size: img.CropSize}}
+		}
+		r.Images = append(r.Images, ref)
 	}
 	if c.Relationships != nil {
 		r.Relationships = []ContactRelationship{}

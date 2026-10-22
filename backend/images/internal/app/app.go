@@ -17,6 +17,11 @@ type Store interface {
 	DeletePendingBefore(ctx context.Context, t time.Time) (int, []string, error)
 	// Files are the file names of every image row, of every user.
 	Files(ctx context.Context) (map[string]bool, error)
+	// SetContactImages makes ids the ordered images of the contact, keeps its main image and avatar right,
+	// and returns the images. Ids may be pending or on another contact of the actor.
+	SetContactImages(ctx context.Context, actor domain.UserID, contact domain.ContactID, ids []uint) ([]domain.Image, error)
+	// SetMainImage makes an image of the contact its main image and cuts the avatar from the crop.
+	SetMainImage(ctx context.Context, actor domain.UserID, contact domain.ContactID, image domain.ImageID, crop domain.Crop) (domain.Image, error)
 }
 
 type Files interface {
@@ -71,6 +76,16 @@ func (u *UseCases) Open(ctx context.Context, actor domain.UserID, id domain.Imag
 		return domain.Image{}, domain.File{}, domain.ErrFileMissing
 	}
 	return img, f, nil
+}
+
+// SetContactImages replaces the images of a contact by the listed ones, in that order.
+func (u *UseCases) SetContactImages(ctx context.Context, actor domain.UserID, contact domain.ContactID, ids []uint) ([]domain.Image, error) {
+	return u.store.SetContactImages(ctx, actor, contact, ids)
+}
+
+// SetMainImage makes an image of the contact its main image with the given face crop.
+func (u *UseCases) SetMainImage(ctx context.Context, actor domain.UserID, contact domain.ContactID, image domain.ImageID, crop domain.Crop) (domain.Image, error) {
+	return u.store.SetMainImage(ctx, actor, contact, image, crop)
 }
 
 type SweepResult struct{ Pending, Orphans int }

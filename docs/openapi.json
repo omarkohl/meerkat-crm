@@ -1394,6 +1394,20 @@
         ],
         "type": "object"
       },
+      "ContactImagesInputBody": {
+        "properties": {
+          "image_ids": {
+            "description": "Uploaded images (POST /images) or images of another contact of yours, in order, at most 50. Images left out are deleted.",
+            "items": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "ContactListItem": {
         "additionalProperties": false,
         "properties": {
@@ -1495,6 +1509,15 @@
           "how_we_met": {
             "type": "string"
           },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "impps": {
             "items": {
               "$ref": "#/components/schemas/ContactValue"
@@ -1509,6 +1532,14 @@
           },
           "lastname": {
             "type": "string"
+          },
+          "main_image_id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "middle_name": {
             "type": "string"
@@ -1603,6 +1634,7 @@
           "phone",
           "birthday",
           "photo",
+          "main_image_id",
           "relationships",
           "address",
           "how_we_met",
@@ -2004,6 +2036,15 @@
           "how_we_met": {
             "type": "string"
           },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "impps": {
             "items": {
               "$ref": "#/components/schemas/ContactValue"
@@ -2018,6 +2059,14 @@
           },
           "lastname": {
             "type": "string"
+          },
+          "main_image_id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "middle_name": {
             "type": "string"
@@ -2108,6 +2157,7 @@
           "phone",
           "birthday",
           "photo",
+          "main_image_id",
           "relationships",
           "address",
           "how_we_met",
@@ -2278,6 +2328,26 @@
           "type",
           "value"
         ],
+        "type": "object"
+      },
+      "CropStruct": {
+        "properties": {
+          "size": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "x": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "y": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "CurrentUserOutputBody": {
@@ -2962,6 +3032,39 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "MainImageInputBody": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropStruct",
+            "description": "The face square, in pixels of the image"
+          },
+          "image_id": {
+            "description": "An image of this contact",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "MainImageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/ImageRef"
+          },
+          "main_image_id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "main_image_id",
+          "image"
+        ],
         "type": "object"
       },
       "MessageOutputBody": {
@@ -4620,6 +4723,15 @@
               "null"
             ]
           },
+          "image_bytes": {
+            "description": "Size of the stored images on disk, all users",
+            "format": "int64",
+            "type": "integer"
+          },
+          "image_count": {
+            "format": "int64",
+            "type": "integer"
+          },
           "private_url_warning": {
             "description": "Outbound features may reach private addresses on an instance with more than one user",
             "type": "boolean"
@@ -4641,6 +4753,8 @@
           "user_count",
           "private_url_warning",
           "features",
+          "image_count",
+          "image_bytes",
           "setting"
         ],
         "type": "object"
@@ -7603,6 +7717,67 @@
         ]
       }
     },
+    "/contacts/{id}/images": {
+      "put": {
+        "operationId": "set-contact-images",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactImagesInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ImageRef"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Set the images of a contact and their order; the first one becomes the main image when there is none",
+        "tags": [
+          "images"
+        ]
+      }
+    },
     "/contacts/{id}/incoming-relationships": {
       "get": {
         "operationId": "list-incoming-relationships",
@@ -7645,6 +7820,61 @@
         "summary": "The relationships that point at a contact",
         "tags": [
           "relationships"
+        ]
+      }
+    },
+    "/contacts/{id}/main_image": {
+      "put": {
+        "operationId": "set-main-image",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MainImageInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MainImageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Make an image of the contact its main image; the avatar is cut from the crop",
+        "tags": [
+          "images"
         ]
       }
     },
@@ -7808,7 +8038,7 @@
             "description": "Error"
           }
         },
-        "summary": "Replace a contact's profile picture with an uploaded JPEG, PNG or HEIC image",
+        "summary": "Add an uploaded JPEG, PNG, HEIC, WebP or GIF image to a contact and make it the main image, cropped to a centred square",
         "tags": [
           "photos"
         ]

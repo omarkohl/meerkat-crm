@@ -49,7 +49,7 @@ func newEnv(t *testing.T) *env {
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.AuditLog{}, &models.Session{}, &models.Activity{}, &models.Note{},
 		&models.Relationship{}, &models.Reminder{}, &models.ApiToken{}, &models.IcsFeed{}, &models.CardDAVConnection{}, &models.CardDAVContactLink{},
-		&models.CalendarSubscription{}, &models.CalendarEventLink{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.EmailOutbox{}, &models.RecoveryCode{}))
+		&models.CalendarSubscription{}, &models.CalendarEventLink{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.EmailOutbox{}, &models.RecoveryCode{}, &models.Image{}))
 	e := &env{reminders: func(clock.Clock) error { return nil }, db: db, dir: filepath.Join(t.TempDir(), "backups"), photos: t.TempDir()}
 	e.admin = models.User{Username: "root", Email: "root@example.com", Password: "x", IsAdmin: true}
 	e.plain = models.User{Username: "plain", Email: "plain@example.com", Password: "x"}
@@ -320,6 +320,19 @@ func TestSystemStatusWarnsOnMultiUserInstancesThatAllowPrivateAddresses(t *testi
 	out = status(config.Config{})
 	assert.Equal(t, false, out["private_url_warning"], "a single-user instance is not warned; deleted users do not count")
 	assert.EqualValues(t, 1, out["user_count"])
+}
+
+// @023-US3
+func TestSystemStatusCountsTheImagesOfAllUsers(t *testing.T) {
+	e := newEnv(t)
+	for _, u := range []uint{e.admin.ID, e.plain.ID} {
+		require.NoError(t, e.db.Create(&models.Image{UserID: u, File: "a", ThumbFile: "b", Mime: "image/webp", Width: 1, Height: 1, Bytes: 1000}).Error)
+	}
+	w := do(e.as(e.admin.ID, config.Config{}), "GET", "/admin/system-status")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	out := decode(t, w)
+	assert.EqualValues(t, 2, out["image_count"])
+	assert.EqualValues(t, 2000, out["image_bytes"])
 }
 
 func TestThePrivateURLWarningIsAvailableForStartup(t *testing.T) {

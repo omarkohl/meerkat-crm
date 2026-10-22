@@ -29,7 +29,9 @@ HEIC does not show in most browsers, and the avatar must stay a JPEG for iOS.
 - **Metadata**: pixels are rotated by the EXIF orientation, then the block is stored with the
   orientation set to 1. Thumbnails have none. The capture time is stored in `taken_at`.
 - **Derived avatar**: `contacts.photo` and its thumbnail stay and are made from the main image and
-  its crop, so CardDAV, exports and lists need no change.
+  its crop (photo at most 400 px, thumbnail 96 px), so CardDAV, exports and lists need no change.
+  `contacts.main_image_id` and the crop in `images.crop_*` are the source. At startup a background
+  job makes one image from each existing profile picture (idempotent); the avatar is left as is.
 - **One decoder**: `backend/imageproc` reads JPEG, PNG, GIF (first frame), WebP and HEIC, with a 100
   MP limit and at most two decodes at the same time.
 - **Clean-up**: the database is the truth. A daily sweep (in the trash purge slot) deletes pending

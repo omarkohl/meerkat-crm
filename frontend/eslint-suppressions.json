@@ -272,7 +272,7 @@
       "count": 5
     },
     "@typescript-eslint/restrict-template-expressions": {
-      "count": 8
+      "count": 7
     }
   },
   "src/api/errorHandling.ts": {
@@ -582,9 +582,6 @@
     },
     "@typescript-eslint/no-misused-promises": {
       "count": 2
-    },
-    "@typescript-eslint/prefer-promise-reject-errors": {
-      "count": 1
     }
   },
   "src/components/RelationshipList.tsx": {

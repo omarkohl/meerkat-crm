@@ -95,6 +95,14 @@ func main() {
 		logger.Info().Int("thumbnails", n).Msg("Moved contact thumbnails from the database into files")
 	}
 
+	go func() {
+		if n, err := services.MigrateContactPhotos(context.Background(), db, cfg.ProfilePhotoDir); err != nil {
+			logger.Error().Err(err).Msg("Could not turn profile pictures into images")
+		} else if n > 0 {
+			logger.Info().Int("images", n).Msg("Turned profile pictures into images")
+		}
+	}()
+
 	var metricsSrv *http.Server
 	if cfg.MetricsEnabled {
 		services.RegisterJobMetrics(metrics.Default, db)

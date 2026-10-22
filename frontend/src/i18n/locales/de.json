@@ -455,7 +455,7 @@
     "invalidDate": "Ungültiges Datum"
   },
   "profilePicture": {
-    "title": "Profilbild hochladen",
+    "title": "Foto hinzufügen",
     "selectImage": "Bild auswählen",
     "dragOrClick": "Klicken zum Durchsuchen oder per Drag & Drop",
     "pasteHint": "Sie können auch ein Bild einfügen ({{shortcut}})",
@@ -464,10 +464,11 @@
     "uploading": "Hochladen...",
     "uploadError": "Profilbild konnte nicht hochgeladen werden",
     "invalidFileType": "Bitte wählen Sie eine Bilddatei",
-    "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB.",
     "or": "oder",
     "urlPlaceholder": "Bild-URL einfügen...",
-    "fetch": "Abrufen"
+    "fetch": "Abrufen",
+    "adjustCrop": "Ausschnitt anpassen",
+    "change": "Profilbild ändern"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1228,6 +1229,13 @@
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
       "download": "Herunterladen"
-    }
+    },
+    "addPhoto": "Foto hinzufügen",
+    "photos": "Fotos",
+    "mainImage": "Hauptfoto",
+    "actions": "Aktionen für Bild {{n}}",
+    "setMain": "Als Hauptfoto festlegen",
+    "adjustCrop": "Ausschnitt anpassen",
+    "delete": "Löschen"
   }
 }

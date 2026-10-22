@@ -32,7 +32,7 @@ func New(d Deps) *Module {
 	if d.Config != nil {
 		dir = d.Config.ProfilePhotoDir
 	}
-	return &Module{uc: app.New(persistence.New(d.DB), files.New(dir))}
+	return &Module{uc: app.New(persistence.New(d.DB, dir), files.New(dir))}
 }
 
 func (m *Module) Register(a huma.API, group gin.IRoutes) {

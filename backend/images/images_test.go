@@ -240,3 +240,112 @@ func TestSweepDropsOldPendingImagesAndOrphanFilesButKeepsClaimedAndYoungOnes(t *
 	assert.Equal(t, http.StatusOK, get(e.asA, claimed.URL).Code)
 	assert.Equal(t, http.StatusOK, get(e.asA, young.URL).Code)
 }
+
+func putJSON(r http.Handler, path string, body any) *httptest.ResponseRecorder {
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPut, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func (e *env) contact(t *testing.T, owner uint) models.Contact {
+	t.Helper()
+	c := models.Contact{UserID: owner, Firstname: "Ann"}
+	require.NoError(t, e.db.Create(&c).Error)
+	return c
+}
+
+func contactPath(c models.Contact, tail string) string {
+	return "/api/v1/contacts/" + strconv.Itoa(int(c.ID)) + tail
+}
+
+// @023-US3
+func TestImagesOfAContactAreSetOrderedAndTheFirstBecomesItsMainImage(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID)
+	one, two := e.uploaded(t, e.asA), e.uploaded(t, e.asA)
+
+	w := putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": []uint{two.ID, one.ID}})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var got []models.ImageRef
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	require.Len(t, got, 2)
+	assert.Equal(t, []uint{two.ID, one.ID}, []uint{got[0].ID, got[1].ID})
+	require.NotNil(t, got[0].Crop, "the main image has its centred crop")
+	assert.Equal(t, models.ImageCrop{X: 10, Y: 0, Size: 40}, *got[0].Crop)
+
+	require.NoError(t, e.db.First(&c, c.ID).Error)
+	assert.Equal(t, two.ID, *c.MainImageID)
+	assert.FileExists(t, filepath.Join(e.dir, c.Photo))
+	assert.FileExists(t, filepath.Join(e.dir, c.PhotoThumbnailFile))
+}
+
+// @023-US3
+func TestSetMainImageCutsTheAvatarFromTheCropAndRefusesAnythingElse(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID)
+	img := e.uploaded(t, e.asA)
+	require.Equal(t, http.StatusOK, putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": []uint{img.ID}}).Code)
+
+	crop := func(x, y, size int) map[string]any {
+		return map[string]any{"image_id": img.ID, "crop": map[string]int{"x": x, "y": y, "size": size}}
+	}
+	w := putJSON(e.asA, contactPath(c, "/main_image"), crop(0, 0, 30))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var out struct {
+		MainImageID uint            `json:"main_image_id"`
+		Image       models.ImageRef `json:"image"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &out))
+	assert.Equal(t, img.ID, out.MainImageID)
+	assert.Equal(t, models.ImageCrop{X: 0, Y: 0, Size: 30}, *out.Image.Crop)
+
+	assert.Equal(t, http.StatusBadRequest, putJSON(e.asA, contactPath(c, "/main_image"), crop(50, 0, 30)).Code, "outside the image")
+	assert.Equal(t, http.StatusBadRequest, putJSON(e.asA, contactPath(c, "/main_image"), crop(0, 0, 0)).Code)
+	assert.Equal(t, http.StatusNotFound, putJSON(e.asA, contactPath(c, "/main_image"), map[string]any{"image_id": 9999, "crop": map[string]int{"x": 0, "y": 0, "size": 5}}).Code)
+}
+
+func TestContactImagesAreIsolatedBetweenUsers(t *testing.T) {
+	e := newEnv(t)
+	mine := e.contact(t, e.a.ID)
+	img := e.uploaded(t, e.asA)
+	require.Equal(t, http.StatusOK, putJSON(e.asA, contactPath(mine, "/images"), map[string]any{"image_ids": []uint{img.ID}}).Code)
+	theirs := e.uploaded(t, e.asB)
+
+	assert.Equal(t, http.StatusNotFound, putJSON(e.asB, contactPath(mine, "/images"), map[string]any{"image_ids": []uint{theirs.ID}}).Code, "another user's contact")
+	assert.Equal(t, http.StatusNotFound, putJSON(e.asB, contactPath(mine, "/main_image"), map[string]any{"image_id": img.ID, "crop": map[string]int{"x": 0, "y": 0, "size": 5}}).Code)
+	other := e.contact(t, e.b.ID)
+	assert.Equal(t, http.StatusNotFound, putJSON(e.asB, contactPath(other, "/images"), map[string]any{"image_ids": []uint{img.ID}}).Code, "another user's image")
+	assert.Equal(t, http.StatusUnauthorized, putJSON(e.anon, contactPath(mine, "/images"), map[string]any{"image_ids": []uint{}}).Code)
+
+	var n int64
+	e.db.Model(&models.Image{}).Where("id = ? AND contact_id = ?", img.ID, mine.ID).Count(&n)
+	assert.EqualValues(t, 1, n, "the image stays where it was")
+}
+
+func TestAnEmptyListRemovesAllImagesAndTheAvatar(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID)
+	img := e.uploaded(t, e.asA)
+	require.Equal(t, http.StatusOK, putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": []uint{img.ID}}).Code)
+	require.NoError(t, e.db.First(&c, c.ID).Error)
+	avatar := c.Photo
+
+	require.Equal(t, http.StatusOK, putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": []uint{}}).Code)
+	require.NoError(t, e.db.First(&c, c.ID).Error)
+	assert.Empty(t, c.Photo)
+	assert.Nil(t, c.MainImageID)
+	assert.NoFileExists(t, filepath.Join(e.dir, avatar))
+}
+
+func TestMoreThanFiftyImagesAreRefused(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID)
+	ids := make([]uint, 51)
+	for i := range ids {
+		ids[i] = uint(i + 1)
+	}
+	assert.Equal(t, http.StatusBadRequest, putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": ids}).Code)
+}

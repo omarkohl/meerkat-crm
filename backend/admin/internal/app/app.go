@@ -42,6 +42,8 @@ type Users interface {
 	// Get returns domain.ErrUserNotFound for an account that does not exist.
 	Get(ctx context.Context, id domain.UserID) (domain.User, error)
 	CountAdmins(ctx context.Context) (int64, error)
+	// ImageTotals counts the stored images of all accounts and their size on disk.
+	ImageTotals(ctx context.Context) (count, bytes int64, err error)
 	// Save stores the account and, when password is not empty, its hash, ending the account's
 	// sessions in the same change. It returns domain.ErrAlreadyExists on a taken username or
 	// email and domain.ErrPasswordTooLong for a password that cannot be hashed.
@@ -71,6 +73,7 @@ const (
 	StageAuditCount   Stage = "audit count"
 	StageAuditQuery   Stage = "audit query"
 	StageCountUsers   Stage = "count users"
+	StageCountImages  Stage = "count images"
 	StageListUsers    Stage = "list users"
 	StageGetUser      Stage = "get user"
 	StageCountAdmins  Stage = "count admins"
@@ -183,7 +186,13 @@ func (u *UseCases) SystemStatus(ctx context.Context) (domain.SystemStatus, error
 	if err != nil {
 		return domain.SystemStatus{}, &Failure{Stage: StageCountUsers, Err: err}
 	}
+	images, bytes, err := u.users.ImageTotals(ctx)
+	if err != nil {
+		return domain.SystemStatus{}, &Failure{Stage: StageCountImages, Err: err}
+	}
 	return domain.SystemStatus{
+		ImageCount:         images,
+		ImageBytes:         bytes,
 		PrivateURLsAllowed: u.settings.PrivateURLsAllowed,
 		UserCount:          users,
 		PrivateURLWarning:  domain.PrivateURLWarning(u.settings.PrivateURLsAllowed, users),

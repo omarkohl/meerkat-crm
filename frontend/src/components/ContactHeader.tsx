@@ -64,6 +64,7 @@ interface ContactHeaderProps {
   onDeleteCircle: (circle: string) => void;
   onNewCircleNameChange: (name: string) => void;
   onUploadProfilePicture: () => void;
+  onOpenProfilePicture?: () => void;
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
   onUnarchiveContact?: () => void;
@@ -89,6 +90,7 @@ export default function ContactHeader({
   onDeleteCircle,
   onNewCircleNameChange,
   onUploadProfilePicture,
+  onOpenProfilePicture,
   onStayInTouch,
   onArchiveContact,
   onUnarchiveContact,
@@ -132,14 +134,14 @@ export default function ContactHeader({
                 fontSize: '2rem',
                 '&:hover': { opacity: 0.8 },
               }}
-              onClick={onUploadProfilePicture}
+              onClick={onOpenProfilePicture ?? onUploadProfilePicture}
             >
               {contact.firstname.charAt(0)}
             </Avatar>
             <IconButton
               className="camera-badge"
               size="small"
-              aria-label={t('profilePicture.title')}
+              aria-label={t('profilePicture.change')}
               onClick={onUploadProfilePicture}
               sx={{
                 position: 'absolute',

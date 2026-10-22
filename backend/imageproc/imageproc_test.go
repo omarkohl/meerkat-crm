@@ -359,3 +359,29 @@ func syntheticHEIC(exif []byte) []byte {
 	first := build(0)
 	return build(uint32(len(first) - len(mdatPayload)))
 }
+
+func TestAvatarIsTheCropSquareScaledToTheAvatarSizes(t *testing.T) {
+	src := quadrants(1000, 600) // the 600x600 square at x=400 shows the middle of all four colours
+	photo, thumb := imageproc.Avatar(src, 0, 0, 600)
+	assert.Equal(t, image.Rect(0, 0, 400, 400), photo.Bounds())
+	assert.Equal(t, image.Rect(0, 0, 96, 96), thumb.Bounds())
+	near(t, photo, 10, 10, color.RGBA{255, 0, 0, 255})
+	near(t, photo, 390, 390, color.RGBA{255, 255, 255, 255})
+
+	right, _ := imageproc.Avatar(src, 500, 0, 500)
+	near(t, right, 10, 10, color.RGBA{0, 255, 0, 255})
+	near(t, right, 10, 390, color.RGBA{255, 255, 255, 255})
+}
+
+func TestASmallCropIsNotEnlargedBeyondItsOwnSizeButThePhotoStaysSquare(t *testing.T) {
+	photo, thumb := imageproc.Avatar(quadrants(100, 100), 0, 0, 100)
+	assert.Equal(t, image.Rect(0, 0, 100, 100), photo.Bounds())
+	assert.Equal(t, image.Rect(0, 0, 96, 96), thumb.Bounds())
+}
+
+func TestCenteredCropIsTheLargestSquareInTheMiddle(t *testing.T) {
+	x, y, size := imageproc.CenteredCrop(1000, 600)
+	assert.Equal(t, [3]int{200, 0, 600}, [3]int{x, y, size})
+	x, y, size = imageproc.CenteredCrop(300, 900)
+	assert.Equal(t, [3]int{0, 300, 300}, [3]int{x, y, size})
+}

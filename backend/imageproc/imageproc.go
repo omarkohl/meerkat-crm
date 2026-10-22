@@ -252,3 +252,27 @@ func Prepare(ctx context.Context, data []byte) (*Result, error) {
 	}
 	return &Result{Image: full, Thumb: thumb, Width: b.Dx(), Height: b.Dy(), Mime: "image/webp", TakenAt: info.TakenAt}, nil
 }
+
+const (
+	AvatarSize      = 400
+	AvatarThumbSize = 96
+)
+
+// CenteredCrop is the largest square in the middle of a w x h picture.
+func CenteredCrop(w, h int) (x, y, size int) {
+	size = min(w, h)
+	return (w - size) / 2, (h - size) / 2, size
+}
+
+// Avatar cuts the square at (x, y, size) out of img. The photo is at most AvatarSize wide and is not
+// enlarged; the thumbnail is always AvatarThumbSize square.
+func Avatar(img image.Image, x, y, size int) (photo, thumb image.Image) {
+	b := img.Bounds()
+	square := image.Rect(b.Min.X+x, b.Min.Y+y, b.Min.X+x+size, b.Min.Y+y+size)
+	scale := func(side int) image.Image {
+		dst := image.NewRGBA(image.Rect(0, 0, side, side))
+		xdraw.CatmullRom.Scale(dst, dst.Bounds(), img, square, xdraw.Src, nil)
+		return dst
+	}
+	return scale(min(size, AvatarSize)), scale(AvatarThumbSize)
+}

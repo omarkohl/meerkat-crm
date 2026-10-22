@@ -193,7 +193,10 @@ database gets smaller and list queries get cheaper. Migration 30; see "Merge imp
 38), `POST /images` and `GET /images/:id/:variant`. Pictures become WebP with a long edge of at most
 2048 px and a thumbnail; HEIC, WebP and GIF are accepted. A daily sweep removes unused files. See
 [ADR 0019](docs/adr/0019-images-storage-and-formats.md). Notes take up to 20 images (`image_ids` on
-the note, `images` in the response); a note may have images and no text.
+the note, `images` in the response); a note may have images and no text. A contact keeps up to 50
+images (`PUT /contacts/:id/images`); its main image and square crop (`PUT /contacts/:id/main_image`,
+`contacts.main_image_id`) make the profile picture, which is now 400 px with a 96 px thumbnail.
+Admin system status shows the image count and bytes.
 
 **Integrations.** Webhooks and email go through an outbox with retries and a dead-letter state
 (migration 32). Optional Prometheus metrics at `/metrics`, off by default, with an optional token or
