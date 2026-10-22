@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, Paper, IconButton, Link } from '@mui/material';
@@ -20,6 +20,8 @@ import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
 import { ReminderCompletion } from '../api/reminders';
 import { useDateFormat } from '../DateFormatProvider';
+import ImagePreview from './images/ImagePreview';
+import ImageLightbox from './images/ImageLightbox';
 
 interface ContactTimelineProps {
   timelineItems: Array<{
@@ -35,6 +37,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { formatDateRange } = useDateFormat();
+  const [lightbox, setLightbox] = useState<{ note: Note; index: number } | null>(null);
 
   if (timelineItems.length === 0) {
     return (
@@ -45,138 +48,159 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
   }
 
   return (
-    <Timeline position="right">
-      {timelineItems.map((item, index) => {
-        const itemDate = new Date(item.date);
-        const isValidDate = !isNaN(itemDate.getTime());
+    <>
+      <Timeline position="right">
+        {timelineItems.map((item, index) => {
+          const itemDate = new Date(item.date);
+          const isValidDate = !isNaN(itemDate.getTime());
 
-        return (
-          <TimelineItem key={`${item.type}-${item.data.ID}`}>
-            <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
-              <Typography variant="caption">
-                {isValidDate
-                  ? formatDateRange(item.date, item.type === 'activity' ? (item.data as Activity).end_date : undefined)
-                  : item.date || 'N/A'}
-              </Typography>
-            </TimelineOppositeContent>
-            <TimelineSeparator>
-              <TimelineDot
-                color={item.type === 'note' ? 'primary' : item.type === 'activity' ? 'secondary' : 'success'}
-              >
-                {item.type === 'note' ? (
-                  <NoteIcon fontSize="small" />
-                ) : item.type === 'activity' ? (
-                  <EventIcon fontSize="small" />
-                ) : (
-                  <NotificationsIcon fontSize="small" />
-                )}
-              </TimelineDot>
-              {index < timelineItems.length - 1 && <TimelineConnector />}
-            </TimelineSeparator>
-            <TimelineContent>
-              <Paper
-                elevation={1}
-                sx={{
-                  p: 1.5,
-                  position: 'relative',
-                  '&:hover .action-icon': {
-                    opacity: 1,
-                  },
-                }}
-              >
-                <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                  {item.type === 'note'
-                    ? t('contactDetail.note')
-                    : item.type === 'activity'
-                      ? (item.data as Activity).title
-                      : t('timeline.reminderCompleted')}
+          return (
+            <TimelineItem key={`${item.type}-${item.data.ID}`}>
+              <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
+                <Typography variant="caption">
+                  {isValidDate
+                    ? formatDateRange(
+                        item.date,
+                        item.type === 'activity' ? (item.data as Activity).end_date : undefined,
+                      )
+                    : item.date || 'N/A'}
                 </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {item.type === 'note'
-                    ? (item.data as Note).content
-                    : item.type === 'activity'
-                      ? (item.data as Activity).description || t('contactDetail.noDescription')
-                      : (item.data as ReminderCompletion).message}
-                </Typography>
-                {item.type === 'activity' && (item.data as Activity).location && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    📍 {(item.data as Activity).location}
-                  </Typography>
-                )}
-                {item.type === 'activity' &&
-                  (item.data as Activity).contacts &&
-                  (item.data as Activity).contacts!.length > 0 && (
-                    <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-                        👥
-                      </Typography>
-                      {(item.data as Activity).contacts!.map((activityContact, idx) => (
-                        <Fragment key={activityContact.ID}>
-                          <Link
-                            component="button"
-                            variant="caption"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigate(`/contacts/${activityContact.ID}`);
-                            }}
-                            sx={{
-                              cursor: 'pointer',
-                              textDecoration: 'none',
-                              '&:hover': { textDecoration: 'underline' },
-                            }}
-                          >
-                            {activityContact.firstname} {activityContact.lastname}
-                          </Link>
-                          {idx < (item.data as Activity).contacts!.length - 1 && (
-                            <Typography variant="caption" color="text.secondary">
-                              ,&nbsp;
-                            </Typography>
-                          )}
-                        </Fragment>
-                      ))}
-                    </Box>
+              </TimelineOppositeContent>
+              <TimelineSeparator>
+                <TimelineDot
+                  color={item.type === 'note' ? 'primary' : item.type === 'activity' ? 'secondary' : 'success'}
+                >
+                  {item.type === 'note' ? (
+                    <NoteIcon fontSize="small" />
+                  ) : item.type === 'activity' ? (
+                    <EventIcon fontSize="small" />
+                  ) : (
+                    <NotificationsIcon fontSize="small" />
                   )}
+                </TimelineDot>
+                {index < timelineItems.length - 1 && <TimelineConnector />}
+              </TimelineSeparator>
+              <TimelineContent>
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 1.5,
+                    position: 'relative',
+                    '&:hover .action-icon': {
+                      opacity: 1,
+                    },
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                    {item.type === 'note'
+                      ? t('contactDetail.note')
+                      : item.type === 'activity'
+                        ? (item.data as Activity).title
+                        : t('timeline.reminderCompleted')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {item.type === 'note'
+                      ? (item.data as Note).content
+                      : item.type === 'activity'
+                        ? (item.data as Activity).description || t('contactDetail.noDescription')
+                        : (item.data as ReminderCompletion).message}
+                  </Typography>
+                  {item.type === 'note' && (
+                    <ImagePreview
+                      images={(item.data as Note).images}
+                      visible={(item.data as Note).content ? 1 : 3}
+                      onOpen={(index) => {
+                        setLightbox({ note: item.data as Note, index });
+                      }}
+                    />
+                  )}
+                  {item.type === 'activity' && (item.data as Activity).location && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      📍 {(item.data as Activity).location}
+                    </Typography>
+                  )}
+                  {item.type === 'activity' &&
+                    (item.data as Activity).contacts &&
+                    (item.data as Activity).contacts!.length > 0 && (
+                      <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                          👥
+                        </Typography>
+                        {(item.data as Activity).contacts!.map((activityContact, idx) => (
+                          <Fragment key={activityContact.ID}>
+                            <Link
+                              component="button"
+                              variant="caption"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/contacts/${activityContact.ID}`);
+                              }}
+                              sx={{
+                                cursor: 'pointer',
+                                textDecoration: 'none',
+                                '&:hover': { textDecoration: 'underline' },
+                              }}
+                            >
+                              {activityContact.firstname} {activityContact.lastname}
+                            </Link>
+                            {idx < (item.data as Activity).contacts!.length - 1 && (
+                              <Typography variant="caption" color="text.secondary">
+                                ,&nbsp;
+                              </Typography>
+                            )}
+                          </Fragment>
+                        ))}
+                      </Box>
+                    )}
 
-                {item.type === 'completion' ? (
-                  <IconButton
-                    className="action-icon"
-                    size="small"
-                    color="error"
-                    onClick={() => onDeleteCompletion?.((item.data as ReminderCompletion).ID)}
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                ) : (
-                  <IconButton
-                    className="action-icon"
-                    size="small"
-                    aria-label={t('contactDetail.edit')}
-                    onClick={() => {
-                      onEditItem(item.type as 'note' | 'activity', item.data as Note | Activity);
-                    }}
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </Paper>
-            </TimelineContent>
-          </TimelineItem>
-        );
-      })}
-    </Timeline>
+                  {item.type === 'completion' ? (
+                    <IconButton
+                      className="action-icon"
+                      size="small"
+                      color="error"
+                      onClick={() => onDeleteCompletion?.((item.data as ReminderCompletion).ID)}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  ) : (
+                    <IconButton
+                      className="action-icon"
+                      size="small"
+                      aria-label={t('contactDetail.edit')}
+                      onClick={() => {
+                        onEditItem(item.type as 'note' | 'activity', item.data as Note | Activity);
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Paper>
+              </TimelineContent>
+            </TimelineItem>
+          );
+        })}
+      </Timeline>
+      <ImageLightbox
+        images={lightbox?.note.images ?? []}
+        index={lightbox?.index ?? null}
+        onClose={() => {
+          setLightbox(null);
+        }}
+      />
+    </>
   );
 }

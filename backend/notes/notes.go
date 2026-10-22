@@ -10,6 +10,7 @@ import (
 	"meerkat/notes/internal/adapters/persistence"
 	"meerkat/notes/internal/adapters/webhooks"
 	"meerkat/notes/internal/app"
+	"meerkat/photofile"
 	"meerkat/services"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -31,7 +32,11 @@ func New(d Deps) *Module {
 	trigger := func(userID uint, event string, data any, clk clock.Clock) {
 		services.TriggerWebhooks(d.DB, *d.Config, userID, event, data, clk)
 	}
-	return &Module{uc: app.New(repo, repo, webhooks.New(trigger))}
+	dir := ""
+	if d.Config != nil {
+		dir = d.Config.ProfilePhotoDir
+	}
+	return &Module{uc: app.New(repo, repo, webhooks.New(trigger), imageFiles{dir: dir})}
 }
 
 // Register adds the module's operations to a. group is the Gin group that carries the
@@ -39,3 +44,7 @@ func New(d Deps) *Module {
 func (m *Module) Register(a huma.API, group gin.IRoutes) {
 	httpadapter.Register(a, group, m.uc)
 }
+
+type imageFiles struct{ dir string }
+
+func (f imageFiles) Remove(names ...string) { photofile.Remove(f.dir, names...) }

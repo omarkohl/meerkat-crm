@@ -20,7 +20,9 @@ import { useNotes } from './hooks/useNotes';
 import { useDebouncedValue } from './hooks/useDebounce';
 import { createUnassignedNote, updateNote, deleteNote, Note } from './api/notes';
 import AddNoteDialog from './components/AddNoteDialog';
-import EditTimelineItemDialog from './components/EditTimelineItemDialog';
+import EditTimelineItemDialog, { type TimelineItemValues } from './components/EditTimelineItemDialog';
+import ImagePreview from './components/images/ImagePreview';
+import ImageLightbox from './components/images/ImageLightbox';
 import { handleError } from './utils/errorHandler';
 import { useDateFormat } from './DateFormatProvider';
 import { now } from './utils/now';
@@ -57,7 +59,8 @@ const NotesPage: React.FC = () => {
   const { notes, total, page: serverPage, limit, loading, refetch } = useNotes(undefined, notesParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [editValues, setEditValues] = useState<{ noteContent?: string; noteDate?: string }>({});
+  const [editValues, setEditValues] = useState<TimelineItemValues>({});
+  const [lightbox, setLightbox] = useState<{ note: Note; index: number } | null>(null);
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
   const infoOpen = Boolean(infoAnchorEl);
   const infoPopoverId = infoOpen ? 'notes-info-popover' : undefined;
@@ -89,9 +92,9 @@ const NotesPage: React.FC = () => {
     setAddDialogOpen(true);
   };
 
-  const handleNoteSave = async (content: string, date: string) => {
+  const handleNoteSave = async (content: string, date: string, imageIds: number[]) => {
     try {
-      await createUnassignedNote({ content, date: new Date(date).toISOString() });
+      await createUnassignedNote({ content, date: new Date(date).toISOString(), image_ids: imageIds });
       setAddDialogOpen(false);
       refetch();
     } catch (err) {
@@ -104,17 +107,19 @@ const NotesPage: React.FC = () => {
     setEditingNote(note);
     setEditValues({
       noteContent: note.content || '',
+      noteImages: note.images,
       noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
     });
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingNote || !editValues.noteContent?.trim()) return;
+  const handleSaveEdit = async (imageIds: number[]) => {
+    if (!editingNote || (!editValues.noteContent?.trim() && imageIds.length === 0)) return;
 
     try {
       await updateNote(editingNote.ID, {
-        content: editValues.noteContent,
+        content: editValues.noteContent ?? '',
         date: editValues.noteDate ? new Date(editValues.noteDate).toISOString() : now().toISOString(),
+        image_ids: imageIds,
       });
       setEditingNote(null);
       setEditValues({});
@@ -258,6 +263,13 @@ const NotesPage: React.FC = () => {
                         </IconButton>
                       </Box>
                     </Box>
+                    <ImagePreview
+                      images={note.images}
+                      visible={note.content ? 1 : 3}
+                      onOpen={(index) => {
+                        setLightbox({ note, index });
+                      }}
+                    />
                   </Box>
                 </Paper>
               </TimelineContent>
@@ -285,6 +297,14 @@ const NotesPage: React.FC = () => {
           setAddDialogOpen(false);
         }}
         onSave={handleNoteSave}
+      />
+
+      <ImageLightbox
+        images={lightbox?.note.images ?? []}
+        index={lightbox?.index ?? null}
+        onClose={() => {
+          setLightbox(null);
+        }}
       />
 
       {editingNote && (

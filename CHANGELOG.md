@@ -20,6 +20,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
   as ranges.
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
+- **Images on notes**: paste, drop or pick images when you write a note. Notes show previews and
+  open them full size.
 
 ### Internal
 

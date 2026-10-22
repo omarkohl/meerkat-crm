@@ -192,7 +192,8 @@ database gets smaller and list queries get cheaper. Migration 30; see "Merge imp
 **Images.** Storage for pictures of contacts, activities and notes: the `images` table (migration
 38), `POST /images` and `GET /images/:id/:variant`. Pictures become WebP with a long edge of at most
 2048 px and a thumbnail; HEIC, WebP and GIF are accepted. A daily sweep removes unused files. See
-[ADR 0019](docs/adr/0019-images-storage-and-formats.md).
+[ADR 0019](docs/adr/0019-images-storage-and-formats.md). Notes take up to 20 images (`image_ids` on
+the note, `images` in the response); a note may have images and no text.
 
 **Integrations.** Webhooks and email go through an outbox with retries and a dead-letter state
 (migration 32). Optional Prometheus metrics at `/metrics`, off by default, with an optional token or

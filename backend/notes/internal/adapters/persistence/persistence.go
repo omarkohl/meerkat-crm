@@ -11,6 +11,7 @@ import (
 	"meerkat/notes/internal/app"
 	"meerkat/notes/internal/domain"
 	"meerkat/search"
+	"meerkat/services"
 
 	"gorm.io/gorm"
 )
@@ -33,7 +34,11 @@ func first(db *gorm.DB, actor domain.UserID, id domain.NoteID) (domain.Note, err
 	if err != nil {
 		return domain.Note{}, err
 	}
-	return toDomain(m), nil
+	notes := []domain.Note{toDomain(m)}
+	if err := withImages(db, actor, notes); err != nil {
+		return domain.Note{}, err
+	}
+	return notes[0], nil
 }
 
 func (r *Repository) Get(ctx context.Context, actor domain.UserID, id domain.NoteID) (domain.Note, error) {
@@ -48,8 +53,11 @@ func (r *Repository) ForContact(ctx context.Context, actor domain.UserID, contac
 		return nil, domain.ErrContactNotFound
 	}
 	var found []models.Note
-	err := db.Where("user_id = ? AND contact_id = ?", uint(actor), uint(contact)).Order("id").Find(&found).Error
-	return toDomainList(found), err
+	if err := db.Where("user_id = ? AND contact_id = ?", uint(actor), uint(contact)).Order("id").Find(&found).Error; err != nil {
+		return nil, err
+	}
+	notes := toDomainList(found)
+	return notes, withImages(db, actor, notes)
 }
 
 func (r *Repository) Unassigned(ctx context.Context, actor domain.UserID, f app.Filter) ([]domain.Note, int64, error) {
@@ -73,9 +81,39 @@ func (r *Repository) Unassigned(ctx context.Context, actor domain.UserID, f app.
 		return nil, 0, err
 	}
 	var found []models.Note
-	err := base.Session(&gorm.Session{}).Order("notes.date DESC, notes.id DESC").
-		Limit(f.Limit).Offset((f.Page - 1) * f.Limit).Find(&found).Error
-	return toDomainList(found), total, err
+	if err := base.Session(&gorm.Session{}).Order("notes.date DESC, notes.id DESC").
+		Limit(f.Limit).Offset((f.Page - 1) * f.Limit).Find(&found).Error; err != nil {
+		return nil, 0, err
+	}
+	notes := toDomainList(found)
+	return notes, total, withImages(db, actor, notes)
+}
+
+// withImages fills the images of notes with one query.
+func withImages(db *gorm.DB, actor domain.UserID, notes []domain.Note) error {
+	ids := make([]uint, len(notes))
+	for i, n := range notes {
+		ids[i] = uint(n.ID)
+	}
+	byNote, err := services.ImagesFor(db, uint(actor), services.ImageOfNote, ids)
+	if err != nil {
+		return err
+	}
+	for i := range notes {
+		notes[i].Images = imageRefs(byNote[uint(notes[i].ID)])
+	}
+	return nil
+}
+
+func imageRefs(refs []models.ImageRef) []domain.ImageRef {
+	out := make([]domain.ImageRef, len(refs))
+	for i, r := range refs {
+		out[i] = domain.ImageRef{
+			ID: r.ID, Width: r.Width, Height: r.Height, Mime: r.Mime, Bytes: r.Bytes, TakenAt: r.TakenAt,
+			URL: r.URL, ThumbURL: r.ThumbURL,
+		}
+	}
+	return out
 }
 
 func (r *Repository) InTx(ctx context.Context, fn func(app.Tx) error) error {
@@ -105,7 +143,28 @@ func (t *txRepo) Create(ctx context.Context, actor domain.UserID, n domain.Note)
 	if err := t.tx.WithContext(ctx).Create(&m).Error; err != nil {
 		return domain.Note{}, err
 	}
-	return toDomain(m), nil
+	created := toDomain(m)
+	created.Images = []domain.ImageRef{}
+	return created, nil
+}
+
+func (t *txRepo) SetImages(ctx context.Context, actor domain.UserID, id domain.NoteID, ids []uint) ([]domain.ImageRef, []string, error) {
+	db := t.tx.WithContext(ctx)
+	removed, err := services.SetOwnerImages(db, uint(actor), services.ImageOwner{Kind: services.ImageOfNote, ID: uint(id)}, ids)
+	switch {
+	case errors.Is(err, services.ErrImageNotFound):
+		return nil, nil, domain.ErrImageNotFound
+	case errors.Is(err, services.ErrTooManyImages):
+		return nil, nil, domain.ErrTooManyImages
+	case err != nil:
+		return nil, nil, err
+	}
+	byNote, err := services.ImagesFor(db, uint(actor), services.ImageOfNote, []uint{uint(id)})
+	return imageRefs(byNote[uint(id)]), removed, err
+}
+
+func (t *txRepo) DeleteImages(ctx context.Context, actor domain.UserID, id domain.NoteID) ([]string, error) {
+	return services.DeleteOwnerImages(t.tx.WithContext(ctx), uint(actor), services.ImageOwner{Kind: services.ImageOfNote, ID: uint(id)})
 }
 
 func (t *txRepo) Update(ctx context.Context, actor domain.UserID, n domain.Note) (domain.Note, error) {

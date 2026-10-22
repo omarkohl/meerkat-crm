@@ -9,3 +9,7 @@ export function thumbnailSrc(url: string | undefined | null): string | undefined
   if (!url) return undefined;
   return url.startsWith('/') ? `${API_SERVER_URL}${url}` : url;
 }
+
+export function apiUrl(path: string): string {
+  return path.startsWith('/') ? `${API_SERVER_URL}${path}` : path;
+}

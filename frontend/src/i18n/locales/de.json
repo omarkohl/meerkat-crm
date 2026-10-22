@@ -356,8 +356,8 @@
     "date": "Datum",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "required": "Inhalt ist erforderlich",
-    "saveError": "Notiz konnte nicht gespeichert werden"
+    "saveError": "Notiz konnte nicht gespeichert werden",
+    "requiredOrImage": "Text oder ein Bild hinzufügen"
   },
   "activityDialog": {
     "title": "Aktivität hinzufügen",
@@ -1207,6 +1207,27 @@
       "reminders_other": "{{count}} Erinnerungen",
       "relationships_one": "{{count}} Beziehung",
       "relationships_other": "{{count}} Beziehungen"
+    }
+  },
+  "images": {
+    "addImage": "Bild hinzufügen",
+    "removeImage": "Bild {{n}} entfernen",
+    "imageOf": "Bild {{n}} von {{total}}",
+    "uploading_one": "{{count}} Bild wird hochgeladen…",
+    "uploading_other": "{{count}} Bilder werden hochgeladen…",
+    "tooLarge": "Datei ist zu groß. Maximale Größe ist 25 MB.",
+    "notAnImage": "Es können nur Bilddateien hinzugefügt werden",
+    "retry": "Erneut versuchen",
+    "uploadFailed": "Hochladen fehlgeschlagen",
+    "reorderHint": "Alt + Pfeiltasten verschieben das Bild",
+    "open": "Bild {{n}} von {{total}} öffnen",
+    "lightbox": {
+      "previous": "Vorheriges Bild",
+      "next": "Nächstes Bild",
+      "close": "Schließen",
+      "zoomIn": "Vergrößern",
+      "zoomOut": "Verkleinern",
+      "download": "Herunterladen"
     }
   }
 }

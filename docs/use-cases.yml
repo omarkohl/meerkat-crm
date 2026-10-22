@@ -351,3 +351,9 @@
   actor: user
   priority: high
   status: implemented
+
+- id: 023-US1
+  title: Attach images to a note
+  actor: user
+  priority: medium
+  status: implemented

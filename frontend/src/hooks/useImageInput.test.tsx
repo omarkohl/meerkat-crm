@@ -30,6 +30,15 @@ describe('useImageInput', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  test('leaves a paste with text and an image to the text', () => {
+    const onFiles = vi.fn();
+    renderHook(() => useImageInput({ onFiles, enabled: true }));
+    const event = pasteEvent([png], 'Quarterly numbers');
+    document.dispatchEvent(event);
+    expect(onFiles).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   test('reports files that are not images', () => {
     const onFiles = vi.fn();
     const onReject = vi.fn();

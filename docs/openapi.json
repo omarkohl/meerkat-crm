@@ -2261,29 +2261,6 @@
         ],
         "type": "object"
       },
-      "Crop": {
-        "additionalProperties": false,
-        "properties": {
-          "size": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "x": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "y": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "x",
-          "y",
-          "size"
-        ],
-        "type": "object"
-      },
       "CurrentUserOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2782,7 +2759,30 @@
         ],
         "type": "object"
       },
-      "ImageBody": {
+      "ImageCrop": {
+        "additionalProperties": false,
+        "properties": {
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "x": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "y": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "size"
+        ],
+        "type": "object"
+      },
+      "ImageRef": {
         "additionalProperties": false,
         "properties": {
           "bytes": {
@@ -2790,8 +2790,15 @@
             "type": "integer"
           },
           "crop": {
-            "$ref": "#/components/schemas/Crop",
-            "description": "Square face crop in pixels of the full image; contacts only"
+            "description": "Square face crop in pixels of the full image, null when none; contacts only",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImageCrop"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "height": {
             "format": "int64",
@@ -2821,7 +2828,7 @@
             "type": "string"
           },
           "url": {
-            "description": "The full image",
+            "description": "The full image, at most 2048 px on the long edge",
             "type": "string"
           },
           "width": {
@@ -3443,15 +3450,27 @@
             "type": "integer"
           },
           "content": {
+            "description": "May be empty when the note has images",
             "type": "string"
           },
           "date": {
             "format": "date-time",
             "type": "string"
+          },
+          "image_ids": {
+            "description": "Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them.",
+            "items": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
-          "content",
           "date"
         ],
         "type": "object"
@@ -3561,6 +3580,12 @@
           "date": {
             "format": "date-time",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -3570,7 +3595,8 @@
           "DeletedAt",
           "content",
           "date",
-          "contact_id"
+          "contact_id",
+          "images"
         ],
         "type": "object"
       },
@@ -8331,7 +8357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageBody"
+                  "$ref": "#/components/schemas/ImageRef"
                 }
               }
             },

@@ -356,8 +356,8 @@
     "date": "Date",
     "cancel": "Cancel",
     "save": "Save",
-    "required": "Content is required",
-    "saveError": "Failed to save note"
+    "saveError": "Failed to save note",
+    "requiredOrImage": "Add text or an image"
   },
   "activityDialog": {
     "title": "Add Activity",
@@ -1207,6 +1207,27 @@
       "reminders_other": "{{count}} reminders",
       "relationships_one": "{{count}} relationship",
       "relationships_other": "{{count}} relationships"
+    }
+  },
+  "images": {
+    "addImage": "Add image",
+    "removeImage": "Remove image {{n}}",
+    "imageOf": "Image {{n}} of {{total}}",
+    "uploading_one": "Uploading {{count}} image…",
+    "uploading_other": "Uploading {{count}} images…",
+    "tooLarge": "File is too large. Maximum size is 25 MB.",
+    "notAnImage": "Only image files can be added",
+    "retry": "Retry",
+    "uploadFailed": "Upload failed",
+    "reorderHint": "Alt + arrow keys move the image",
+    "open": "Open image {{n}} of {{total}}",
+    "lightbox": {
+      "previous": "Previous image",
+      "next": "Next image",
+      "close": "Close",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "download": "Download"
     }
   }
 }

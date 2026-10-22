@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"meerkat/api"
 	apperrors "meerkat/errors"
@@ -47,34 +46,16 @@ type UploadInput struct {
 	RawBody huma.MultipartFormFiles[UploadForm]
 }
 
-type Crop struct {
-	X    int `json:"x"`
-	Y    int `json:"y"`
-	Size int `json:"size"`
-}
+type UploadOutput struct{ Body api.ImageRef }
 
-type ImageBody struct {
-	ID       uint       `json:"id"`
-	Width    int        `json:"width"`
-	Height   int        `json:"height"`
-	Mime     string     `json:"mime" example:"image/webp"`
-	Bytes    int64      `json:"bytes"`
-	TakenAt  *time.Time `json:"taken_at" doc:"Capture time from the picture's metadata, if any"`
-	Crop     *Crop      `json:"crop" doc:"Square face crop in pixels of the full image; contacts only"`
-	URL      string     `json:"url" doc:"The full image"`
-	ThumbURL string     `json:"thumb_url" doc:"A small version, 480 px on the long edge"`
-}
-
-type UploadOutput struct{ Body ImageBody }
-
-func body(img domain.Image) ImageBody {
-	out := ImageBody{
+func body(img domain.Image) api.ImageRef {
+	out := api.ImageRef{
 		ID: uint(img.ID), Width: img.Width, Height: img.Height, Mime: img.Mime, Bytes: img.Bytes, TakenAt: img.TakenAt,
 		URL:      models.ImageURL(uint(img.ID), img.File, string(domain.VariantImage)),
 		ThumbURL: models.ImageURL(uint(img.ID), img.File, string(domain.VariantThumb)),
 	}
 	if img.Crop != nil {
-		out.Crop = &Crop{X: img.Crop.X, Y: img.Crop.Y, Size: img.Crop.Size}
+		out.Crop = api.Nullable[api.ImageCrop]{Value: &api.ImageCrop{X: img.Crop.X, Y: img.Crop.Y, Size: img.Crop.Size}}
 	}
 	return out
 }

@@ -18,9 +18,13 @@ import ActivityDateFields from './ActivityDateFields';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Contact, getContacts } from '../api/contacts';
 import { endsBeforeStart } from '../utils/activityDates';
+import type { ImageRef } from '../api/images';
+import { useImageUploads } from '../hooks/useImageUploads';
+import ImageAttachmentField from './images/ImageAttachmentField';
 
 export interface TimelineItemValues {
   noteContent?: string;
+  noteImages?: ImageRef[];
   noteDate?: string;
   activityTitle?: string;
   activityDescription?: string;
@@ -33,7 +37,7 @@ export interface TimelineItemValues {
 interface EditTimelineItemDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (imageIds: number[]) => void;
   onDelete: () => void;
   type: 'note' | 'activity';
   values: TimelineItemValues;
@@ -53,6 +57,7 @@ export default function EditTimelineItemDialog({
   const [contactOptions, setContactOptions] = useState<Contact[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const uploads = useImageUploads(values.noteImages);
 
   useEffect(() => {
     if (!open || type !== 'activity') return;
@@ -77,8 +82,10 @@ export default function EditTimelineItemDialog({
   }, [open, type, searchInput]);
 
   const handleSave = () => {
-    onSave();
+    onSave(uploads.imageIds);
   };
+
+  const noteIsEmpty = !values.noteContent?.trim() && uploads.imageIds.length === 0;
 
   const handleDelete = () => {
     if (window.confirm(t('contactDetail.confirmDelete'))) {
@@ -113,6 +120,7 @@ export default function EditTimelineItemDialog({
               }}
               label={t('noteDialog.date')}
             />
+            <ImageAttachmentField uploads={uploads} />
           </Box>
         ) : (
           // Edit Activity
@@ -211,7 +219,10 @@ export default function EditTimelineItemDialog({
           <Button
             onClick={handleSave}
             variant="contained"
-            disabled={type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)}
+            disabled={
+              (type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)) ||
+              (type === 'note' && (noteIsEmpty || uploads.busy))
+            }
           >
             {t('contactDetail.save')}
           </Button>

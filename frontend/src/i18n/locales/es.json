@@ -356,8 +356,8 @@
     "date": "Fecha",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "required": "El contenido es obligatorio",
-    "saveError": "Error al guardar la nota"
+    "saveError": "Error al guardar la nota",
+    "requiredOrImage": "Añade texto o una imagen"
   },
   "activityDialog": {
     "title": "Agregar Actividad",
@@ -1207,6 +1207,27 @@
       "reminders_other": "{{count}} recordatorios",
       "relationships_one": "{{count}} relación",
       "relationships_other": "{{count}} relaciones"
+    }
+  },
+  "images": {
+    "addImage": "Añadir imagen",
+    "removeImage": "Quitar imagen {{n}}",
+    "imageOf": "Imagen {{n}} de {{total}}",
+    "uploading_one": "Subiendo {{count}} imagen…",
+    "uploading_other": "Subiendo {{count}} imágenes…",
+    "tooLarge": "El archivo es demasiado grande. El tamaño máximo es 25 MB.",
+    "notAnImage": "Solo se pueden añadir archivos de imagen",
+    "retry": "Reintentar",
+    "uploadFailed": "Error al subir",
+    "reorderHint": "Alt + flechas mueven la imagen",
+    "open": "Abrir imagen {{n}} de {{total}}",
+    "lightbox": {
+      "previous": "Imagen anterior",
+      "next": "Imagen siguiente",
+      "close": "Cerrar",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "download": "Descargar"
     }
   }
 }

@@ -22,7 +22,7 @@ export function useImageInput({ onFiles, onReject, enabled }: UseImageInputOptio
     if (!enabled) return;
     const onPaste = (event: ClipboardEvent) => {
       const files = Array.from(event.clipboardData?.files ?? []);
-      if (files.length === 0) return;
+      if (files.length === 0 || event.clipboardData?.getData('text/plain')) return;
       event.preventDefault();
       accept(files);
     };

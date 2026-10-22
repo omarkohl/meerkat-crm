@@ -175,6 +175,11 @@ everywhere else (lists, search, circles, birthdays, graph, ICS feed, reminders, 
 | `PUT`    | `/notes/:id`          | Update a note. Leaving out `contact_id` keeps the note's contact |
 | `DELETE` | `/notes/:id`          | Delete a note                                                    |
 
+A note has `images` (the image objects of [Images](#images), in order). On create and update the
+body can carry `image_ids`: IDs of uploaded images, at most 20. On update, leaving it out keeps the
+images and an empty list removes them. `content` may be empty when the note has an image; a note
+needs text or an image. Deleting a note deletes its images.
+
 ### Activities
 
 The optional `end_date` is the last day of an activity that spans several days. It may not be before

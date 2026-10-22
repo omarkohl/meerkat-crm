@@ -2058,14 +2058,6 @@ export interface components {
             type: string;
             value: string;
         };
-        Crop: {
-            /** Format: int64 */
-            size: number;
-            /** Format: int64 */
-            x: number;
-            /** Format: int64 */
-            y: number;
-        };
         CurrentUserOutputBody: {
             /** Format: date-time */
             created_at: string;
@@ -2202,11 +2194,19 @@ export interface components {
             type?: string;
             value: string;
         };
-        ImageBody: {
+        ImageCrop: {
+            /** Format: int64 */
+            size: number;
+            /** Format: int64 */
+            x: number;
+            /** Format: int64 */
+            y: number;
+        };
+        ImageRef: {
             /** Format: int64 */
             bytes: number;
-            /** @description Square face crop in pixels of the full image; contacts only */
-            crop: components["schemas"]["Crop"];
+            /** @description Square face crop in pixels of the full image, null when none; contacts only */
+            crop: components["schemas"]["ImageCrop"] | null;
             /** Format: int64 */
             height: number;
             /** Format: int64 */
@@ -2220,7 +2220,7 @@ export interface components {
             taken_at: string | null;
             /** @description A small version, 480 px on the long edge */
             thumb_url: string;
-            /** @description The full image */
+            /** @description The full image, at most 2048 px on the long edge */
             url: string;
             /** Format: int64 */
             width: number;
@@ -2432,9 +2432,12 @@ export interface components {
              * @description Ignored when the note is added under /contacts/{id}/notes. On update, leaving it out keeps the current contact.
              */
             contact_id?: number;
-            content: string;
+            /** @description May be empty when the note has images */
+            content?: string;
             /** Format: date-time */
             date: string;
+            /** @description Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them. */
+            image_ids?: number[] | null;
         };
         NoteGroup: {
             items: components["schemas"]["NoteResult"][] | null;
@@ -2467,6 +2470,7 @@ export interface components {
             content: string;
             /** Format: date-time */
             date: string;
+            images: components["schemas"]["ImageRef"][];
         };
         NoteResult: {
             /**
@@ -5221,7 +5225,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ImageBody"];
+                    "application/json": components["schemas"]["ImageRef"];
                 };
             };
             /** @description Error */

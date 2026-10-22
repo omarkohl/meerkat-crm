@@ -851,9 +851,9 @@ export default function ContactDetailPage() {
         <EditTimelineItemDialog
           open={!!editingTimelineItem}
           onClose={handleCancelEditTimelineItem}
-          onSave={() => {
+          onSave={(imageIds) => {
             if (editingTimelineItem.type === 'note') {
-              handleUpdateNote(editingTimelineItem.id);
+              handleUpdateNote(editingTimelineItem.id, imageIds);
             } else {
               handleUpdateActivity(editingTimelineItem.id);
             }

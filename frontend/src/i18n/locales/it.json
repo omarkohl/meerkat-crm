@@ -356,8 +356,8 @@
     "date": "Data",
     "cancel": "Annulla",
     "save": "Salva",
-    "required": "Il contenuto è obbligatorio",
-    "saveError": "Impossibile salvare la nota"
+    "saveError": "Impossibile salvare la nota",
+    "requiredOrImage": "Aggiungi del testo o un'immagine"
   },
   "activityDialog": {
     "title": "Aggiungi Attività",
@@ -1207,6 +1207,27 @@
       "reminders_other": "{{count}} promemoria",
       "relationships_one": "{{count}} relazione",
       "relationships_other": "{{count}} relazioni"
+    }
+  },
+  "images": {
+    "addImage": "Aggiungi immagine",
+    "removeImage": "Rimuovi immagine {{n}}",
+    "imageOf": "Immagine {{n}} di {{total}}",
+    "uploading_one": "Caricamento di {{count}} immagine…",
+    "uploading_other": "Caricamento di {{count}} immagini…",
+    "tooLarge": "Il file è troppo grande. La dimensione massima è 25 MB.",
+    "notAnImage": "Si possono aggiungere solo file immagine",
+    "retry": "Riprova",
+    "uploadFailed": "Caricamento non riuscito",
+    "reorderHint": "Alt + frecce spostano l'immagine",
+    "open": "Apri immagine {{n}} di {{total}}",
+    "lightbox": {
+      "previous": "Immagine precedente",
+      "next": "Immagine successiva",
+      "close": "Chiudi",
+      "zoomIn": "Ingrandisci",
+      "zoomOut": "Riduci",
+      "download": "Scarica"
     }
   }
 }

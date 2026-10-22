@@ -56,19 +56,21 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 type handlers struct{ uc *app.UseCases }
 
 type NoteBody struct {
-	Content   string    `json:"content" validate:"required,min=1,max=5000"`
+	Content   string    `json:"content" validate:"max=5000" doc:"May be empty when the note has images"`
 	Date      time.Time `json:"date" validate:"required"`
 	ContactID *uint     `json:"contact_id,omitempty" validate:"omitempty,gt=0" doc:"Ignored when the note is added under /contacts/{id}/notes. On update, leaving it out keeps the current contact."`
+	ImageIDs  []uint    `json:"image_ids,omitempty" validate:"max=20,dive,gt=0" doc:"Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them."`
 }
 
 type NoteResponse struct {
-	ID        uint       `json:"ID"`
-	CreatedAt time.Time  `json:"CreatedAt"`
-	UpdatedAt time.Time  `json:"UpdatedAt"`
-	DeletedAt *time.Time `json:"DeletedAt" nullable:"true"`
-	Content   string     `json:"content"`
-	Date      time.Time  `json:"date"`
-	ContactID *uint      `json:"contact_id" nullable:"true"`
+	ID        uint           `json:"ID"`
+	CreatedAt time.Time      `json:"CreatedAt"`
+	UpdatedAt time.Time      `json:"UpdatedAt"`
+	DeletedAt *time.Time     `json:"DeletedAt" nullable:"true"`
+	Content   string         `json:"content"`
+	Date      time.Time      `json:"date"`
+	ContactID *uint          `json:"contact_id" nullable:"true"`
+	Images    []api.ImageRef `json:"images" nullable:"false"`
 }
 
 type contactPath struct {
@@ -163,7 +165,7 @@ func (h *handlers) createForContact(ctx context.Context, in *CreateForContactInp
 		return nil, err
 	}
 	contact := domain.ContactID(in.ID)
-	n, err := h.uc.CreateNote(ctx, actor, in.Body.Content, in.Body.Date, &contact, api.Now(ctx))
+	n, err := h.uc.CreateNote(ctx, actor, in.Body.Content, in.Body.Date, &contact, in.Body.ImageIDs, api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, 0, in.ID)
 	}
@@ -175,7 +177,7 @@ func (h *handlers) create(ctx context.Context, in *CreateInput) (*NoteSavedOutpu
 	if err != nil {
 		return nil, err
 	}
-	n, err := h.uc.CreateNote(ctx, actor, in.Body.Content, in.Body.Date, contactOf(in.Body.ContactID), api.Now(ctx))
+	n, err := h.uc.CreateNote(ctx, actor, in.Body.Content, in.Body.Date, contactOf(in.Body.ContactID), in.Body.ImageIDs, api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, 0, 0)
 	}
@@ -217,7 +219,7 @@ func (h *handlers) update(ctx context.Context, in *UpdateInput) (*NoteSavedOutpu
 	if err != nil {
 		return nil, err
 	}
-	n, err := h.uc.UpdateNote(ctx, actor, domain.NoteID(in.ID), in.Body.Content, in.Body.Date, contactOf(in.Body.ContactID), api.Now(ctx))
+	n, err := h.uc.UpdateNote(ctx, actor, domain.NoteID(in.ID), in.Body.Content, in.Body.Date, contactOf(in.Body.ContactID), in.Body.ImageIDs, api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, in.ID, 0)
 	}
@@ -240,7 +242,13 @@ func (h *handlers) delete(ctx context.Context, in *notePath) (*NoteMessageOutput
 func NewNoteResponse(n domain.Note) NoteResponse {
 	r := NoteResponse{
 		ID: uint(n.ID), CreatedAt: n.CreatedAt, UpdatedAt: n.UpdatedAt, DeletedAt: n.DeletedAt,
-		Content: n.Content, Date: n.Date,
+		Content: n.Content, Date: n.Date, Images: make([]api.ImageRef, len(n.Images)),
+	}
+	for i, img := range n.Images {
+		r.Images[i] = api.ImageRef{
+			ID: img.ID, Width: img.Width, Height: img.Height, Mime: img.Mime, Bytes: img.Bytes, TakenAt: img.TakenAt,
+			URL: img.URL, ThumbURL: img.ThumbURL,
+		}
 	}
 	if n.ContactID != nil {
 		id := uint(*n.ContactID)
@@ -301,6 +309,14 @@ func actorOf(ctx context.Context) (domain.UserID, error) {
 func toAppError(err error, noteID, contactID uint) error {
 	if errors.Is(err, domain.ErrNotFound) {
 		return apperrors.ErrNotFound("Note").WithDetails("id", strconv.FormatUint(uint64(noteID), 10))
+	}
+	switch {
+	case errors.Is(err, domain.ErrEmpty):
+		return apperrors.ErrInvalidInput("content", "A note needs text or an image")
+	case errors.Is(err, domain.ErrImageNotFound):
+		return apperrors.ErrNotFound("Image")
+	case errors.Is(err, domain.ErrTooManyImages):
+		return apperrors.ErrInvalidInput("image_ids", "A note can have at most 20 images")
 	}
 	if errors.Is(err, domain.ErrContactNotFound) {
 		e := apperrors.ErrNotFound("Contact")
