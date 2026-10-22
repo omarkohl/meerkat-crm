@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/bits"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -44,6 +45,10 @@ func StoreImage(ctx context.Context, dir string, userID uint, data []byte) (mode
 	if err != nil {
 		return models.Image{}, err
 	}
+	return storePrepared(dir, userID, res)
+}
+
+func storePrepared(dir string, userID uint, res *imageproc.Result) (models.Image, error) {
 	userDir := filepath.Join("images", "u"+strconv.FormatUint(uint64(userID), 10))
 	if err := photofile.EnsureDir(filepath.Join(dir, userDir)); err != nil {
 		return models.Image{}, fmt.Errorf("create image directory: %w", err)
@@ -65,7 +70,7 @@ func StoreImage(ctx context.Context, dir string, userID uint, data []byte) (mode
 
 func loadContact(tx *gorm.DB, userID, contactID uint) (models.Contact, error) {
 	var c models.Contact
-	err := tx.Select("id", "photo", "photo_thumbnail_file", "main_image_id").Where("user_id = ?", userID).First(&c, contactID).Error
+	err := tx.Select("id", "photo", "photo_thumbnail_file", "photo_dhash", "main_image_id").Where("user_id = ?", userID).First(&c, contactID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c, ErrContactNotFound
 	}
@@ -140,7 +145,7 @@ func repairMain(tx *gorm.DB, dir string, userID uint, c models.Contact, eff *Ima
 		return nil
 	}
 	eff.Removed = append(eff.Removed, c.Photo, c.PhotoThumbnailFile)
-	return tx.Model(&models.Contact{}).Where("user_id = ? AND id = ?", userID, c.ID).
+	return tx.Model(&models.Contact{Model: gorm.Model{ID: c.ID}}).Where("user_id = ?", userID).
 		Updates(map[string]any{"main_image_id": nil, "photo": "", "photo_thumbnail_file": "", "photo_thumbnail": ""}).Error
 }
 
@@ -169,6 +174,7 @@ func makeMain(tx *gorm.DB, dir string, userID uint, c models.Contact, img models
 	}
 	photo, thumb := imageproc.Avatar(src.Image, *img.CropX, *img.CropY, *img.CropSize)
 	release()
+	dhash := int64(imageproc.DHash(photo, 0, 0, photo.Bounds().Dx())) //nolint:gosec // the bits are kept, not the value
 
 	if err := photofile.EnsureDir(dir); err != nil {
 		return err
@@ -189,8 +195,8 @@ func makeMain(tx *gorm.DB, dir string, userID uint, c models.Contact, img models
 		Updates(map[string]any{"crop_x": *img.CropX, "crop_y": *img.CropY, "crop_size": *img.CropSize}).Error; err != nil {
 		return err
 	}
-	return tx.Model(&models.Contact{}).Where("user_id = ? AND id = ?", userID, c.ID).
-		Updates(map[string]any{"main_image_id": img.ID, "photo": photoName, "photo_thumbnail_file": thumbName, "photo_thumbnail": ""}).Error
+	return tx.Model(&models.Contact{Model: gorm.Model{ID: c.ID}}).Where("user_id = ?", userID).
+		Updates(map[string]any{"main_image_id": img.ID, "photo": photoName, "photo_thumbnail_file": thumbName, "photo_thumbnail": "", "photo_dhash": dhash}).Error
 }
 
 // SetMainImage makes an image of the contact its main image with the given face crop.
@@ -312,4 +318,86 @@ func migrateContactPhoto(ctx context.Context, db *gorm.DB, dir string, c models.
 		photofile.Remove(dir, img.File, img.ThumbFile)
 	}
 	return err
+}
+
+// maxSamePictureDistance is the Hamming distance up to which two difference hashes show one picture
+// that was only re-encoded or resized.
+const maxSamePictureDistance = 8
+
+// ImportContactPhoto adds a photo that comes from outside (CardDAV, vCard, Monica) as the first and
+// main image of the contact, unless it shows the picture the contact has as its avatar already: a
+// phone that re-encodes the photo must not add an image on every sync. It reports whether it added one.
+func ImportContactPhoto(ctx context.Context, tx *gorm.DB, dir string, userID, contactID uint, data []byte, eff *ImageEffects) (bool, error) {
+	res, err := imageproc.Prepare(ctx, data)
+	if err != nil {
+		return false, err
+	}
+	return importPrepared(tx, dir, userID, contactID, res, eff)
+}
+
+// ImportContactPhotoAt is ImportContactPhoto in a transaction of its own. The picture is decoded
+// before the transaction starts, so the database is not locked meanwhile.
+func ImportContactPhotoAt(ctx context.Context, db *gorm.DB, dir string, userID, contactID uint, data []byte) (bool, error) {
+	res, err := imageproc.Prepare(ctx, data)
+	if err != nil {
+		return false, err
+	}
+	var eff ImageEffects
+	var added bool
+	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) (err error) {
+		added, err = importPrepared(tx, dir, userID, contactID, res, &eff)
+		return err
+	})
+	eff.Finish(dir, err)
+	return added && err == nil, err
+}
+
+func importPrepared(tx *gorm.DB, dir string, userID, contactID uint, res *imageproc.Result, eff *ImageEffects) (bool, error) {
+	contact, err := loadContact(tx, userID, contactID)
+	if err != nil {
+		return false, err
+	}
+	incoming, err := centredHash(res.Thumb)
+	if err != nil {
+		return false, err
+	}
+	if current, ok := avatarHash(contact, dir); ok && bits.OnesCount64(current^incoming) <= maxSamePictureDistance {
+		return false, nil
+	}
+	img, err := storePrepared(dir, userID, res)
+	if err != nil {
+		return false, err
+	}
+	_, err = AttachContactImage(tx, dir, userID, contactID, img, true, eff)
+	return err == nil, err
+}
+
+func centredHash(webp []byte) (uint64, error) {
+	src, err := imageproc.Decode(webp)
+	if err != nil {
+		return 0, err
+	}
+	b := src.Image.Bounds()
+	x, y, size := imageproc.CenteredCrop(b.Dx(), b.Dy())
+	return imageproc.DHash(src.Image, x, y, size), nil
+}
+
+// avatarHash is the hash of the contact's avatar: stored, or else read from the file for avatars
+// that were made before hashes were kept.
+func avatarHash(c models.Contact, dir string) (uint64, bool) {
+	if c.PhotoDHash != nil {
+		return uint64(*c.PhotoDHash), true //nolint:gosec // the bits were stored as they are
+	}
+	if c.Photo == "" || strings.Contains(c.Photo, "..") || strings.ContainsAny(c.Photo, "/\\") {
+		return 0, false
+	}
+	data, err := os.ReadFile(filepath.Join(dir, c.Photo)) //nolint:gosec // a plain file name, directory from config
+	if err != nil {
+		return 0, false
+	}
+	src, err := imageproc.Decode(data)
+	if err != nil {
+		return 0, false
+	}
+	return imageproc.DHash(src.Image, 0, 0, min(src.Image.Bounds().Dx(), src.Image.Bounds().Dy())), true
 }

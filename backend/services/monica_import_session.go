@@ -747,21 +747,17 @@ func (m *MonicaImportManager) processAvatars(db *gorm.DB, s *monicaImportSession
 		// Photos hosted by Monica are only reachable through the API; a gravatar
 		// is a user-supplied image URL (docs/adr/0017-fetching-user-supplied-urls.md).
 		var photoData []byte
-		var mediaType string
 		var err error
 		if task.source == avatarSourcePhoto {
-			photoData, mediaType, err = s.client.FetchContactPhoto(ctx, task.monicaID, task.avatarURL)
+			photoData, _, err = s.client.FetchContactPhoto(ctx, task.monicaID, task.avatarURL)
 		} else {
-			photoData, mediaType, err = carddav.FetchPhotoFromURL(ctx, task.avatarURL)
+			photoData, _, err = carddav.FetchPhotoFromURL(ctx, task.avatarURL)
 		}
 		if err != nil {
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("source", task.source).Msg("Failed to fetch Monica avatar")
 		} else {
-			photoPath, thumbnailFile, saveErr := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
-			if saveErr != nil {
+			if _, saveErr := ImportContactPhotoAt(ctx, db, cfg.ProfilePhotoDir, s.userID, task.contactID, photoData); saveErr != nil {
 				log.Warn().Err(saveErr).Uint("contact_id", task.contactID).Msg("Failed to save Monica avatar")
-			} else if updateErr := replaceContactPhoto(db, cfg.ProfilePhotoDir, task.contactID, photoPath, thumbnailFile); updateErr != nil {
-				log.Warn().Err(updateErr).Uint("contact_id", task.contactID).Msg("Failed to update contact with avatar")
 			} else {
 				saved = true
 			}

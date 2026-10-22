@@ -276,3 +276,22 @@ func Avatar(img image.Image, x, y, size int) (photo, thumb image.Image) {
 	}
 	return scale(min(size, AvatarSize)), scale(AvatarThumbSize)
 }
+
+// DHash is the 64-bit difference hash of the square at (x, y, size): the picture is shrunk to 9x8
+// grey values and each bit says whether a pixel is brighter than its right neighbour.
+func DHash(img image.Image, x, y, size int) uint64 {
+	b := img.Bounds()
+	square := image.Rect(b.Min.X+x, b.Min.Y+y, b.Min.X+x+size, b.Min.Y+y+size)
+	small := image.NewGray(image.Rect(0, 0, 9, 8))
+	xdraw.ApproxBiLinear.Scale(small, small.Bounds(), img, square, xdraw.Src, nil)
+	var h uint64
+	for row := range 8 {
+		for col := range 8 {
+			h <<= 1
+			if small.GrayAt(col, row).Y > small.GrayAt(col+1, row).Y {
+				h |= 1
+			}
+		}
+	}
+	return h
+}

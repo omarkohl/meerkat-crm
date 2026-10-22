@@ -25,8 +25,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **Images on activities** (https://github.com/omarkohl/meerkat-crm/issues/111): add images to an
   activity. They show on the Activities page and on the timeline of every contact in it.
 - **Several photos per contact** (https://github.com/omarkohl/meerkat-crm/issues/112): keep a
-  gallery on each contact, choose the main photo and frame the face. Merging contacts keeps all
-  photos.
+  gallery on each contact and frame the face. Photos from CardDAV and imports are added instead of
+  replacing the old one.
 
 ### Internal
 

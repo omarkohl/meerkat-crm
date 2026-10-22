@@ -68,6 +68,8 @@ type Contact struct {
 	Photo     string `json:"photo"` // Path to the profile photo
 	// PhotoThumbnailFile is the name of the 48px thumbnail in the photo directory ("" = none).
 	PhotoThumbnailFile string `gorm:"column:photo_thumbnail_file;not null;default:''" json:"-"`
+	// PhotoDHash is the difference hash of the avatar (the bits of a uint64); nil = not known yet.
+	PhotoDHash *int64 `gorm:"column:photo_dhash" json:"-"`
 	// MainImageID is the image the avatar (Photo and its thumbnail) is cut from.
 	MainImageID *uint `gorm:"column:main_image_id" json:"-"`
 	// LegacyThumbnail is the old base64 data URL column. Nothing writes it any more;

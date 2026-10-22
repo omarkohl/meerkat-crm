@@ -196,7 +196,9 @@ database gets smaller and list queries get cheaper. Migration 30; see "Merge imp
 the note, `images` in the response); a note may have images and no text. A contact keeps up to 50
 images (`PUT /contacts/:id/images`); its main image and square crop (`PUT /contacts/:id/main_image`,
 `contacts.main_image_id`) make the profile picture, which is now 400 px with a 96 px thumbnail.
-Admin system status shows the image count and bytes.
+Admin system status shows the image count and bytes. Photos that arrive by CardDAV (server and
+sync), vCard import and Monica import become images; a difference hash (`contacts.photo_dhash`,
+migration 39) stops a re-encoded copy of the current picture from adding another.
 
 **Integrations.** Webhooks and email go through an outbox with retries and a dead-letter state
 (migration 32). Optional Prometheus metrics at `/metrics`, off by default, with an optional token or

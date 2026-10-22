@@ -385,3 +385,30 @@ func TestCenteredCropIsTheLargestSquareInTheMiddle(t *testing.T) {
 	x, y, size = imageproc.CenteredCrop(300, 900)
 	assert.Equal(t, [3]int{0, 300, 300}, [3]int{x, y, size})
 }
+
+func ramp(w, h int, reversed bool) image.Image {
+	img := image.NewGray(image.Rect(0, 0, w, h))
+	for y := range h {
+		for x := range w {
+			v := uint8(x * 255 / (w - 1))
+			if reversed {
+				v = 255 - v
+			}
+			img.SetGray(x, y, color.Gray{v})
+		}
+	}
+	return img
+}
+
+// @023-US4
+func TestDHashFollowsTheBrightnessDirectionAndIgnoresTheSize(t *testing.T) {
+	assert.Equal(t, uint64(0), imageproc.DHash(ramp(90, 90, false), 0, 0, 90))
+	assert.Equal(t, ^uint64(0), imageproc.DHash(ramp(90, 90, true), 0, 0, 90))
+	assert.Equal(t, imageproc.DHash(ramp(400, 400, true), 0, 0, 400), imageproc.DHash(ramp(60, 60, true), 0, 0, 60))
+}
+
+// @023-US4
+func TestDHashLooksOnlyAtTheGivenSquare(t *testing.T) {
+	wide := ramp(300, 100, true)
+	assert.Equal(t, ^uint64(0), imageproc.DHash(wide, 100, 0, 100))
+}

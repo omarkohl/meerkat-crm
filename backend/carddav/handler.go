@@ -34,6 +34,9 @@ func NewHandler(db *gorm.DB, photoDir string) *Handler {
 	}
 }
 
+// SetPhotoImporter chooses how photos in cards are stored.
+func (h *Handler) SetPhotoImporter(f PhotoImporter) { h.backend.SetPhotoImporter(f) }
+
 // GinHandler returns a Gin handler function that wraps the CardDAV handler
 func (h *Handler) GinHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {

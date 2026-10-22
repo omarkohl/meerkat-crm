@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"image"
 	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -78,72 +78,45 @@ func photoCard(t *testing.T) vcard.Card {
 }
 
 // @020-US1
-func TestPutAddressObjectReplacingAPhotoDeletesTheOldFilesAndTheLegacyCopy(t *testing.T) {
-	b, ctx, db, user, dir := putPhotoBackend(t)
-	for _, n := range []string{"old_photo.jpg", "old_thumb.jpg"} {
-		require.NoError(t, os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o600))
-	}
-	contact := models.Contact{UserID: user.ID, Firstname: "Al", VCardUID: "uid-1", Photo: "old_photo.jpg",
-		PhotoThumbnailFile: "old_thumb.jpg", LegacyThumbnail: "data:image/jpeg;base64,AAAA"}
+func TestPutAddressObjectHandsThePhotoOfTheCardToTheImporter(t *testing.T) {
+	b, ctx, db, user, _ := putPhotoBackend(t)
+	contact := models.Contact{UserID: user.ID, Firstname: "Al", VCardUID: "uid-1"}
 	require.NoError(t, db.Create(&contact).Error)
+	var gotContact, gotSize int
+	b.SetPhotoImporter(func(_ context.Context, _ *gorm.DB, _ string, userID, contactID uint, data []byte) (bool, error) {
+		assert.Equal(t, user.ID, userID)
+		gotContact, gotSize = int(contactID), len(data)
+		return false, nil
+	})
+
+	_, err := b.PutAddressObject(ctx, "/carddav/addressbooks/u/contacts/uid-1.vcf", photoCard(t), nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, int(contact.ID), gotContact)
+	assert.Positive(t, gotSize)
+}
+
+func TestPutAddressObjectKeepsTheCardWhenTheImporterFails(t *testing.T) {
+	b, ctx, db, user, _ := putPhotoBackend(t)
+	require.NoError(t, db.Create(&models.Contact{UserID: user.ID, Firstname: "Al", VCardUID: "uid-1"}).Error)
+	b.SetPhotoImporter(func(context.Context, *gorm.DB, string, uint, uint, []byte) (bool, error) {
+		return false, errors.New("unreadable")
+	})
 
 	_, err := b.PutAddressObject(ctx, "/carddav/addressbooks/u/contacts/uid-1.vcf", photoCard(t), nil)
 	require.NoError(t, err)
 
 	var got models.Contact
-	require.NoError(t, db.First(&got, contact.ID).Error)
-	assert.NotEqual(t, "old_photo.jpg", got.Photo)
-	assert.NotEmpty(t, got.PhotoThumbnailFile)
-	assert.Empty(t, got.LegacyThumbnail)
-	assert.NoFileExists(t, filepath.Join(dir, "old_photo.jpg"))
-	assert.NoFileExists(t, filepath.Join(dir, "old_thumb.jpg"))
-	assert.FileExists(t, filepath.Join(dir, got.Photo))
-	assert.FileExists(t, filepath.Join(dir, got.PhotoThumbnailFile))
+	require.NoError(t, db.Where("vcard_uid = ?", "uid-1").First(&got).Error)
+	assert.Equal(t, "Al", got.Firstname)
 }
 
-func TestPutAddressObjectDeletesTheNewFilesWhenTheSaveFails(t *testing.T) {
-	b, ctx, db, user, dir := putPhotoBackend(t)
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "old_photo.jpg"), []byte("x"), 0o600))
-	contact := models.Contact{UserID: user.ID, Firstname: "Al", VCardUID: "uid-1", Photo: "old_photo.jpg"}
-	require.NoError(t, db.Create(&contact).Error)
-	require.NoError(t, db.Exec("CREATE TRIGGER fail_update BEFORE UPDATE ON contacts BEGIN SELECT RAISE(ABORT, 'no'); END").Error)
-
-	_, err := b.PutAddressObject(ctx, "/carddav/addressbooks/u/contacts/uid-1.vcf", photoCard(t), nil)
-	require.Error(t, err)
-
+func TestPutAddressObjectIgnoresThePhotoWithoutAnImporter(t *testing.T) {
+	b, ctx, _, _, dir := putPhotoBackend(t)
+	_, err := b.PutAddressObject(ctx, "/carddav/addressbooks/u/contacts/uid-2.vcf", photoCard(t), nil)
+	require.NoError(t, err)
 	entries, _ := os.ReadDir(dir)
-	require.Len(t, entries, 1, "only the old photo is left")
-	assert.Equal(t, "old_photo.jpg", entries[0].Name())
-}
-
-func TestPhotoSwapCommitAndRollback(t *testing.T) {
-	dir := t.TempDir()
-	for _, n := range []string{"old_photo.jpg", "old_thumb.jpg", "new_photo.jpg", "new_thumb.jpg"} {
-		require.NoError(t, os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o600))
-	}
-	c := &models.Contact{Photo: "old_photo.jpg", PhotoThumbnailFile: "old_thumb.jpg", LegacyThumbnail: "data:image/jpeg;base64,AA"}
-	swap := NewPhotoSwap(c)
-	swap.Apply(c, "new_photo.jpg", "new_thumb.jpg")
-	assert.Empty(t, c.LegacyThumbnail)
-
-	swap.Rollback(dir, c)
-	assert.Equal(t, "old_photo.jpg", c.Photo)
-	assert.Equal(t, "data:image/jpeg;base64,AA", c.LegacyThumbnail)
-	assert.NoFileExists(t, filepath.Join(dir, "new_photo.jpg"))
-	assert.FileExists(t, filepath.Join(dir, "old_photo.jpg"))
-
-	swap.Commit(dir)
-	assert.NoFileExists(t, filepath.Join(dir, "old_photo.jpg"))
-	assert.NoFileExists(t, filepath.Join(dir, "old_thumb.jpg"))
-
-	// Nothing replaced: Commit and Rollback leave everything alone.
-	touch := filepath.Join(dir, "keep_photo.jpg")
-	require.NoError(t, os.WriteFile(touch, []byte("x"), 0o600))
-	kept := &models.Contact{Photo: "keep_photo.jpg"}
-	none := NewPhotoSwap(kept)
-	none.Commit(dir)
-	none.Rollback(dir, kept)
-	assert.FileExists(t, touch)
+	assert.Empty(t, entries)
 }
 
 type twoUsers struct {

@@ -365,3 +365,104 @@ func TestAPhotoChangedDuringTheMigrationIsLeftAlone(t *testing.T) {
 	e.db.Model(&models.Image{}).Where("contact_id = ?", e.contact.ID).Count(&images)
 	assert.EqualValues(t, 1, images, "no image is added")
 }
+
+// rampJPEG gets brighter from left to right, or darker when reversed.
+func rampJPEG(t *testing.T, w, h int, reversed bool, quality int) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := range h {
+		for x := range w {
+			v := uint8(x * 255 / (w - 1))
+			if reversed {
+				v = 255 - v
+			}
+			img.Set(x, y, color.RGBA{v, v / 2, 255 - v, 255})
+		}
+	}
+	var b bytes.Buffer
+	require.NoError(t, jpeg.Encode(&b, img, &jpeg.Options{Quality: quality}))
+	return b.Bytes()
+}
+
+func (e *contactImageEnv) importPhoto(t *testing.T, data []byte) bool {
+	t.Helper()
+	var eff ImageEffects
+	var added bool
+	err := e.db.Transaction(func(tx *gorm.DB) (err error) {
+		added, err = ImportContactPhoto(context.Background(), tx, e.dir, e.user.ID, e.contact.ID, data, &eff)
+		return err
+	})
+	eff.Finish(e.dir, err)
+	require.NoError(t, err)
+	return added
+}
+
+func (e *contactImageEnv) gallery(t *testing.T) []models.Image {
+	t.Helper()
+	var imgs []models.Image
+	require.NoError(t, e.db.Where("contact_id = ?", e.contact.ID).Order("position").Find(&imgs).Error)
+	return imgs
+}
+
+// @023-US4
+func TestAnImportedPhotoBecomesTheFirstAndMainImage(t *testing.T) {
+	e := newContactImageEnv(t)
+	old := e.pending(t, e.user.ID, 100, 100)
+	var eff ImageEffects
+	require.NoError(t, SetContactImages(e.db, e.dir, e.user.ID, e.contact.ID, []uint{old.ID}, &eff))
+
+	require.True(t, e.importPhoto(t, rampJPEG(t, 300, 200, true, 90)))
+
+	imgs := e.gallery(t)
+	require.Len(t, imgs, 2)
+	assert.Equal(t, old.ID, imgs[1].ID, "the old image stays")
+	assert.Equal(t, imgs[0].ID, *e.reload(t, e.contact).MainImageID)
+	assert.Equal(t, 200, *imgs[0].CropSize, "centred crop")
+}
+
+// @023-US4
+func TestAReEncodedCopyOfTheAvatarAddsNothing(t *testing.T) {
+	e := newContactImageEnv(t)
+	require.True(t, e.importPhoto(t, rampJPEG(t, 300, 200, false, 95)))
+	before := e.reload(t, e.contact)
+
+	assert.False(t, e.importPhoto(t, rampJPEG(t, 150, 100, false, 60)), "smaller and more compressed")
+	assert.False(t, e.importPhoto(t, rampJPEG(t, 300, 200, false, 95)), "the same picture")
+
+	assert.Len(t, e.gallery(t), 1)
+	assert.Equal(t, before.Photo, e.reload(t, e.contact).Photo, "the avatar stays")
+}
+
+// @023-US4
+func TestADifferentPhotoAddsAnotherMainImage(t *testing.T) {
+	e := newContactImageEnv(t)
+	require.True(t, e.importPhoto(t, rampJPEG(t, 300, 200, false, 90)))
+	require.True(t, e.importPhoto(t, rampJPEG(t, 300, 200, true, 90)))
+	assert.Len(t, e.gallery(t), 2)
+}
+
+// @023-US4
+func TestAnAvatarWithoutAHashIsComparedByItsFile(t *testing.T) {
+	e := newContactImageEnv(t)
+	require.True(t, e.importPhoto(t, rampJPEG(t, 300, 200, false, 90)))
+	require.NoError(t, e.db.Model(&models.Contact{}).Where("id = ?", e.contact.ID).Update("photo_dhash", nil).Error)
+
+	assert.False(t, e.importPhoto(t, rampJPEG(t, 300, 200, false, 80)))
+	assert.Len(t, e.gallery(t), 1)
+}
+
+// @023-US3
+func TestChangingTheAvatarChangesTheETagOfTheContact(t *testing.T) {
+	e := newContactImageEnv(t)
+	a, b := e.pending(t, e.user.ID, 100, 100), e.pending(t, e.user.ID, 100, 100)
+	var eff ImageEffects
+	require.NoError(t, SetContactImages(e.db, e.dir, e.user.ID, e.contact.ID, []uint{a.ID, b.ID}, &eff))
+	first := e.reload(t, e.contact).ETag
+
+	require.NoError(t, SetMainImage(e.db, e.dir, e.user.ID, e.contact.ID, b.ID, ImageCropInput{X: 0, Y: 0, Size: 50}, &eff))
+	second := e.reload(t, e.contact).ETag
+	assert.NotEqual(t, first, second, "CardDAV clients must see the new photo")
+
+	require.NoError(t, SetContactImages(e.db, e.dir, e.user.ID, e.contact.ID, nil, &eff))
+	assert.NotEqual(t, second, e.reload(t, e.contact).ETag)
+}

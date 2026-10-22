@@ -1,12 +1,8 @@
 package carddav
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
-	"image"
-	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -293,18 +289,6 @@ func TestMissingContactsAnswerNotFound(t *testing.T) {
 	s := newServer(t)
 	assert.Equal(t, http.StatusNotFound, s.get("nobody-here").Code)
 	assert.Equal(t, http.StatusNotFound, s.do("DELETE", "/carddav/addressbooks/alice/contacts/nobody-here.vcf", "alice", alicePassword).Code)
-}
-
-// @020-US1
-func TestAVCardWithAPhotoGivesTheContactAPhoto(t *testing.T) {
-	s := newServer(t)
-	var buf bytes.Buffer
-	require.NoError(t, png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, 60, 60))))
-	photo := "PHOTO;ENCODING=b;TYPE=PNG:" + base64.StdEncoding.EncodeToString(buf.Bytes())
-
-	assert.Equal(t, http.StatusCreated, s.put("c-5", vcardBody("c-5", "Ivo", "Ives", photo)).Code)
-
-	assert.Contains(t, s.get("c-5").Body.String(), "PHOTO", "the client gets the profile picture back")
 }
 
 // @020-US1

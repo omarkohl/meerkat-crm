@@ -287,8 +287,10 @@ func newMeerkatRemote(t *testing.T) *davRemote {
 	}
 
 	photoDir := t.TempDir()
+	backend := mcarddav.NewBackend(db, photoDir)
+	backend.SetPhotoImporter(ImportContactPhotoAt)
 	handler := &carddavlib.Handler{
-		Backend: mcarddav.NewBackend(db, photoDir),
+		Backend: backend,
 		Prefix:  "/carddav",
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
