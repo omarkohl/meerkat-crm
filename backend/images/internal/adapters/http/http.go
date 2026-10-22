@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"meerkat/api"
 	apperrors "meerkat/errors"
@@ -40,6 +42,11 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 		Summary: "Make an image of the contact its main image; the avatar is cut from the crop",
 		Tags:    []string{"images"},
 	}, h.setMainImage)
+	api.RegisterOn(a, group, huma.Operation{
+		OperationID: "related-images", Method: http.MethodGet, Path: "/contacts/{id}/related_images",
+		Summary: "Images of the notes and activities of a contact, newest first",
+		Tags:    []string{"images"},
+	}, h.related)
 	if group == nil { // cmd/openapi describes operations only; the download is not
 		return
 	}
@@ -143,6 +150,59 @@ func (h *handlers) setMainImage(ctx context.Context, in *MainImageInput) (*MainI
 	}
 	out := &MainImageOutput{}
 	out.Body.MainImageID, out.Body.Image = uint(img.ID), body(img)
+	return out, nil
+}
+
+type RelatedInput struct {
+	ID    uint   `path:"id" minimum:"1" doc:"The contact's ID"`
+	Page  string `query:"page" doc:"Page number, from 1"`
+	Limit string `query:"limit" doc:"Page size, 1 to 100, default 20"`
+}
+
+type RelatedSource struct {
+	Type  string    `json:"type" enum:"note,activity"`
+	ID    uint      `json:"id"`
+	Label string    `json:"label" doc:"The start of the note, or the title of the activity"`
+	Date  time.Time `json:"date"`
+}
+
+type RelatedImage struct {
+	Image  api.ImageRef  `json:"image"`
+	Source RelatedSource `json:"source"`
+}
+
+type RelatedOutput struct {
+	Body struct {
+		Images []RelatedImage `json:"images" nullable:"false"`
+		Total  int64          `json:"total"`
+		Page   int            `json:"page"`
+		Limit  int            `json:"limit"`
+	}
+}
+
+func atoiOr0(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+func (h *handlers) related(ctx context.Context, in *RelatedInput) (*RelatedOutput, error) {
+	actor, ok := api.UserID(ctx)
+	if !ok {
+		return nil, apperrors.ErrUnauthorized("Authentication required")
+	}
+	p, err := h.uc.RelatedImages(ctx, domain.UserID(actor), domain.ContactID(in.ID), atoiOr0(in.Page), atoiOr0(in.Limit))
+	if err != nil {
+		return nil, toAppError(err)
+	}
+	out := &RelatedOutput{}
+	out.Body.Images = make([]RelatedImage, len(p.Images))
+	for i, r := range p.Images {
+		out.Body.Images[i] = RelatedImage{Image: body(r.Image), Source: RelatedSource{Type: r.Source.Kind, ID: r.Source.ID, Label: r.Source.Label, Date: r.Source.Date}}
+	}
+	out.Body.Total, out.Body.Page, out.Body.Limit = p.Total, p.Page, p.Limit
 	return out, nil
 }
 

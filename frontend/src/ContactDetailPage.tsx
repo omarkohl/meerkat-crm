@@ -35,6 +35,7 @@ import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
 import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
 import ContactPhotos from './components/images/ContactPhotos';
+import RelatedImages from './components/images/RelatedImages';
 import ImageLightbox from './components/images/ImageLightbox';
 import type { Crop } from './utils/faceCrop';
 import { useContactDialogs } from './hooks/useContactDialogs';
@@ -716,6 +717,10 @@ export default function ContactDetailPage() {
           setProfilePictureDialogOpen(true);
         }}
         onChanged={reloadPhotos}
+      />
+      <RelatedImages
+        contactId={contact.ID}
+        version={[...notes, ...activities].map((i) => `${String(i.ID)}:${String(i.images.length)}`).join()}
       />
       {mergePickerOpen && (
         <MergePickerDialog

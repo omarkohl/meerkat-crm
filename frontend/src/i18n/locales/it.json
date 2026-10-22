@@ -1237,6 +1237,9 @@
     "setMain": "Imposta come principale",
     "adjustCrop": "Regola il ritaglio",
     "delete": "Elimina",
-    "usePhotoDate": "Usa la data della foto ({{date}})"
+    "usePhotoDate": "Usa la data della foto ({{date}})",
+    "related": "Da note e attività",
+    "showMore": "Mostra altro",
+    "openRelated": "Mostra l'immagine collegata {{n}} di {{total}}"
   }
 }

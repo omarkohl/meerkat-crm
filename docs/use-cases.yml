@@ -381,3 +381,9 @@
   actor: user
   priority: low
   status: implemented
+
+- id: 023-US6
+  title: See the images of notes and activities on a contact
+  actor: user
+  priority: low
+  status: implemented

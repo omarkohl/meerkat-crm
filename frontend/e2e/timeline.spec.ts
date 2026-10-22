@@ -44,6 +44,29 @@ test.describe('Timeline', () => {
     }
   });
 
+  test('see the images of notes and activities on the contact page @023-US6', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await expect(page.getByText('From notes and activities')).toBeHidden();
+
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByLabel('Content').fill('Hiking day');
+      await pasteImage(page);
+      await expect(dialog.getByRole('button', { name: /remove image/i })).toBeVisible();
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+
+      const section = page.getByText('From notes and activities');
+      await expect(section).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Hiking day' })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
   test('attach a pasted image to a note and open it @023-US1', async ({ page }) => {
     const contact = await createTestContact(page.request);
 

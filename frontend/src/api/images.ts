@@ -1,6 +1,6 @@
 // Image upload. XHR instead of fetch: only XHR reports upload progress.
-import { API_BASE_URL, ApiError } from './client';
-import type { components } from '../types/generated/api';
+import { API_BASE_URL, ApiError, apiFetch, getAuthHeaders, parseErrorResponse } from './client';
+import type { components, operations } from '../types/generated/api';
 
 export type ImageRef = components['schemas']['ImageRef'];
 
@@ -48,4 +48,18 @@ export function uploadImage(file: File, onProgress: (fraction: number) => void):
       xhr.abort();
     },
   };
+}
+
+export type RelatedImage = components['schemas']['RelatedImage'];
+export type RelatedImagesPage = operations['related-images']['responses']['200']['content']['application/json'];
+
+export async function getRelatedImages(contactId: number, page: number, limit: number): Promise<RelatedImagesPage> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/contacts/${String(contactId)}/related_images?page=${String(page)}&limit=${String(limit)}`,
+    { headers: getAuthHeaders() },
+  );
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+  return (await response.json()) as RelatedImagesPage;
 }

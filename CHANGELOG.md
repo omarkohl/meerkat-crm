@@ -29,6 +29,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
   replacing the old one.
 - **Photo date suggestion**: when the first image of a new note or activity has a capture date, a
   chip offers to use it as the date.
+- **Images of notes and activities on the contact**: the contact page shows them in one section,
+  newest first, each linked to its note or activity.
 
 ### Internal
 

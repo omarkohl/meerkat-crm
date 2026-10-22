@@ -1237,6 +1237,9 @@
     "setMain": "Set as main",
     "adjustCrop": "Adjust crop",
     "delete": "Delete",
-    "usePhotoDate": "Use photo date ({{date}})"
+    "usePhotoDate": "Use photo date ({{date}})",
+    "related": "From notes and activities",
+    "showMore": "Show more",
+    "openRelated": "View related image {{n}} of {{total}}"
   }
 }

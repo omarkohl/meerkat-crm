@@ -82,6 +82,25 @@ func (i Image) FileOf(v Variant) string {
 	return i.File
 }
 
+// Related is an image of a note or activity of a contact, with where it comes from.
+type Related struct {
+	Image
+	Source RelatedSource
+}
+
+type RelatedSource struct {
+	// Kind is "note" or "activity"; Label is the start of the note or the title of the activity.
+	Kind  string
+	ID    uint
+	Label string
+	Date  time.Time
+}
+
+const (
+	DefaultRelatedLimit = 20
+	MaxRelatedLimit     = 100
+)
+
 type File struct {
 	io.ReadSeekCloser
 	ModTime time.Time

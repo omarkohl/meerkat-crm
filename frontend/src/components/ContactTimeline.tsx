@@ -56,7 +56,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
           const isValidDate = !isNaN(itemDate.getTime());
 
           return (
-            <TimelineItem key={`${item.type}-${item.data.ID}`}>
+            <TimelineItem key={`${item.type}-${item.data.ID}`} id={`timeline-${item.type}-${String(item.data.ID)}`}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
                 <Typography variant="caption">
                   {isValidDate

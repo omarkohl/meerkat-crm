@@ -199,6 +199,8 @@ images (`PUT /contacts/:id/images`); its main image and square crop (`PUT /conta
 Admin system status shows the image count and bytes. Photos that arrive by CardDAV (server and
 sync), vCard import and Monica import become images; a difference hash (`contacts.photo_dhash`,
 migration 39) stops a re-encoded copy of the current picture from adding another.
+`GET /contacts/:id/related_images` lists the images of the contact's notes and activities, newest
+first, with their source.
 
 **Integrations.** Webhooks and email go through an outbox with retries and a dead-letter state
 (migration 32). Optional Prometheus metrics at `/metrics`, off by default, with an optional token or

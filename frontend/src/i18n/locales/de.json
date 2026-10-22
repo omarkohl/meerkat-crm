@@ -1237,6 +1237,9 @@
     "setMain": "Als Hauptfoto festlegen",
     "adjustCrop": "Ausschnitt anpassen",
     "delete": "Löschen",
-    "usePhotoDate": "Fotodatum verwenden ({{date}})"
+    "usePhotoDate": "Fotodatum verwenden ({{date}})",
+    "related": "Aus Notizen und Aktivitäten",
+    "showMore": "Mehr anzeigen",
+    "openRelated": "Verknüpftes Bild {{n}} von {{total}} ansehen"
   }
 }
