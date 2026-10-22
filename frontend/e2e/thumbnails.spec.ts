@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { openContactList, createTestContact, deleteTestContact } from './fixtures';
+import { openContact, openContactList, createTestContact, deleteTestContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // A 60x60 red PNG
@@ -40,6 +40,31 @@ test.describe('Contact thumbnails', () => {
       await expect.poll(() => avatar.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
     } finally {
       await deleteTestContact(request, created.ID);
+    }
+  });
+});
+
+test.describe('Profile picture', () => {
+  test('paste an image to set the profile picture @004-US9', async ({ page, request }) => {
+    const contact = await createTestContact(request, { firstname: 'Pasted', lastname: 'Avatar' });
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: 'Upload Profile Picture' }).click();
+      await expect(page.getByText('You can also paste an image')).toBeVisible();
+
+      await page.evaluate((b64) => {
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const data = new DataTransfer();
+        data.items.add(new File([bytes], 'shot.png', { type: 'image/png' }));
+        document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+      }, PNG.toString('base64'));
+
+      await expect(page.getByRole('slider', { name: 'Zoom' })).toBeVisible();
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(page.getByRole('img').first()).toBeVisible();
+    } finally {
+      await deleteTestContact(request, contact.ID);
     }
   });
 });

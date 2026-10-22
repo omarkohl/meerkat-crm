@@ -13,6 +13,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Paste a profile picture** (https://github.com/omarkohl/meerkat-crm/issues/194): paste an image
+  from the clipboard into the profile picture dialog, or drop it there.
 - **Activities with a date range** (https://github.com/omarkohl/meerkat-crm/issues/209): give an
   activity an optional end date, such as for a trip. Calendar subscriptions import multi-day events
   as ranges.

@@ -19,6 +19,7 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import LinkIcon from '@mui/icons-material/Link';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
+import { useImageInput } from '../hooks/useImageInput';
 import { API_BASE_URL, apiFetch, parseErrorResponse } from '../api/client';
 
 interface ProfilePictureUploadDialogProps {
@@ -74,6 +75,8 @@ function createImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+
 export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: ProfilePictureUploadDialogProps) {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -91,19 +94,9 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const loadFile = (file: File) => {
     setError(null);
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError(t('profilePicture.invalidFileType'));
-      return;
-    }
-
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       setError(t('profilePicture.fileTooLarge'));
       return;
@@ -116,6 +109,27 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
       setZoom(1);
     });
     reader.readAsDataURL(file);
+  };
+
+  const { dropProps } = useImageInput({
+    enabled: open && !uploading,
+    onFiles: ([file]) => {
+      if (file) loadFile(file);
+    },
+    onReject: () => {
+      setError(t('profilePicture.invalidFileType'));
+    },
+  });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError(t('profilePicture.invalidFileType'));
+      return;
+    }
+    loadFile(file);
   };
 
   const handleFetchFromUrl = async () => {
@@ -220,6 +234,7 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
                 },
               }}
               component="label"
+              {...dropProps}
             >
               <input type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
               <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
@@ -228,6 +243,9 @@ export default function ProfilePictureUploadDialog({ open, onClose, onUpload }: 
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {t('profilePicture.dragOrClick')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                {t('profilePicture.pasteHint', { shortcut: isMac ? '⌘V' : 'Ctrl+V' })}
               </Typography>
             </Box>
 

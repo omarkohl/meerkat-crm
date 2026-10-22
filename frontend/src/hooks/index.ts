@@ -8,3 +8,4 @@ export * from './useTimelineEditing';
 export * from './useContactDialogs';
 export * from './useDebounce';
 export * from './useTrash';
+export * from './useImageInput';
