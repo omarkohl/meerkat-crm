@@ -1,4 +1,4 @@
-import { test, expect, createTestContact, deleteTestContact, openContact } from './fixtures';
+import { test, expect, createTestContact, deleteTestContact, openContact, pasteImage } from './fixtures';
 
 test.describe('Activities', () => {
   test('the date filters use the date format from the settings @005-US3', async ({ page }) => {
@@ -76,6 +76,40 @@ test.describe('Activities', () => {
       }
     } finally {
       await deleteTestContact(page.request, host.ID);
+      await deleteTestContact(page.request, guest.ID);
+    }
+  });
+
+  test('an activity shows its images on the timeline of every contact @023-US2', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+    const guest = await createTestContact(page.request, { lastname: 'Guest' });
+    const title = `E2E photos ${Date.now()}`;
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /^add activity$/i }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
+      await pasteImage(page);
+      await expect(dialog.getByRole('button', { name: /remove image/i })).toBeVisible();
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+      const entry = page.getByRole('listitem').filter({ hasText: title });
+      await expect(entry.getByRole('button', { name: /open image 1 of 1/i })).toBeVisible();
+
+      await openContact(page, guest);
+      await page.getByRole('button', { name: /^add activity$/i }).click();
+      const pick = page.getByRole('dialog');
+      await pick.getByRole('button', { name: 'Existing activities' }).click();
+      await pick.getByRole('combobox', { name: 'Activities' }).fill(title);
+      await page.getByRole('option', { name: new RegExp(title) }).click();
+      await pick.getByRole('button', { name: /^save$/i }).click();
+      await expect(pick).toBeHidden();
+      await expect(entry.getByRole('button', { name: /open image 1 of 1/i })).toBeVisible();
+      await entry.getByRole('button', { name: /open image 1 of 1/i }).click();
+      await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
       await deleteTestContact(page.request, guest.ID);
     }
   });

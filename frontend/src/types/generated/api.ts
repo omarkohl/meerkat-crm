@@ -1511,6 +1511,8 @@ export interface components {
              * @description Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it.
              */
             end_date?: string | null;
+            /** @description Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them. */
+            image_ids?: number[] | null;
             location?: string;
             title: string;
         };
@@ -1550,6 +1552,7 @@ export interface components {
             description: string;
             /** Format: date-time */
             end_date: string | null;
+            images: components["schemas"]["ImageRef"][];
             location: string;
             title: string;
         };

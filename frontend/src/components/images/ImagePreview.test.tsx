@@ -17,26 +17,20 @@ const image = (id: number): ImageRef => ({
 });
 
 describe('ImagePreview', () => {
-  test('shows the first image with a +N badge and opens it on click', () => {
+  test('shows up to 3 images with a +N badge and opens one on click', () => {
     const onOpen = vi.fn();
     const parentClick = vi.fn();
     render(
       <div onClick={parentClick} role="presentation">
-        <ImagePreview images={[image(1), image(2), image(3)]} onOpen={onOpen} />
+        <ImagePreview images={[image(1), image(2), image(3), image(4)]} onOpen={onOpen} />
       </div>,
     );
-    const button = screen.getByRole('button', { name: 'Open image 1 of 3' });
+    const button = screen.getByRole('button', { name: 'Open image 1 of 4' });
     expect(button.querySelector('img')?.getAttribute('src')).toBe('/thumb/1');
-    expect(screen.getByText('+2')).toBeTruthy();
+    expect(screen.getByText('+1')).toBeTruthy();
     fireEvent.click(button);
     expect(onOpen).toHaveBeenCalledWith(0);
     expect(parentClick).not.toHaveBeenCalled();
-  });
-
-  test('an image-only item can show several previews in a row', () => {
-    render(<ImagePreview images={[image(1), image(2), image(3), image(4)]} onOpen={vi.fn()} visible={3} />);
-    expect(screen.getAllByRole('button')).toHaveLength(3);
-    expect(screen.getByText('+1')).toBeTruthy();
   });
 
   test('renders nothing without images', () => {

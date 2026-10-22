@@ -32,7 +32,7 @@ const note = (id: number, content: string): Note => ({
 
 // @023-US1
 describe('ContactTimeline', () => {
-  test('a note with text shows one preview, like on the Notes page', () => {
+  test('a note with text shows up to three previews, like on the Notes page', () => {
     render(
       <MemoryRouter>
         <DateFormatProvider>
@@ -43,7 +43,7 @@ describe('ContactTimeline', () => {
         </DateFormatProvider>
       </MemoryRouter>,
     );
-    expect(screen.getAllByRole('button', { name: /Open image/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /Open image/ })).toHaveLength(3);
   });
 
   test('a note with images only shows up to three previews', () => {

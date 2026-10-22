@@ -36,6 +36,7 @@ export function useContactDialogs(
     date: string;
     end_date?: string;
     contact_ids: number[];
+    image_ids: number[];
   }) => {
     try {
       await createActivity({
@@ -45,6 +46,7 @@ export function useContactDialogs(
         date: new Date(activity.date).toISOString(),
         end_date: endDateToSend(activity.date, activity.end_date),
         contact_ids: activity.contact_ids,
+        image_ids: activity.image_ids,
       });
       await onRefresh();
     } catch (err) {

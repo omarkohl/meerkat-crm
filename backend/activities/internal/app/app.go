@@ -39,6 +39,10 @@ type Tx interface {
 	Create(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID) (domain.Activity, error)
 	// Update stores the edited fields; contacts nil keeps the links, otherwise they are replaced.
 	Update(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID) (domain.Activity, error)
+	// SetImages makes ids the ordered images of the activity and returns them, with the files of the images it deleted.
+	SetImages(ctx context.Context, actor domain.UserID, id domain.ActivityID, ids []uint) (images []domain.ImageRef, removed []string, err error)
+	// DeleteImages deletes the images of the activity and returns their files.
+	DeleteImages(ctx context.Context, actor domain.UserID, id domain.ActivityID) (removed []string, err error)
 	Delete(ctx context.Context, actor domain.UserID, id domain.ActivityID) error
 }
 
@@ -51,6 +55,11 @@ type Events interface {
 	ActivityCreated(ctx context.Context, actor domain.UserID, a domain.Activity, now time.Time)
 	ActivityUpdated(ctx context.Context, actor domain.UserID, a domain.Activity, now time.Time)
 	ActivityDeleted(ctx context.Context, actor domain.UserID, id domain.ActivityID, now time.Time)
+}
+
+// Files removes image files that no row refers to any more.
+type Files interface {
+	Remove(names ...string)
 }
 
 type Stage string
@@ -79,16 +88,18 @@ type UseCases struct {
 	activities Activities
 	store      Store
 	events     Events
+	files      Files
 }
 
-func New(activities Activities, store Store, events Events) *UseCases {
-	return &UseCases{activities: activities, store: store, events: events}
+func New(activities Activities, store Store, events Events, files Files) *UseCases {
+	return &UseCases{activities: activities, store: store, events: events, files: files}
 }
 
 func fail(stage Stage, err error) error {
 	var f *Failure
 	if errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrContactNotFound) ||
-		errors.Is(err, domain.ErrContactsNotFound) || errors.As(err, &f) {
+		errors.Is(err, domain.ErrContactsNotFound) || errors.Is(err, domain.ErrImageNotFound) ||
+		errors.Is(err, domain.ErrTooManyImages) || errors.As(err, &f) {
 		return err
 	}
 	return &Failure{Stage: stage, Err: err}
@@ -145,27 +156,35 @@ func requireContacts(ctx context.Context, tx Tx, actor domain.UserID, ids []doma
 	return nil
 }
 
-func (u *UseCases) CreateActivity(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID, now time.Time) (domain.Activity, error) {
+// CreateActivity adds an activity. images are the ids of uploaded images, in order.
+func (u *UseCases) CreateActivity(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID, images []uint, now time.Time) (domain.Activity, error) {
 	var created domain.Activity
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		if err := requireContacts(ctx, tx, actor, contacts); err != nil {
 			return err
 		}
 		var err error
 		created, err = tx.Create(ctx, actor, a, contacts)
+		if err != nil || len(images) == 0 {
+			return err
+		}
+		created.Images, removed, err = tx.SetImages(ctx, actor, created.ID, images)
 		return err
 	})
 	if err != nil {
 		return domain.Activity{}, fail(StageCreate, err)
 	}
+	u.files.Remove(removed...)
 	u.events.ActivityCreated(ctx, actor, created, now)
 	return created, nil
 }
 
 // UpdateActivity edits an activity. contacts nil keeps its contacts; a list, even an empty
-// one, replaces them. keepEndDate ignores edit.EndDate.
-func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id domain.ActivityID, edit domain.Activity, keepEndDate bool, contacts []domain.ContactID, now time.Time) (domain.Activity, error) {
+// one, replaces them; images work the same way. keepEndDate ignores edit.EndDate.
+func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id domain.ActivityID, edit domain.Activity, keepEndDate bool, contacts []domain.ContactID, images []uint, now time.Time) (domain.Activity, error) {
 	var updated domain.Activity
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		a, err := tx.Get(ctx, actor, id)
 		if err != nil {
@@ -182,25 +201,38 @@ func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id d
 			return domain.ErrEndBeforeStart
 		}
 		updated, err = tx.Update(ctx, actor, a, contacts)
+		if err != nil {
+			return err
+		}
+		if images != nil {
+			updated.Images, removed, err = tx.SetImages(ctx, actor, id, images)
+		}
 		return err
 	})
 	if err != nil {
 		return domain.Activity{}, fail(StageUpdate, err)
 	}
+	u.files.Remove(removed...)
 	u.events.ActivityUpdated(ctx, actor, updated, now)
 	return updated, nil
 }
 
 func (u *UseCases) DeleteActivity(ctx context.Context, actor domain.UserID, id domain.ActivityID, now time.Time) error {
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		if _, err := tx.Get(ctx, actor, id); err != nil {
 			return fail(StageRetrieve, err)
+		}
+		var err error
+		if removed, err = tx.DeleteImages(ctx, actor, id); err != nil {
+			return err
 		}
 		return tx.Delete(ctx, actor, id)
 	})
 	if err != nil {
 		return fail(StageDelete, err)
 	}
+	u.files.Remove(removed...)
 	u.events.ActivityDeleted(ctx, actor, id, now)
 	return nil
 }

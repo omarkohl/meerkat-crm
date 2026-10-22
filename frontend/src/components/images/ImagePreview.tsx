@@ -3,18 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { Box, ButtonBase, Typography } from '@mui/material';
 import type { ImageRef } from '../../api/images';
 
+// The rest becomes a "+N" badge on the last preview.
+const VISIBLE = 3;
+
 interface ImagePreviewProps {
   images: ImageRef[];
   onOpen: (index: number) => void;
-  // How many previews sit in a row; the rest becomes a "+N" badge on the last one.
-  visible?: number;
   size?: number;
 }
 
-export default function ImagePreview({ images, onOpen, visible = 1, size = 64 }: ImagePreviewProps) {
+export default function ImagePreview({ images, onOpen, size = 64 }: ImagePreviewProps) {
   const { t } = useTranslation();
   if (images.length === 0) return null;
-  const shown = images.slice(0, visible);
+  const shown = images.slice(0, VISIBLE);
   const extra = images.length - shown.length;
 
   return (

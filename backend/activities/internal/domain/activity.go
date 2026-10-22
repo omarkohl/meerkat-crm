@@ -21,6 +21,11 @@ var ErrContactNotFound = errors.New("contact not found")
 // ErrContactsNotFound means at least one of the named contacts is not the actor's.
 var ErrContactsNotFound = errors.New("one or more contacts not found")
 
+var (
+	ErrImageNotFound = errors.New("image not found")
+	ErrTooManyImages = errors.New("too many images")
+)
+
 var ErrEndBeforeStart = errors.New("end date before start date")
 
 // ContactRef is the part of a contact an activity shows.
@@ -29,6 +34,16 @@ type ContactRef struct {
 	Firstname string
 	Lastname  string
 	Circles   []string
+}
+
+// ImageRef is an image of an activity as it is shown: sizes and where to fetch it.
+type ImageRef struct {
+	ID            uint
+	Width, Height int
+	Mime          string
+	Bytes         int64
+	TakenAt       *time.Time
+	URL, ThumbURL string
 }
 
 type Activity struct {
@@ -44,6 +59,7 @@ type Activity struct {
 	Date        time.Time
 	EndDate     *time.Time
 	Contacts    []ContactRef
+	Images      []ImageRef
 }
 
 func (a *Activity) Edit(title, description, location string, date time.Time, endDate *time.Time) {

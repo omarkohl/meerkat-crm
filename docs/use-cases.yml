@@ -357,3 +357,9 @@
   actor: user
   priority: medium
   status: implemented
+
+- id: 023-US2
+  title: Attach images to an activity
+  actor: user
+  priority: medium
+  status: implemented

@@ -11,6 +11,7 @@ import (
 	"meerkat/activities/internal/domain"
 	"meerkat/models"
 	"meerkat/search"
+	"meerkat/services"
 
 	"gorm.io/gorm"
 )
@@ -90,7 +91,7 @@ func (r *Repository) List(ctx context.Context, actor domain.UserID, f app.Filter
 		for i, m := range found {
 			out[i] = toDomain(m, nil)
 		}
-		return out, total, nil
+		return out, total, withImages(db, actor, out)
 	}
 	out, err := withContacts(db, actor, found)
 	return out, total, err
@@ -125,6 +126,25 @@ func (t *txRepo) Create(ctx context.Context, actor domain.UserID, a domain.Activ
 		return domain.Activity{}, err
 	}
 	return one(db, actor, m)
+}
+
+func (t *txRepo) SetImages(ctx context.Context, actor domain.UserID, id domain.ActivityID, ids []uint) ([]domain.ImageRef, []string, error) {
+	db := t.tx.WithContext(ctx)
+	removed, err := services.SetOwnerImages(db, uint(actor), services.ImageOwner{Kind: services.ImageOfActivity, ID: uint(id)}, ids)
+	switch {
+	case errors.Is(err, services.ErrImageNotFound):
+		return nil, nil, domain.ErrImageNotFound
+	case errors.Is(err, services.ErrTooManyImages):
+		return nil, nil, domain.ErrTooManyImages
+	case err != nil:
+		return nil, nil, err
+	}
+	byActivity, err := services.ImagesFor(db, uint(actor), services.ImageOfActivity, []uint{uint(id)})
+	return imageRefs(byActivity[uint(id)]), removed, err
+}
+
+func (t *txRepo) DeleteImages(ctx context.Context, actor domain.UserID, id domain.ActivityID) ([]string, error) {
+	return services.DeleteOwnerImages(t.tx.WithContext(ctx), uint(actor), services.ImageOwner{Kind: services.ImageOfActivity, ID: uint(id)})
 }
 
 func (t *txRepo) Update(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID) (domain.Activity, error) {
@@ -227,7 +247,34 @@ func withContacts(db *gorm.DB, actor domain.UserID, found []models.Activity) ([]
 	for i, m := range found {
 		out[i] = toDomain(m, refs[m.ID])
 	}
-	return out, nil
+	return out, withImages(db, actor, out)
+}
+
+// withImages fills the images of activities with one query.
+func withImages(db *gorm.DB, actor domain.UserID, activities []domain.Activity) error {
+	ids := make([]uint, len(activities))
+	for i, a := range activities {
+		ids[i] = uint(a.ID)
+	}
+	byActivity, err := services.ImagesFor(db, uint(actor), services.ImageOfActivity, ids)
+	if err != nil {
+		return err
+	}
+	for i := range activities {
+		activities[i].Images = imageRefs(byActivity[uint(activities[i].ID)])
+	}
+	return nil
+}
+
+func imageRefs(refs []models.ImageRef) []domain.ImageRef {
+	out := make([]domain.ImageRef, len(refs))
+	for i, r := range refs {
+		out[i] = domain.ImageRef{
+			ID: r.ID, Width: r.Width, Height: r.Height, Mime: r.Mime, Bytes: r.Bytes, TakenAt: r.TakenAt,
+			URL: r.URL, ThumbURL: r.ThumbURL,
+		}
+	}
+	return out
 }
 
 func contactIDs(ids []domain.ContactID) []uint {

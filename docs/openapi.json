@@ -142,6 +142,18 @@
               "null"
             ]
           },
+          "image_ids": {
+            "description": "Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them.",
+            "items": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "location": {
             "type": "string"
           },
@@ -285,6 +297,12 @@
               "null"
             ]
           },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": "array"
+          },
           "location": {
             "type": "string"
           },
@@ -301,7 +319,8 @@
           "description",
           "location",
           "date",
-          "end_date"
+          "end_date",
+          "images"
         ],
         "type": "object"
       },

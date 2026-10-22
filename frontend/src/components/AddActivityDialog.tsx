@@ -6,6 +6,7 @@ import {
   TextField,
   Button,
   Box,
+  Typography,
   Autocomplete,
   Chip,
   CircularProgress,
@@ -20,6 +21,8 @@ import { Contact, getContacts } from '../api/contacts';
 import { Activity } from '../api/activities';
 import ExistingActivitiesPicker from './ExistingActivitiesPicker';
 import { now } from '../utils/now';
+import { useImageUploads } from '../hooks/useImageUploads';
+import ImageAttachmentField from './images/ImageAttachmentField';
 
 interface AddActivityDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ interface AddActivityDialogProps {
     date: string;
     end_date?: string;
     contact_ids: number[];
+    image_ids: number[];
   }) => Promise<void>;
   onAddToActivities?: (activities: Activity[]) => Promise<void>;
   preselectedContact?: Contact;
@@ -57,6 +61,7 @@ export default function AddActivityDialog({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const uploads = useImageUploads();
 
   const loadContacts = useCallback(async (search: string = '') => {
     setLoading(true);
@@ -120,6 +125,7 @@ export default function AddActivityDialog({
         date,
         end_date: endDate || undefined,
         contact_ids: selectedContacts.map((c) => c.ID),
+        image_ids: uploads.imageIds,
       });
       handleClose();
     } catch {
@@ -141,6 +147,7 @@ export default function AddActivityDialog({
     setSearchInput('');
     setContacts([]);
     setError('');
+    uploads.reset();
     onClose();
   };
 
@@ -260,18 +267,27 @@ export default function AddActivityDialog({
                   ))
                 }
               />
+
+              <ImageAttachmentField uploads={uploads} disabled={saving} />
             </>
           )}
         </Box>
       </DialogContent>
       <DialogActions>
+        {mode === 'new' && uploads.busy && (
+          <Typography variant="caption" color="text.secondary" role="status" sx={{ mr: 'auto', ml: 1 }}>
+            {t('images.uploading', { count: uploads.items.filter((i) => i.status === 'uploading').length })}
+          </Typography>
+        )}
         <Button onClick={handleClose} disabled={saving}>
           {t('activityDialog.cancel')}
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
-          disabled={saving || (mode === 'existing' && existingActivities.length === 0)}
+          disabled={
+            saving || (mode === 'new' && uploads.busy) || (mode === 'existing' && existingActivities.length === 0)
+          }
         >
           {t('activityDialog.save')}
         </Button>

@@ -135,3 +135,16 @@ export async function openContact(page: Page, contact: { firstname: string; last
   await page.getByRole('link', { name: fullName }).first().click();
   await expect(page.getByRole('heading', { name: fullName })).toBeVisible();
 }
+
+// A 60x60 red PNG
+const RED_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAIAAAC1nk4lAAAAUUlEQVR4nO3OAQkAIBAAsc/0/QMYyxieMFiAzdn9zjwfSIdJS0sHSEtLB0hLSwdIS0sHSEtLB0hLSwdIS0sHSEtLB0hLSwdIS0sHSEtLB3yZvokke7GK49bPAAAAAElFTkSuQmCC';
+
+export async function pasteImage(page: Page) {
+  await page.evaluate((b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const data = new DataTransfer();
+    data.items.add(new File([bytes], 'shot.png', { type: 'image/png' }));
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, RED_PNG);
+}

@@ -1,12 +1,6 @@
 import { test, expect } from './fixtures';
-import { createTestContact, deleteTestContact, openContact } from './fixtures';
+import { createTestContact, deleteTestContact, openContact, pasteImage } from './fixtures';
 import { API_BASE_URL } from './global-setup';
-
-// A 60x60 red PNG
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAIAAAC1nk4lAAAAUUlEQVR4nO3OAQkAIBAAsc/0/QMYyxieMFiAzdn9zjwfSIdJS0sHSEtLB0hLSwdIS0sHSEtLB0hLSwdIS0sHSEtLB0hLSwdIS0sHSEtLB3yZvokke7GK49bPAAAAAElFTkSuQmCC',
-  'base64',
-);
 
 // Notes and activities both render in the contact's Timeline tab. Each test
 // uses a throwaway contact and cleans it up (which cascades the note/activity).
@@ -42,12 +36,7 @@ test.describe('Timeline', () => {
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
 
-      await page.evaluate((b64) => {
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const data = new DataTransfer();
-        data.items.add(new File([bytes], 'shot.png', { type: 'image/png' }));
-        document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
-      }, PNG.toString('base64'));
+      await pasteImage(page);
 
       await expect(dialog.getByRole('button', { name: /remove image/i })).toBeVisible();
       await dialog.getByRole('button', { name: /^save$/i }).click();

@@ -265,7 +265,6 @@ const NotesPage: React.FC = () => {
                     </Box>
                     <ImagePreview
                       images={note.images}
-                      visible={note.content ? 1 : 3}
                       onOpen={(index) => {
                         setLightbox({ note, index });
                       }}

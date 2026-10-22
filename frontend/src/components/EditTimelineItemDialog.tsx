@@ -26,6 +26,7 @@ export interface TimelineItemValues {
   noteContent?: string;
   noteImages?: ImageRef[];
   noteDate?: string;
+  activityImages?: ImageRef[];
   activityTitle?: string;
   activityDescription?: string;
   activityLocation?: string;
@@ -57,7 +58,7 @@ export default function EditTimelineItemDialog({
   const [contactOptions, setContactOptions] = useState<Contact[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
-  const uploads = useImageUploads(values.noteImages);
+  const uploads = useImageUploads(values.noteImages ?? values.activityImages);
 
   useEffect(() => {
     if (!open || type !== 'activity') return;
@@ -205,6 +206,7 @@ export default function EditTimelineItemDialog({
                 ))
               }
             />
+            <ImageAttachmentField uploads={uploads} />
           </Box>
         )}
       </DialogContent>
@@ -221,7 +223,8 @@ export default function EditTimelineItemDialog({
             variant="contained"
             disabled={
               (type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)) ||
-              (type === 'note' && (noteIsEmpty || uploads.busy))
+              (type === 'note' && noteIsEmpty) ||
+              uploads.busy
             }
           >
             {t('contactDetail.save')}

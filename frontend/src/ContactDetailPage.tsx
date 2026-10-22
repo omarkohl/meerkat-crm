@@ -855,7 +855,7 @@ export default function ContactDetailPage() {
             if (editingTimelineItem.type === 'note') {
               handleUpdateNote(editingTimelineItem.id, imageIds);
             } else {
-              handleUpdateActivity(editingTimelineItem.id);
+              handleUpdateActivity(editingTimelineItem.id, imageIds);
             }
           }}
           onDelete={() => {

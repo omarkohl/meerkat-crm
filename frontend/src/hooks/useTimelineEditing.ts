@@ -23,6 +23,7 @@ export function useTimelineEditing(
     activityLocation?: string;
     activityDate?: string;
     activityEndDate?: string;
+    activityImages?: ImageRef[];
     activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
   }>({});
 
@@ -45,6 +46,7 @@ export function useTimelineEditing(
         activityLocation: activity.location || '',
         activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
         activityEndDate: dayOf(activity.end_date),
+        activityImages: activity.images,
         activityContacts: activity.contacts || [],
       });
     }
@@ -72,7 +74,7 @@ export function useTimelineEditing(
     }
   };
 
-  const handleUpdateActivity = async (activityId: number) => {
+  const handleUpdateActivity = async (activityId: number, imageIds: number[]) => {
     if (!editTimelineValues.activityTitle?.trim()) return;
     if (endsBeforeStart(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate)) return;
 
@@ -86,6 +88,7 @@ export function useTimelineEditing(
           : now().toISOString(),
         end_date: endDateToSend(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate),
         contact_ids: editTimelineValues.activityContacts?.map((c) => c.ID) || [],
+        image_ids: imageIds,
       });
       await onRefresh();
       handleCancelEditTimelineItem();

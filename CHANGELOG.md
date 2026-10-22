@@ -22,6 +22,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
 - **Images on notes**: paste, drop or pick images when you write a note. Notes show previews and
   open them full size.
+- **Images on activities** (https://github.com/omarkohl/meerkat-crm/issues/111): add images to an
+  activity. They show on the Activities page and on the timeline of every contact in it.
 
 ### Internal
 

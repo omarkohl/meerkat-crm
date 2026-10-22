@@ -194,6 +194,10 @@ The optional `end_date` is the last day of an activity that spans several days. 
 | `DELETE` | `/activities/:id`          | Delete an activity                                                                                                                               |
 | `GET`    | `/contacts/:id/activities` | List activities for a contact                                                                                                                    |
 
+An activity has `images`, and its body takes `image_ids`, in the same way as a note: at most 20,
+leaving them out on update keeps them, an empty list removes them. Deleting an activity deletes its
+images.
+
 ### Reminders
 
 | Method   | Path                                 | Description                                                                                                                                              |

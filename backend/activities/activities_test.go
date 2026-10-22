@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,6 +27,7 @@ import (
 )
 
 type env struct {
+	dir  string
 	db   *gorm.DB
 	a, b models.User
 	asA  *gin.Engine
@@ -39,14 +42,14 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Activity{}, &models.Webhook{}, &models.WebhookDelivery{}))
-	e := &env{db: db}
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Activity{}, &models.Image{}, &models.Webhook{}, &models.WebhookDelivery{}))
+	e := &env{db: db, dir: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
 
-	cfg := &config.Config{WebhookBlockPrivateURLs: true}
+	cfg := &config.Config{WebhookBlockPrivateURLs: true, ProfilePhotoDir: e.dir}
 	mount := func(userID uint) *gin.Engine {
 		r := gin.New()
 		r.Use(middleware.ClockMiddleware(clock.Real()))
@@ -410,4 +413,108 @@ func TestListFilterKeepsActivitiesThatOverlapTheRange(t *testing.T) {
 	assert.Equal(t, []string{"Trip"}, list("fromDate=2026-03-03&toDate=2026-03-05"), "the last day counts")
 	assert.Equal(t, []string{"Lunch"}, list("fromDate=2026-03-04"), "a range that ended is out")
 	assert.Equal(t, []string{"Trip"}, list("toDate=2026-02-28"))
+}
+
+func (e *env) image(t *testing.T, owner uint, name string) models.Image {
+	t.Helper()
+	img := models.Image{
+		UserID: owner, File: "images/u1/" + name + "_image.webp", ThumbFile: "images/u1/" + name + "_thumb.webp",
+		Mime: "image/webp", Width: 30, Height: 20, Bytes: 7,
+	}
+	require.NoError(t, e.db.Create(&img).Error)
+	require.NoError(t, os.MkdirAll(filepath.Join(e.dir, "images", "u1"), 0o750))
+	for _, f := range []string{img.File, img.ThumbFile} {
+		require.NoError(t, os.WriteFile(filepath.Join(e.dir, f), []byte("x"), 0o600))
+	}
+	return img
+}
+
+func (e *env) has(img models.Image) bool {
+	_, err := os.Stat(filepath.Join(e.dir, img.File))
+	return err == nil
+}
+
+func imageIDs(body map[string]any) []float64 {
+	out := []float64{}
+	for _, i := range body["images"].([]any) {
+		out = append(out, i.(map[string]any)["id"].(float64))
+	}
+	return out
+}
+
+// @023-US2
+func TestAnActivityCarriesItsImagesInOrderEverywhereItIsListed(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID, "Ann", "A")
+	one, two := e.image(t, e.a.ID, "1"), e.image(t, e.a.ID, "2")
+
+	w := send(e.asA, http.MethodPost, "/activities", map[string]any{
+		"title": "Hike", "date": day, "contact_ids": []uint{c.ID}, "image_ids": []uint{two.ID, one.ID},
+	})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	created := decode(t, w)["activity"].(map[string]any)
+	want := []float64{float64(two.ID), float64(one.ID)}
+	assert.Equal(t, want, imageIDs(created))
+	assert.Contains(t, created["images"].([]any)[0].(map[string]any)["thumb_url"], "/api/v1/images/")
+
+	id := sid(uint(created["ID"].(float64)))
+	assert.Equal(t, want, imageIDs(decode(t, send(e.asA, http.MethodGet, "/activities/"+id, nil))))
+	listed := decode(t, send(e.asA, http.MethodGet, "/activities", nil))["activities"].([]any)
+	assert.Equal(t, want, imageIDs(listed[0].(map[string]any)))
+	forContact := decode(t, send(e.asA, http.MethodGet, "/contacts/"+sid(c.ID)+"/activities", nil))["activities"].([]any)
+	assert.Equal(t, want, imageIDs(forContact[0].(map[string]any)))
+}
+
+// @023-US2
+func TestUpdateKeepsActivityImagesWhenTheFieldIsLeftOutAndRemovesThemWithAnEmptyList(t *testing.T) {
+	e := newEnv(t)
+	img := e.image(t, e.a.ID, "1")
+	w := send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "Hike", "date": day, "image_ids": []uint{img.ID}})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	id := sid(uint(decode(t, w)["activity"].(map[string]any)["ID"].(float64)))
+
+	w = send(e.asA, http.MethodPut, "/activities/"+id, map[string]any{"title": "Hike 2", "date": day})
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []float64{float64(img.ID)}, imageIDs(decode(t, w)))
+	assert.True(t, e.has(img))
+
+	w = send(e.asA, http.MethodPut, "/activities/"+id, map[string]any{"title": "Hike 2", "date": day, "image_ids": []uint{}})
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []float64{}, imageIDs(decode(t, w)))
+	assert.False(t, e.has(img), "the file goes with the row")
+}
+
+// @023-US2
+func TestDeletingAnActivityDeletesItsImagesAndFiles(t *testing.T) {
+	e := newEnv(t)
+	img := e.image(t, e.a.ID, "1")
+	w := send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "Hike", "date": day, "image_ids": []uint{img.ID}})
+	require.Equal(t, http.StatusOK, w.Code)
+	id := sid(uint(decode(t, w)["activity"].(map[string]any)["ID"].(float64)))
+
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodDelete, "/activities/"+id, nil).Code)
+	var rows int64
+	e.db.Model(&models.Image{}).Count(&rows)
+	assert.Zero(t, rows)
+	assert.False(t, e.has(img))
+}
+
+func TestActivityImagesOfOtherUsersOrOtherActivitiesCannotBeAttached(t *testing.T) {
+	e := newEnv(t)
+	theirs, mine := e.image(t, e.b.ID, "theirs"), e.image(t, e.a.ID, "mine")
+	body := func(ids ...uint) map[string]any {
+		return map[string]any{"title": "Hike", "date": day, "image_ids": ids}
+	}
+	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodPost, "/activities", body(theirs.ID)).Code)
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPost, "/activities", body(mine.ID)).Code)
+	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodPost, "/activities", body(mine.ID)).Code, "an image already on an activity")
+	var n int64
+	e.db.Model(&models.Activity{}).Count(&n)
+	assert.EqualValues(t, 1, n, "a refused request creates no activity")
+
+	var many []uint
+	for i := range 21 {
+		many = append(many, e.image(t, e.a.ID, "m"+strconv.Itoa(i)).ID)
+	}
+	assert.Equal(t, http.StatusBadRequest, send(e.asA, http.MethodPost, "/activities", body(many...)).Code)
 }

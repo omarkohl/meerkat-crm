@@ -20,6 +20,7 @@ import { Note } from '../api/notes';
 import { Activity } from '../api/activities';
 import { ReminderCompletion } from '../api/reminders';
 import { useDateFormat } from '../DateFormatProvider';
+import type { ImageRef } from '../api/images';
 import ImagePreview from './images/ImagePreview';
 import ImageLightbox from './images/ImageLightbox';
 
@@ -37,7 +38,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { formatDateRange } = useDateFormat();
-  const [lightbox, setLightbox] = useState<{ note: Note; index: number } | null>(null);
+  const [lightbox, setLightbox] = useState<{ images: ImageRef[]; index: number } | null>(null);
 
   if (timelineItems.length === 0) {
     return (
@@ -108,9 +109,16 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
                   {item.type === 'note' && (
                     <ImagePreview
                       images={(item.data as Note).images}
-                      visible={(item.data as Note).content ? 1 : 3}
                       onOpen={(index) => {
-                        setLightbox({ note: item.data as Note, index });
+                        setLightbox({ images: (item.data as Note).images, index });
+                      }}
+                    />
+                  )}
+                  {item.type === 'activity' && (
+                    <ImagePreview
+                      images={(item.data as Activity).images}
+                      onOpen={(index) => {
+                        setLightbox({ images: (item.data as Activity).images, index });
                       }}
                     />
                   )}
@@ -195,7 +203,7 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
         })}
       </Timeline>
       <ImageLightbox
-        images={lightbox?.note.images ?? []}
+        images={lightbox?.images ?? []}
         index={lightbox?.index ?? null}
         onClose={() => {
           setLightbox(null);

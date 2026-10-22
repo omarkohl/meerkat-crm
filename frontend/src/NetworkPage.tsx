@@ -21,11 +21,10 @@ import {
 } from '@mui/material';
 import NetworkGraph from './components/NetworkGraph';
 import NetworkLegend from './components/NetworkLegend';
-import EditTimelineItemDialog from './components/EditTimelineItemDialog';
+import EditTimelineItemDialog, { type TimelineItemValues } from './components/EditTimelineItemDialog';
 import { useGraph } from './hooks/useGraph';
 import { GraphNode } from './types/graph';
 import { Activity, getActivity, updateActivity, deleteActivity } from './api/activities';
-import { Contact } from './api/contacts';
 import { NetworkFilters, loadNetworkFilters, saveNetworkFilters } from './networkFilters';
 import { now } from './utils/now';
 import { dayOf, endDateToSend } from './utils/activityDates';
@@ -43,14 +42,7 @@ export default function NetworkPage() {
     return localStorage.getItem('network-centered-node-id');
   });
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [editValues, setEditValues] = useState<{
-    activityTitle?: string;
-    activityDescription?: string;
-    activityLocation?: string;
-    activityDate?: string;
-    activityEndDate?: string;
-    activityContacts?: Contact[];
-  }>({});
+  const [editValues, setEditValues] = useState<TimelineItemValues>({});
 
   const updateFilters = useCallback((patch: Partial<NetworkFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -122,6 +114,7 @@ export default function NetworkPage() {
         activityLocation: activity.location || '',
         activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
         activityEndDate: dayOf(activity.end_date),
+        activityImages: activity.images,
         activityContacts: activity.contacts || [],
       });
     } catch (err) {
@@ -134,7 +127,7 @@ export default function NetworkPage() {
     setEditValues({});
   };
 
-  const handleActivitySave = async () => {
+  const handleActivitySave = async (imageIds: number[]) => {
     if (!editingActivity || !editValues.activityTitle?.trim()) return;
     try {
       await updateActivity(editingActivity.ID, {
@@ -144,6 +137,7 @@ export default function NetworkPage() {
         date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : now().toISOString(),
         end_date: endDateToSend(editValues.activityDate ?? '', editValues.activityEndDate),
         contact_ids: editValues.activityContacts?.map((c) => c.ID) || [],
+        image_ids: imageIds,
       });
       handleActivityEditClose();
     } catch (err) {
