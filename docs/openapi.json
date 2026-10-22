@@ -2261,6 +2261,29 @@
         ],
         "type": "object"
       },
+      "Crop": {
+        "additionalProperties": false,
+        "properties": {
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "x": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "y": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "size"
+        ],
+        "type": "object"
+      },
       "CurrentUserOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2756,6 +2779,66 @@
         },
         "required": [
           "value"
+        ],
+        "type": "object"
+      },
+      "ImageBody": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/Crop",
+            "description": "Square face crop in pixels of the full image; contacts only"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mime": {
+            "examples": [
+              "image/webp"
+            ],
+            "type": "string"
+          },
+          "taken_at": {
+            "description": "Capture time from the picture's metadata, if any",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumb_url": {
+            "description": "A small version, 480 px on the long edge",
+            "type": "string"
+          },
+          "url": {
+            "description": "The full image",
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "width",
+          "height",
+          "mime",
+          "bytes",
+          "taken_at",
+          "crop",
+          "url",
+          "thumb_url"
         ],
         "type": "object"
       },
@@ -8211,6 +8294,63 @@
         "summary": "Create the calendar feed or replace its token; the old URL stops working",
         "tags": [
           "calendar-feed"
+        ]
+      }
+    },
+    "/images": {
+      "post": {
+        "operationId": "upload-image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "file": {
+                  "contentType": "application/octet-stream"
+                }
+              },
+              "schema": {
+                "properties": {
+                  "file": {
+                    "contentEncoding": "binary",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "The image, at most 25 MB",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageBody"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Upload a JPEG, PNG, HEIC, WebP or GIF image; it stays pending until a note, activity or contact claims it",
+        "tags": [
+          "images"
         ]
       }
     },

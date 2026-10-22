@@ -45,7 +45,7 @@ structure with a generated API contract, and a much larger automated test and ch
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000037.** No upstream migration is changed. Each has a down migration.
+- **New migrations 000024 to 000038.** No upstream migration is changed. Each has a down migration.
   A test steps every migration down and up on a seeded database and compares the schema. 000030 adds
   a column for thumbnail files and copies old thumbnails into files at startup; the old column
   stays.
@@ -188,6 +188,11 @@ case.
 
 **Thumbnails.** Contact thumbnails are files next to the photos, not base64 in the database. The
 database gets smaller and list queries get cheaper. Migration 30; see "Merge impact".
+
+**Images.** Storage for pictures of contacts, activities and notes: the `images` table (migration
+38), `POST /images` and `GET /images/:id/:variant`. Pictures become WebP with a long edge of at most
+2048 px and a thumbnail; HEIC, WebP and GIF are accepted. A daily sweep removes unused files. See
+[ADR 0019](docs/adr/0019-images-storage-and-formats.md).
 
 **Integrations.** Webhooks and email go through an outbox with retries and a dead-letter state
 (migration 32). Optional Prometheus metrics at `/metrics`, off by default, with an optional token or

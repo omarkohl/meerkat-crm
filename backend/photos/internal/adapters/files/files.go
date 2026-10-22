@@ -3,22 +3,18 @@
 package files
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"image"
-	"image/jpeg"
-	"image/png"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 
+	"meerkat/imageproc"
 	"meerkat/photofile"
 	"meerkat/photos/internal/app"
 	"meerkat/photos/internal/domain"
 
-	"github.com/gen2brain/heic"
 	"github.com/google/uuid"
 	"golang.org/x/image/draw"
 )
@@ -81,49 +77,11 @@ func (d *Directory) Save(src io.Reader) (photo, thumbnail string, err error) {
 }
 
 func decode(data []byte) (image.Image, error) {
-	contentType := http.DetectContentType(data[:min(len(data), 512)])
-	// HEIC files have "ftyp" followed by a brand at byte 4; DetectContentType does not know them.
-	if contentType == "application/octet-stream" && len(data) >= 12 && string(data[4:8]) == "ftyp" {
-		switch string(data[8:12]) {
-		case "heic", "heix", "hevc", "hevx", "mif1":
-			contentType = "image/heic"
-		}
-	}
-
-	switch contentType {
-	case "image/jpeg", "image/png":
-		if err := photofile.CheckDimensions(data); err != nil {
-			return nil, invalid(err)
-		}
-	case "image/heic", "image/heif":
-		// The brand "mif1" has no registered decoder, so the header is read explicitly.
-		cfg, err := heic.DecodeConfig(bytes.NewReader(data))
-		if err == nil {
-			err = photofile.CheckSize(cfg.Width, cfg.Height)
-		} else {
-			err = fmt.Errorf("%w: %w", photofile.ErrUnreadable, err)
-		}
-		if err != nil {
-			return nil, invalid(err)
-		}
-	default:
-		return nil, fmt.Errorf("%w: unsupported file format", domain.ErrInvalidPhoto)
-	}
-
-	var img image.Image
-	var err error
-	switch contentType {
-	case "image/jpeg":
-		img, err = jpeg.Decode(bytes.NewReader(data))
-	case "image/png":
-		img, err = png.Decode(bytes.NewReader(data))
-	default:
-		img, err = heic.Decode(bytes.NewReader(data))
-	}
+	src, err := imageproc.Decode(data)
 	if err != nil {
 		return nil, invalid(err)
 	}
-	return img, nil
+	return src.Image, nil
 }
 
 func invalid(err error) error { return errors.Join(domain.ErrInvalidPhoto, err) }

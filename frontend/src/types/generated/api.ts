@@ -857,6 +857,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a JPEG, PNG, HEIC, WebP or GIF image; it stays pending until a note, activity or contact claims it */
+        post: operations["upload-image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login": {
         parameters: {
             query?: never;
@@ -2041,6 +2058,14 @@ export interface components {
             type: string;
             value: string;
         };
+        Crop: {
+            /** Format: int64 */
+            size: number;
+            /** Format: int64 */
+            x: number;
+            /** Format: int64 */
+            y: number;
+        };
         CurrentUserOutputBody: {
             /** Format: date-time */
             created_at: string;
@@ -2176,6 +2201,29 @@ export interface components {
         IMPPInput: {
             type?: string;
             value: string;
+        };
+        ImageBody: {
+            /** Format: int64 */
+            bytes: number;
+            /** @description Square face crop in pixels of the full image; contacts only */
+            crop: components["schemas"]["Crop"];
+            /** Format: int64 */
+            height: number;
+            /** Format: int64 */
+            id: number;
+            /** @example image/webp */
+            mime: string;
+            /**
+             * Format: date-time
+             * @description Capture time from the picture's metadata, if any
+             */
+            taken_at: string | null;
+            /** @description A small version, 480 px on the long edge */
+            thumb_url: string;
+            /** @description The full image */
+            url: string;
+            /** Format: int64 */
+            width: number;
         };
         ImportResult: {
             /** Format: int64 */
@@ -5135,6 +5183,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "upload-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description The image, at most 25 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageBody"];
                 };
             };
             /** @description Error */

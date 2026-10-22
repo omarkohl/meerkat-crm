@@ -21,6 +21,11 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
 
+### Internal
+
+- **Image storage**: pictures are stored as WebP with a thumbnail, ready for images on notes,
+  activities and contacts.
+
 ### Security
 
 - **Go runtime update to 1.27.3**: fixes a high-severity certificate validation issue

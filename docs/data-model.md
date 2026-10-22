@@ -86,6 +86,15 @@ so it matches the note your phone or address book shows. Timeline notes are not 
 notes are not attached to any contact. They are accessible from the Notes page in the main
 navigation and can be used like a personal journal.
 
+## Images
+
+A contact, an activity or a note can have images. An image has one owner at most; one with no owner
+is pending (uploaded, not saved with anything yet) and is deleted after 24 hours. Each image has a
+full variant (WebP, long edge at most 2048 px) and a thumbnail (480 px) under
+`PROFILE_PHOTO_DIR/images/u<user_id>/`. Images of a note or activity are deleted with it. Images of
+a contact stay with the contact in the trash and are deleted when it is purged. See
+[ADR 0019](adr/0019-images-storage-and-formats.md).
+
 ## Reminders
 
 Reminders help you stay on top of important dates and follow-ups. Reminders can be one-time or recur

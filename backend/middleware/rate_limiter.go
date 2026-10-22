@@ -258,6 +258,9 @@ var (
 	// Image proxy: 30 fetches per minute per user, burst of 5
 	imageProxyLimiter = NewIPRateLimiter(rate.Every(2*time.Second), 5)
 
+	// Image uploads: 1 per second per user, burst of 30 (pasting a full note of 20 images)
+	imageUploadLimiter = NewIPRateLimiter(rate.Every(time.Second), 30)
+
 	// Per-account rate limiter for login attempts
 	// Tracks failed attempts per username/email with exponential backoff
 	// This is the primary brute force protection mechanism
@@ -296,6 +299,7 @@ func StartCleanupRoutine() {
 				apiLimiter.CleanupStaleEntries()
 				cardDAVLimiter.CleanupStaleEntries()
 				imageProxyLimiter.CleanupStaleEntries()
+				imageUploadLimiter.CleanupStaleEntries()
 				accountLimiter.CleanupStaleAccountEntries()
 			case <-cleanupDone:
 				return
@@ -373,6 +377,10 @@ func UserRateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 
 func ImageProxyRateLimitMiddleware() gin.HandlerFunc {
 	return UserRateLimitMiddleware(imageProxyLimiter)
+}
+
+func ImageUploadRateLimitMiddleware() gin.HandlerFunc {
+	return UserRateLimitMiddleware(imageUploadLimiter)
 }
 
 // SecondFactorKey names the failed-attempt counter of an account's second factor. It is by

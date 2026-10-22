@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -134,4 +135,23 @@ func TestDefaultBodySizeLimitMiddleware(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDefaultBodySizeLimitAllowsLargerBodiesOnTheImageUploadRouteOnly(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(DefaultBodySizeLimitMiddleware())
+	read := func(c *gin.Context) {
+		_, err := io.Copy(io.Discard, c.Request.Body)
+		c.Status(map[bool]int{true: http.StatusRequestEntityTooLarge, false: http.StatusOK}[err != nil])
+	}
+	router.POST(ImageUploadRoute, read)
+	router.POST("/api/v1/other", read)
+
+	body := bytes.Repeat([]byte("x"), 20<<20)
+	for path, want := range map[string]int{ImageUploadRoute: http.StatusOK, "/api/v1/other": http.StatusRequestEntityTooLarge} {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body)))
+		assert.Equal(t, want, w.Code, path)
+	}
 }
