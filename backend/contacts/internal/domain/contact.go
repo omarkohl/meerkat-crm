@@ -80,6 +80,7 @@ type Activity struct {
 	Description string
 	Location    string
 	Date        time.Time
+	EndDate     *time.Time
 }
 
 // Reminder asks the user to get in touch with a contact.

@@ -14,8 +14,10 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import DateField from './DateField';
+import ActivityDateFields from './ActivityDateFields';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Contact, getContacts } from '../api/contacts';
+import { endsBeforeStart } from '../utils/activityDates';
 
 export interface TimelineItemValues {
   noteContent?: string;
@@ -24,6 +26,7 @@ export interface TimelineItemValues {
   activityDescription?: string;
   activityLocation?: string;
   activityDate?: string;
+  activityEndDate?: string;
   activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
 }
 
@@ -141,13 +144,12 @@ export default function EditTimelineItemDialog({
               }}
               label={t('activityDialog.location')}
             />
-            <DateField
-              fullWidth
-              value={values.activityDate || ''}
-              onChange={(activityDate) => {
-                onChange({ ...values, activityDate });
+            <ActivityDateFields
+              date={values.activityDate || ''}
+              endDate={values.activityEndDate || ''}
+              onChange={(next) => {
+                onChange({ ...values, activityDate: next.date, activityEndDate: next.endDate });
               }}
-              label={t('activityDialog.date')}
             />
             <Autocomplete
               multiple
@@ -206,7 +208,11 @@ export default function EditTimelineItemDialog({
           <Button onClick={onClose} sx={{ mr: 1 }}>
             {t('contactDetail.cancel')}
           </Button>
-          <Button onClick={handleSave} variant="contained">
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)}
+          >
             {t('contactDetail.save')}
           </Button>
         </Box>

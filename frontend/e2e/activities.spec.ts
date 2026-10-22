@@ -79,4 +79,48 @@ test.describe('Activities', () => {
       await deleteTestContact(page.request, guest.ID);
     }
   });
+
+  test('an activity can span several days @005-US6', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem('dateFormat', 'us'));
+    const contact = await createTestContact(page.request);
+    const guest = await createTestContact(page.request, { lastname: 'Guest' });
+    const title = `E2E trip ${Date.now()}`;
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /^add activity$/i }).click();
+      const addDialog = page.getByRole('dialog');
+      await addDialog.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
+      await addDialog.getByRole('textbox', { name: 'Date', exact: true }).fill('04/30/2026');
+      await addDialog.getByRole('textbox', { name: 'End date (optional)' }).fill('04/28/2026');
+      await expect(addDialog.getByText('The end date must not be before the date')).toBeVisible();
+      await addDialog.getByRole('textbox', { name: 'End date (optional)' }).fill('05/02/2026');
+      await addDialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(addDialog).toBeHidden();
+
+      const entry = page.getByRole('listitem').filter({ hasText: title });
+      await expect(entry.getByText('04/30–05/02/2026')).toBeVisible();
+
+      await openContact(page, guest);
+      await page.getByRole('button', { name: /^add activity$/i }).click();
+      const pickDialog = page.getByRole('dialog');
+      await pickDialog.getByRole('button', { name: 'Existing activities' }).click();
+      await pickDialog.getByRole('combobox', { name: 'Activities' }).fill(title);
+      await page.getByRole('option', { name: new RegExp(title) }).click();
+      await pickDialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(pickDialog).toBeHidden();
+      await expect(entry.getByText('04/30–05/02/2026')).toBeVisible();
+
+      await entry.getByRole('button', { name: 'Edit' }).click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('textbox', { name: 'End date (optional)' })).toHaveValue('05/02/2026');
+      await dialog.getByRole('textbox', { name: 'End date (optional)' }).clear();
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+      await expect(entry.getByText('04/30/2026')).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+      await deleteTestContact(page.request, guest.ID);
+    }
+  });
 });

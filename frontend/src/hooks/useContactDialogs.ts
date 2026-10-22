@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createNote } from '../api/notes';
 import { createActivity, updateActivity, Activity } from '../api/activities';
+import { endDateToSend } from '../utils/activityDates';
 import { handleError, ErrorNotifier, getErrorMessage } from '../utils/errorHandler';
 
 export function useContactDialogs(
@@ -32,6 +33,7 @@ export function useContactDialogs(
     description: string;
     location: string;
     date: string;
+    end_date?: string;
     contact_ids: number[];
   }) => {
     try {
@@ -40,6 +42,7 @@ export function useContactDialogs(
         description: activity.description,
         location: activity.location,
         date: new Date(activity.date).toISOString(),
+        end_date: endDateToSend(activity.date, activity.end_date),
         contact_ids: activity.contact_ids,
       });
       await onRefresh();
@@ -60,6 +63,7 @@ export function useContactDialogs(
           description: activity.description,
           location: activity.location,
           date: activity.date,
+          end_date: activity.end_date,
           contact_ids: [...contactIds, parseInt(contactId)],
         });
       }

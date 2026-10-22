@@ -134,6 +134,14 @@
           "description": {
             "type": "string"
           },
+          "end_date": {
+            "description": "Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "location": {
             "type": "string"
           },
@@ -270,6 +278,13 @@
           "description": {
             "type": "string"
           },
+          "end_date": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "location": {
             "type": "string"
           },
@@ -285,7 +300,8 @@
           "title",
           "description",
           "location",
-          "date"
+          "date",
+          "end_date"
         ],
         "type": "object"
       },
@@ -305,6 +321,13 @@
           "date": {
             "format": "date-time",
             "type": "string"
+          },
+          "end_date": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "format": "int64",
@@ -334,6 +357,7 @@
           "id",
           "title",
           "date",
+          "end_date",
           "snippet",
           "contacts"
         ],
@@ -1122,6 +1146,13 @@
           "description": {
             "type": "string"
           },
+          "end_date": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "location": {
             "type": "string"
           },
@@ -1137,7 +1168,8 @@
           "title",
           "description",
           "location",
-          "date"
+          "date",
+          "end_date"
         ],
         "type": "object"
       },

@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   calculateAgeFromBirthday,
   formatDateWithFormat,
+  formatDateRangeWithFormat,
   formatBirthdayWithFormat,
   formatBirthdayForInputWithFormat,
   parseBirthdayInputWithFormat,
@@ -21,6 +22,31 @@ describe('formatDateWithFormat', () => {
 
   test('returns unparseable input unchanged', () => {
     expect(formatDateWithFormat('not-a-date', 'eu')).toBe('not-a-date');
+  });
+});
+
+describe('formatDateRangeWithFormat', () => {
+  test('shows a single date without an end or when the end is the same day', () => {
+    expect(formatDateRangeWithFormat('2026-03-12', undefined, 'eu')).toBe('12.03.2026');
+    expect(formatDateRangeWithFormat('2026-03-12', null, 'eu')).toBe('12.03.2026');
+    expect(formatDateRangeWithFormat('2026-03-12T10:00:00Z', '2026-03-12T00:00:00Z', 'us')).toBe('03/12/2026');
+  });
+
+  test('leaves out what start and end share in EU and US styles', () => {
+    expect(formatDateRangeWithFormat('2026-03-12', '2026-03-15', 'eu')).toBe('12.–15.03.2026');
+    expect(formatDateRangeWithFormat('2026-02-28', '2026-03-03', 'eu')).toBe('28.02.–03.03.2026');
+    expect(formatDateRangeWithFormat('2025-12-28', '2026-01-03', 'eu')).toBe('28.12.2025 – 03.01.2026');
+    expect(formatDateRangeWithFormat('2026-03-12', '2026-03-15', 'us')).toBe('03/12–15/2026');
+    expect(formatDateRangeWithFormat('2026-02-28', '2026-03-03', 'us')).toBe('02/28–03/03/2026');
+    expect(formatDateRangeWithFormat('2025-12-28', '2026-01-03', 'us')).toBe('12/28/2025 – 01/03/2026');
+  });
+
+  test('keeps both full dates in the ISO style', () => {
+    expect(formatDateRangeWithFormat('2026-03-12', '2026-03-15', 'iso')).toBe('2026-03-12 – 2026-03-15');
+  });
+
+  test('returns unparseable input unchanged', () => {
+    expect(formatDateRangeWithFormat('not-a-date', '2026-03-15', 'eu')).toBe('not-a-date');
   });
 });
 

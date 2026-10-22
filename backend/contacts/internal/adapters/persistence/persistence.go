@@ -401,7 +401,7 @@ func toDomain(m models.Contact) domain.Contact {
 	for _, a := range m.Activities {
 		c.Activities = append(c.Activities, domain.Activity{
 			ID: a.ID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, DeletedAt: deletedAt(a.DeletedAt),
-			Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date,
+			Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate,
 		})
 	}
 	for _, r := range m.Reminders {

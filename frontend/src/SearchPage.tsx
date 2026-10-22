@@ -69,14 +69,14 @@ function NoteRow({ result, term }: { result: NoteResult; term: string }) {
 }
 
 function ActivityRow({ result, term }: { result: ActivityResult; term: string }) {
-  const { formatDate } = useDateFormat();
+  const { formatDateRange } = useDateFormat();
   return (
     <Box component="li" sx={{ py: 1 }}>
       <Link component={RouterLink} to={activitiesPath(term)} underline="hover" variant="subtitle1">
         <Marked segments={result.title} />
       </Link>
       <Typography variant="caption" color="text.secondary" display="block">
-        {formatDate(result.date)}
+        {formatDateRange(result.date, result.end_date)}
         {(result.contacts ?? []).length > 0 && ` · ${(result.contacts ?? []).join(', ')}`}
       </Typography>
       {(result.snippet ?? []).length > 0 && (

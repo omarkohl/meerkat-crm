@@ -163,8 +163,8 @@ func (u *UseCases) CreateActivity(ctx context.Context, actor domain.UserID, a do
 }
 
 // UpdateActivity edits an activity. contacts nil keeps its contacts; a list, even an empty
-// one, replaces them.
-func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id domain.ActivityID, edit domain.Activity, contacts []domain.ContactID, now time.Time) (domain.Activity, error) {
+// one, replaces them. keepEndDate ignores edit.EndDate.
+func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id domain.ActivityID, edit domain.Activity, keepEndDate bool, contacts []domain.ContactID, now time.Time) (domain.Activity, error) {
 	var updated domain.Activity
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		a, err := tx.Get(ctx, actor, id)
@@ -174,7 +174,13 @@ func (u *UseCases) UpdateActivity(ctx context.Context, actor domain.UserID, id d
 		if err := requireContacts(ctx, tx, actor, contacts); err != nil {
 			return err
 		}
-		a.Edit(edit.Title, edit.Description, edit.Location, edit.Date)
+		if keepEndDate {
+			edit.EndDate = a.EndDate
+		}
+		a.Edit(edit.Title, edit.Description, edit.Location, edit.Date, edit.EndDate)
+		if a.EndsBeforeStart() {
+			return domain.ErrEndBeforeStart
+		}
 		updated, err = tx.Update(ctx, actor, a, contacts)
 		return err
 	})

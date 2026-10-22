@@ -61,11 +61,15 @@ type calendarEvent struct {
 	Description    string
 	Location       string
 	Date           time.Time
+	EndDate        *time.Time
 	AttendeeEmails []string
 }
 
 func (e calendarEvent) contentHash() string {
 	parts := []string{e.Title, e.Description, e.Location, e.Date.UTC().Format(time.RFC3339)}
+	if e.EndDate != nil {
+		parts = append(parts, e.EndDate.UTC().Format(time.RFC3339))
+	}
 	// Attendees are part of the hash so newly invited people get linked as
 	// contacts on the next sync; sorted, since feeds don't order them stably.
 	emails := append([]string(nil), e.AttendeeEmails...)
@@ -423,6 +427,11 @@ func extractEvents(cal *ical.Calendar, windowStart, windowEnd time.Time) []calen
 			Date:           date.UTC(),
 			AttendeeEmails: extractAttendeeEmails(icalEvent.Props),
 		}
+		var length time.Duration
+		if end, err := icalEvent.DateTimeEnd(time.UTC); err == nil && end.After(date) {
+			length = end.Sub(date)
+		}
+		event.EndDate = lastDay(event.Date, length)
 
 		if ridProp := icalEvent.Props.Get(ical.PropRecurrenceID); ridProp != nil {
 			rid, err := ridProp.DateTime(time.UTC)
@@ -456,11 +465,28 @@ func extractEvents(cal *ical.Calendar, windowStart, windowEnd time.Time) []calen
 			}
 			instance := event
 			instance.Date = occurrence.UTC()
+			instance.EndDate = lastDay(instance.Date, length)
 			instance.UID = occurrenceUID(uid, occurrence)
 			add(instance)
 		}
 	}
 	return events
+}
+
+// lastDay is the last UTC day an event of the given length covers, or nil when it stays within
+// its first day. The end of an event is exclusive, so one ending at midnight does not cover the
+// day that starts there.
+func lastDay(start time.Time, length time.Duration) *time.Time {
+	if length <= 0 {
+		return nil
+	}
+	y, m, d := start.Add(length - time.Second).UTC().Date()
+	last := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	sy, sm, sd := start.UTC().Date()
+	if !last.After(time.Date(sy, sm, sd, 0, 0, 0, 0, time.UTC)) {
+		return nil
+	}
+	return &last
 }
 
 func occurrenceKey(t time.Time) string {
@@ -585,6 +611,7 @@ func importEvents(db *gorm.DB, sub *models.CalendarSubscription, events []calend
 					Description: event.Description,
 					Location:    event.Location,
 					Date:        event.Date,
+					EndDate:     event.EndDate,
 				}
 				if err := tx.Create(&activity).Error; err != nil {
 					return err
@@ -627,6 +654,7 @@ func importEvents(db *gorm.DB, sub *models.CalendarSubscription, events []calend
 			activity.Description = event.Description
 			activity.Location = event.Location
 			activity.Date = event.Date
+			activity.EndDate = event.EndDate
 			if err := tx.Save(&activity).Error; err != nil {
 				return err
 			}

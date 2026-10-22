@@ -13,7 +13,7 @@ interface ExistingActivitiesPickerProps {
 
 export default function ExistingActivitiesPicker({ contactId, value, onChange }: ExistingActivitiesPickerProps) {
   const { t } = useTranslation();
-  const { formatDate } = useDateFormat();
+  const { formatDateRange } = useDateFormat();
   const [options, setOptions] = useState<Activity[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function ExistingActivitiesPicker({ contactId, value, onChange }:
     };
   }, [debouncedSearch]);
 
-  const label = (activity: Activity) => `${activity.title} (${formatDate(activity.date)})`;
+  const label = (activity: Activity) => `${activity.title} (${formatDateRange(activity.date, activity.end_date)})`;
   const available = options.filter((a) => !(a.contacts ?? []).some((c) => c.ID === contactId));
 
   return (

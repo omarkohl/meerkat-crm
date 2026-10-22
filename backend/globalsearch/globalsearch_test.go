@@ -160,10 +160,11 @@ type result struct {
 	Activities *struct {
 		Total int `json:"total"`
 		Items []struct {
-			ID       uint      `json:"id"`
-			Title    []segment `json:"title"`
-			Snippet  []segment `json:"snippet"`
-			Contacts []string  `json:"contacts"`
+			ID       uint       `json:"id"`
+			Title    []segment  `json:"title"`
+			Snippet  []segment  `json:"snippet"`
+			EndDate  *time.Time `json:"end_date"`
+			Contacts []string   `json:"contacts"`
 		} `json:"items"`
 	} `json:"activities"`
 }
@@ -200,7 +201,8 @@ func TestEveryGroupAnswersWithItsTotalAndTheTopResults(t *testing.T) {
 	e := newEnv(t)
 	ada := e.contact(t, e.a.ID, models.Contact{Firstname: "Ada", Lastname: "Lovelace"})
 	e.note(t, e.a.ID, &ada, "Ada wrote the first program", 3)
-	require.NoError(t, e.db.Create(&models.Activity{UserID: e.a.ID, Title: "Dinner with Ada", Date: now}).Error)
+	end := now.AddDate(0, 0, 2)
+	require.NoError(t, e.db.Create(&models.Activity{UserID: e.a.ID, Title: "Dinner with Ada", Date: now, EndDate: &end}).Error)
 
 	res := search(t, e.asA, q("ada"))
 
@@ -216,6 +218,8 @@ func TestEveryGroupAnswersWithItsTotalAndTheTopResults(t *testing.T) {
 	assert.Equal(t, []string{"Ada"}, marked(res.Notes.Items[0].Snippet))
 	require.NotNil(t, res.Activities)
 	assert.Equal(t, []string{"Ada"}, marked(res.Activities.Items[0].Title))
+	require.NotNil(t, res.Activities.Items[0].EndDate)
+	assert.True(t, end.Equal(*res.Activities.Items[0].EndDate))
 }
 
 // @022-US1

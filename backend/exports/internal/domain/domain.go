@@ -61,6 +61,7 @@ type Activity struct {
 	Description  string
 	Location     string
 	Date         time.Time
+	EndDate      *time.Time
 	ContactNames []string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
@@ -115,6 +116,13 @@ func id(v *uint) string {
 
 func stamp(t time.Time) string { return t.Format(time.RFC3339) }
 
+func optionalStamp(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return stamp(*t)
+}
+
 // RenderCSV writes the dataset as one file of sections, each introduced by a "=== NAME ===" line.
 func RenderCSV(d Dataset) ([]byte, error) {
 	var buf bytes.Buffer
@@ -165,13 +173,13 @@ func RenderCSV(d Dataset) ([]byte, error) {
 	}
 
 	if err := section("\n=== ACTIVITIES ===\n", []string{
-		"ID", "Title", "Description", "Location", "Date", "Contact Names", "Created At", "Updated At",
+		"ID", "Title", "Description", "Location", "Date", "End Date", "Contact Names", "Created At", "Updated At",
 	}); err != nil {
 		return nil, err
 	}
 	for _, a := range d.Activities {
 		if err := w.Write([]string{
-			fmt.Sprintf("%d", a.ID), a.Title, a.Description, a.Location, stamp(a.Date), strings.Join(a.ContactNames, "; "),
+			fmt.Sprintf("%d", a.ID), a.Title, a.Description, a.Location, stamp(a.Date), optionalStamp(a.EndDate), strings.Join(a.ContactNames, "; "),
 			stamp(a.CreatedAt), stamp(a.UpdatedAt),
 		}); err != nil {
 			return nil, err

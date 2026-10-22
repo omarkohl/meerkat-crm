@@ -111,6 +111,7 @@ type ContactActivity struct {
 	Description string     `json:"description"`
 	Location    string     `json:"location"`
 	Date        time.Time  `json:"date"`
+	EndDate     *time.Time `json:"end_date" nullable:"true"`
 }
 
 type ContactReminder struct {
@@ -151,7 +152,7 @@ func NewContactResponse(c domain.Contact) ContactResponse {
 	}
 	for _, a := range c.Activities {
 		r.Activities = append(r.Activities, ContactActivity{ID: a.ID, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, DeletedAt: a.DeletedAt,
-			Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date})
+			Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate})
 	}
 	for _, m := range c.Reminders {
 		r.Reminders = append(r.Reminders, ContactReminder{ID: m.ID, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt, DeletedAt: m.DeletedAt,

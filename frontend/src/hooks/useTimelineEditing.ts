@@ -3,6 +3,7 @@ import { updateNote, deleteNote, Note } from '../api/notes';
 import { updateActivity, deleteActivity, Activity } from '../api/activities';
 import { handleError, ErrorNotifier } from '../utils/errorHandler';
 import { now } from '../utils/now';
+import { dayOf, endDateToSend, endsBeforeStart } from '../utils/activityDates';
 
 export function useTimelineEditing(
   contactId: number | undefined,
@@ -19,6 +20,7 @@ export function useTimelineEditing(
     activityDescription?: string;
     activityLocation?: string;
     activityDate?: string;
+    activityEndDate?: string;
     activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
   }>({});
 
@@ -39,6 +41,7 @@ export function useTimelineEditing(
         activityDescription: activity.description || '',
         activityLocation: activity.location || '',
         activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+        activityEndDate: dayOf(activity.end_date),
         activityContacts: activity.contacts || [],
       });
     }
@@ -67,6 +70,7 @@ export function useTimelineEditing(
 
   const handleUpdateActivity = async (activityId: number) => {
     if (!editTimelineValues.activityTitle?.trim()) return;
+    if (endsBeforeStart(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate)) return;
 
     try {
       await updateActivity(activityId, {
@@ -76,6 +80,7 @@ export function useTimelineEditing(
         date: editTimelineValues.activityDate
           ? new Date(editTimelineValues.activityDate).toISOString()
           : now().toISOString(),
+        end_date: endDateToSend(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate),
         contact_ids: editTimelineValues.activityContacts?.map((c) => c.ID) || [],
       });
       await onRefresh();

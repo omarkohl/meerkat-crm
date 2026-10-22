@@ -386,6 +386,60 @@ func TestCalendarSyncSkipsCancelledAndImportsOverrides(t *testing.T) {
 	assert.Equal(t, "Override instance", activities[1].Title)
 }
 
+// @005-US6
+func TestCalendarSyncImportsMultiDayEventsAsRanges(t *testing.T) {
+	db := setupCalendarSyncTestDB(t)
+	cfg := calendarTestConfig()
+	user := createCalendarTestUser(t, db)
+
+	day := func(n int) string { return time.Now().UTC().AddDate(0, 0, n).Format("20060102") }
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/calendar")
+		fmt.Fprint(w, "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Test//EN\n"+
+			// All-day DTEND is exclusive: this runs on days +3, +4 and +5.
+			"BEGIN:VEVENT\nUID:trip\nSUMMARY:Trip\nDTSTART;VALUE=DATE:"+day(3)+"\nDTEND;VALUE=DATE:"+day(6)+"\nEND:VEVENT\n"+
+			"BEGIN:VEVENT\nUID:allday\nSUMMARY:Planning\nDTSTART;VALUE=DATE:"+day(8)+"\nDTEND;VALUE=DATE:"+day(9)+"\nEND:VEVENT\n"+
+			"BEGIN:VEVENT\nUID:night\nSUMMARY:Night train\nDTSTART:"+day(10)+"T220000Z\nDTEND:"+day(11)+"T060000Z\nEND:VEVENT\n"+
+			"BEGIN:VEVENT\nUID:midnight\nSUMMARY:Party\nDTSTART:"+day(12)+"T200000Z\nDTEND:"+day(13)+"T000000Z\nEND:VEVENT\n"+
+			"BEGIN:VEVENT\nUID:weekly\nSUMMARY:Retreat\nDTSTART;VALUE=DATE:"+day(-370)+"\nDTEND;VALUE=DATE:"+day(-368)+"\nRRULE:FREQ=WEEKLY;COUNT=60\nEND:VEVENT\n"+
+			"END:VCALENDAR\n")
+	}))
+	defer server.Close()
+
+	sub := newTestSubscription(t, db, cfg, user.ID, server.URL+"/cal.ics", "", "")
+	service := NewCalendarSyncService(false)
+	_, err := service.SyncSubscription(context.Background(), db, cfg, sub, clock.Real())
+	require.NoError(t, err)
+
+	midnight := func(n int) time.Time {
+		y, m, d := time.Now().UTC().AddDate(0, 0, n).Date()
+		return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	}
+	endOf := func(title string) *time.Time {
+		var a models.Activity
+		require.NoError(t, db.Where("title = ?", title).First(&a).Error)
+		return a.EndDate
+	}
+	require.NotNil(t, endOf("Trip"))
+	assert.True(t, midnight(5).Equal(*endOf("Trip")), "the last day is the day before the exclusive DTEND")
+	assert.Nil(t, endOf("Planning"), "a one-day all-day event is a single day")
+	require.NotNil(t, endOf("Night train"))
+	assert.True(t, midnight(11).Equal(*endOf("Night train")))
+	assert.Nil(t, endOf("Party"), "ending at midnight does not touch the next day")
+
+	var retreats []models.Activity
+	require.NoError(t, db.Where("title = ?", "Retreat").Find(&retreats).Error)
+	require.NotEmpty(t, retreats)
+	for _, r := range retreats {
+		require.NotNil(t, r.EndDate)
+		assert.True(t, r.EndDate.After(r.Date), "every occurrence keeps the length of the event")
+	}
+
+	stats, err := service.SyncSubscription(context.Background(), db, cfg, sub, clock.Real())
+	require.NoError(t, err)
+	assert.Zero(t, stats.Updated+stats.Created, "a second sync changes nothing")
+}
+
 func TestCalendarSyncExpandsRecurringEvents(t *testing.T) {
 	db := setupCalendarSyncTestDB(t)
 	cfg := calendarTestConfig()

@@ -145,7 +145,7 @@ func (r *Repository) Activities(ctx context.Context, actor domain.UserID, term s
 	}
 	page := app.Page[domain.Activity]{Total: int(total), Substring: !indexed}
 	for _, a := range found {
-		page.Items = append(page.Items, domain.Activity{ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, Contacts: people[a.ID]})
+		page.Items = append(page.Items, domain.Activity{ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate, Contacts: people[a.ID]})
 	}
 	return page, nil
 }

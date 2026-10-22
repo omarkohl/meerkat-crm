@@ -91,7 +91,7 @@ func (r *Repository) Dataset(ctx context.Context, actor domain.UserID) (domain.D
 			names[i] = domain.ContactName(c.Firstname, c.Lastname)
 		}
 		out.Activities = append(out.Activities, domain.Activity{
-			ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date,
+			ID: a.ID, Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate,
 			ContactNames: names, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt,
 		})
 	}

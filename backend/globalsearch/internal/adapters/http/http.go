@@ -71,6 +71,7 @@ type ActivityResult struct {
 	ID       uint              `json:"id"`
 	Title    []SegmentResponse `json:"title"`
 	Date     time.Time         `json:"date"`
+	EndDate  *time.Time        `json:"end_date" nullable:"true"`
 	Snippet  []SegmentResponse `json:"snippet"`
 	Contacts []string          `json:"contacts" doc:"The names of the contacts that took part"`
 }
@@ -172,7 +173,7 @@ func (h *handlers) search(ctx context.Context, in *SearchInput) (*SearchOutput, 
 			if names == nil {
 				names = []string{}
 			}
-			group.Items[i] = ActivityResult{ID: a.ID, Title: segments(a.Title), Date: a.Date, Snippet: segments(a.Snippet), Contacts: names}
+			group.Items[i] = ActivityResult{ID: a.ID, Title: segments(a.Title), Date: a.Date, EndDate: a.EndDate, Snippet: segments(a.Snippet), Contacts: names}
 		}
 		out.Body.Activities = group
 	}

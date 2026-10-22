@@ -129,7 +129,8 @@ Every JSON endpoint is a [huma](https://huma.rocks) operation in `backend/api` (
 `api.Register` on the same Gin groups, errors in the AppError format, `api.ValidateBody` for the
 project validators. After changing an operation run `make openapi` (writes `docs/openapi.json` and
 `frontend/src/types/generated/api.ts`); `make openapi-check` fails when they are stale. Use the
-generated types in the frontend instead of hand-written ones.
+generated types in the frontend instead of hand-written ones. For an update field where leaving it
+out keeps the value and `null` removes it, use `api.Optional[T]`.
 
 ## Modules (hexagonal)
 

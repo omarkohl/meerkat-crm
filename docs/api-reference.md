@@ -170,14 +170,17 @@ everywhere else (lists, search, circles, birthdays, graph, ICS feed, reminders, 
 
 ### Activities
 
-| Method   | Path                       | Description                                                                                  |
-| -------- | -------------------------- | -------------------------------------------------------------------------------------------- |
-| `GET`    | `/activities`              | List all activities                                                                          |
-| `POST`   | `/activities`              | Create an activity                                                                           |
-| `GET`    | `/activities/:id`          | Get an activity                                                                              |
-| `PUT`    | `/activities/:id`          | Update an activity. Leaving out `contact_ids` keeps its contacts, an empty list removes them |
-| `DELETE` | `/activities/:id`          | Delete an activity                                                                           |
-| `GET`    | `/contacts/:id/activities` | List activities for a contact                                                                |
+The optional `end_date` is the last day of an activity that spans several days. It may not be before
+`date`.
+
+| Method   | Path                       | Description                                                                                                                                      |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/activities`              | List all activities. `fromDate` and `toDate` match activities with any day in the range                                                          |
+| `POST`   | `/activities`              | Create an activity                                                                                                                               |
+| `GET`    | `/activities/:id`          | Get an activity                                                                                                                                  |
+| `PUT`    | `/activities/:id`          | Update an activity. Leaving out `contact_ids` keeps its contacts, an empty list removes them. Leaving out `end_date` keeps it, `null` removes it |
+| `DELETE` | `/activities/:id`          | Delete an activity                                                                                                                               |
+| `GET`    | `/contacts/:id/activities` | List activities for a contact                                                                                                                    |
 
 ### Reminders
 
@@ -258,8 +261,8 @@ Events: `contact.created`, `contact.updated`, `contact.deleted`, `contact.restor
 
 ### Calendar Subscriptions
 
-Import events of a CalDAV or iCalendar URL as activities. Stored passwords are encrypted and never
-returned.
+Import events of a CalDAV or iCalendar URL as activities. An event that spans several days gets an
+`end_date`. Stored passwords are encrypted and never returned.
 
 | Method   | Path                  | Description                                                                                                                                                                                                                                                            |
 | -------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

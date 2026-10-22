@@ -21,12 +21,21 @@ async function duplicates(request: Parameters<typeof createTestContact>[0], tag:
 
 test.describe('Merge contacts', () => {
   test('selected contacts in the list are merged after choosing the differing values @004-US10', async ({ page }) => {
+    await page.addInitScript(() => window.localStorage.setItem('dateFormat', 'us'));
     const { firstname, jones } = await duplicates(page.request, 'List');
     const friend = await createTestContact(page.request, { lastname: 'Friend' });
     const day = new Date().toISOString();
     for (const [path, data] of [
       [`/contacts/${jones.ID}/notes`, { content: 'Jones note', date: day }],
-      ['/activities', { title: 'Jones lunch', date: day, contact_ids: [jones.ID] }],
+      [
+        '/activities',
+        {
+          title: 'Jones trip',
+          date: '2026-04-30T00:00:00Z',
+          end_date: '2026-05-02T00:00:00Z',
+          contact_ids: [jones.ID],
+        },
+      ],
       [
         `/contacts/${jones.ID}/reminders`,
         { message: 'Call Jones', remind_at: day, recurrence: 'once', contact_id: jones.ID },
@@ -66,7 +75,9 @@ test.describe('Merge contacts', () => {
     await expect(page.getByText('ListFriends')).toBeVisible();
     await expect(page.getByText('ListWork')).toBeVisible();
     await expect(page.getByText('Jones note')).toBeVisible();
-    await expect(page.getByText('Jones lunch')).toBeVisible();
+    await expect(
+      page.getByRole('listitem').filter({ hasText: 'Jones trip' }).getByText('04/30–05/02/2026'),
+    ).toBeVisible();
     await page.getByRole('tab', { name: /reminders/i }).click();
     await expect(page.getByText('Call Jones')).toBeVisible();
     await page.getByRole('tab', { name: 'Relationships' }).click();

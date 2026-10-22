@@ -13,7 +13,8 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import AppDialog from './AppDialog';
-import DateField from './DateField';
+import ActivityDateFields from './ActivityDateFields';
+import { endsBeforeStart } from '../utils/activityDates';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
 import { Activity } from '../api/activities';
@@ -28,6 +29,7 @@ interface AddActivityDialogProps {
     description: string;
     location: string;
     date: string;
+    end_date?: string;
     contact_ids: number[];
   }) => Promise<void>;
   onAddToActivities?: (activities: Activity[]) => Promise<void>;
@@ -48,6 +50,7 @@ export default function AddActivityDialog({
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(now().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchInput, setSearchInput] = useState('');
@@ -106,6 +109,7 @@ export default function AddActivityDialog({
       setError(t('activityDialog.required'));
       return;
     }
+    if (endsBeforeStart(date, endDate)) return;
 
     setSaving(true);
     try {
@@ -114,6 +118,7 @@ export default function AddActivityDialog({
         description,
         location,
         date,
+        end_date: endDate || undefined,
         contact_ids: selectedContacts.map((c) => c.ID),
       });
       handleClose();
@@ -131,6 +136,7 @@ export default function AddActivityDialog({
     setDescription('');
     setLocation('');
     setDate(now().toISOString().slice(0, 10));
+    setEndDate('');
     setSelectedContacts([]);
     setSearchInput('');
     setContacts([]);
@@ -207,7 +213,15 @@ export default function AddActivityDialog({
                 fullWidth
               />
 
-              <DateField label={t('activityDialog.date')} value={date} onChange={setDate} fullWidth required />
+              <ActivityDateFields
+                date={date}
+                endDate={endDate}
+                onChange={(next) => {
+                  setDate(next.date);
+                  setEndDate(next.endDate);
+                }}
+                required
+              />
 
               <Autocomplete
                 multiple

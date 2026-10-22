@@ -21,6 +21,8 @@ var ErrContactNotFound = errors.New("contact not found")
 // ErrContactsNotFound means at least one of the named contacts is not the actor's.
 var ErrContactsNotFound = errors.New("one or more contacts not found")
 
+var ErrEndBeforeStart = errors.New("end date before start date")
+
 // ContactRef is the part of a contact an activity shows.
 type ContactRef struct {
 	ID        ContactID
@@ -40,9 +42,20 @@ type Activity struct {
 	Description string
 	Location    string
 	Date        time.Time
+	EndDate     *time.Time
 	Contacts    []ContactRef
 }
 
-func (a *Activity) Edit(title, description, location string, date time.Time) {
-	a.Title, a.Description, a.Location, a.Date = title, description, location, date
+func (a *Activity) Edit(title, description, location string, date time.Time, endDate *time.Time) {
+	a.Title, a.Description, a.Location, a.Date, a.EndDate = title, description, location, date, endDate
+}
+
+// EndsBeforeStart reports an end date on an earlier day than the start. Times of day are ignored.
+func (a Activity) EndsBeforeStart() bool {
+	return a.EndDate != nil && day(*a.EndDate).Before(day(a.Date))
+}
+
+func day(t time.Time) time.Time {
+	y, m, d := t.UTC().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }

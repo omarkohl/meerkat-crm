@@ -368,6 +368,8 @@
     "location": "Lieu",
     "locationPlaceholder": "Où ?",
     "date": "Date",
+    "endDate": "Date de fin (facultative)",
+    "endBeforeStart": "La date de fin ne peut pas précéder la date",
     "contacts": "Contacts",
     "selectContacts": "Sélectionnez des contacts...",
     "cancel": "Annuler",

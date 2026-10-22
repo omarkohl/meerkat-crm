@@ -32,6 +32,8 @@ interface DateFieldProps {
   onChange: (value: string) => void;
   /** YYYY-MM-DD; limits the calendar picker */
   min?: string;
+  /** Message for a value the form refuses, shown like an invalid date */
+  error?: string;
   required?: boolean;
   fullWidth?: boolean;
   size?: 'small' | 'medium';
@@ -42,7 +44,17 @@ interface DateFieldProps {
  * Date input in the user's date format. A native date input always shows the
  * browser's locale format, so it is only used behind the calendar button.
  */
-export default function DateField({ label, value, onChange, min, required, fullWidth, size, sx }: DateFieldProps) {
+export default function DateField({
+  label,
+  value,
+  onChange,
+  min,
+  error,
+  required,
+  fullWidth,
+  size,
+  sx,
+}: DateFieldProps) {
   const { t } = useTranslation();
   const { dateFormat, getDatePlaceholder } = useDateFormat();
   const [text, setText] = useState(() => formatBirthdayForInputWithFormat(value, dateFormat));
@@ -90,8 +102,8 @@ export default function DateField({ label, value, onChange, min, required, fullW
       onBlur={() => {
         setTouched(true);
       }}
-      error={invalid}
-      helperText={invalid ? t('common.invalidDate') : undefined}
+      error={invalid || !!error}
+      helperText={invalid ? t('common.invalidDate') : error}
       variant="outlined"
       sx={sx}
       slotProps={{

@@ -48,12 +48,13 @@ deleting it deletes the remote card on the next sync, and restoring it uploads t
 ## Activities
 
 Use Activities to document events or interactions with one or more contacts (eg.dinner, phone call
-or meeting). Each activity has a title, date, and can optionally include a description, location,
-and linked contacts. If an activity has at least two linked contacts it appears in the network
-graph.
+or meeting). Each activity has a title, date, and can optionally include an end date (for an
+activity that spans several days, such as a trip), a description, location, and linked contacts. If
+an activity has at least two linked contacts it appears in the network graph.
 
 Activities appear on each linked contact's detail page in the **Timeline** tab, most recent
-activities show first.
+activities show first. An activity is placed by its start date. The date filter shows an activity
+when any of its days is in the range.
 
 The global **Activities** page lists every activity across all contacts and offers searching and a
 date range filter. Searching (contacts, activities and unassigned notes) ignores case and accents

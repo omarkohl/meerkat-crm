@@ -28,6 +28,7 @@ import { Activity, getActivity, updateActivity, deleteActivity } from './api/act
 import { Contact } from './api/contacts';
 import { NetworkFilters, loadNetworkFilters, saveNetworkFilters } from './networkFilters';
 import { now } from './utils/now';
+import { dayOf, endDateToSend } from './utils/activityDates';
 
 export default function NetworkPage() {
   const { t } = useTranslation();
@@ -47,6 +48,7 @@ export default function NetworkPage() {
     activityDescription?: string;
     activityLocation?: string;
     activityDate?: string;
+    activityEndDate?: string;
     activityContacts?: Contact[];
   }>({});
 
@@ -119,6 +121,7 @@ export default function NetworkPage() {
         activityDescription: activity.description || '',
         activityLocation: activity.location || '',
         activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+        activityEndDate: dayOf(activity.end_date),
         activityContacts: activity.contacts || [],
       });
     } catch (err) {
@@ -139,6 +142,7 @@ export default function NetworkPage() {
         description: editValues.activityDescription || '',
         location: editValues.activityLocation || '',
         date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : now().toISOString(),
+        end_date: endDateToSend(editValues.activityDate ?? '', editValues.activityEndDate),
         contact_ids: editValues.activityContacts?.map((c) => c.ID) || [],
       });
       handleActivityEditClose();

@@ -30,6 +30,7 @@ const activity = (id: number) => ({
   id,
   title: [seg('Dinner with '), seg('Ada', true)],
   date: '2026-02-01T00:00:00Z',
+  end_date: null as string | null,
   snippet: [],
   contacts: ['Ada Lovelace', 'Grace Hopper'],
 });
@@ -165,6 +166,15 @@ describe('SearchPage', () => {
     renderPage('/search?q=ad');
 
     expect(await screen.findByText(/2026-02-01 · Ada Lovelace, Grace Hopper/)).toBeTruthy();
+  });
+
+  test('an activity spanning several days shows its range @005-US6', async () => {
+    vi.mocked(searchApi.searchAll).mockResolvedValue(
+      results({ activities: { total: 1, items: [{ ...activity(9), end_date: '2026-02-04T00:00:00Z' }] } }),
+    );
+    renderPage('/search?q=ad');
+
+    expect(await screen.findByText(/2026-02-01 – 2026-02-04 · Ada Lovelace/)).toBeTruthy();
   });
 
   test('the Contacts tab links to the contact list with the term @022-US1', async () => {

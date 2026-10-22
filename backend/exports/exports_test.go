@@ -66,13 +66,14 @@ func get(r http.Handler, path string) *httptest.ResponseRecorder {
 
 func (e *env) seed(t *testing.T) {
 	t.Helper()
+	endDay := now.AddDate(0, 0, 3)
 	alice := models.Contact{UserID: e.a.ID, Firstname: "Alice", Lastname: "Johnson", Email: "alice@example.com", Circles: []string{"Friends", "Work"},
 		CustomFields: map[string]string{"Pet": "cat"}}
 	require.NoError(t, e.db.Create(&alice).Error)
 	require.NoError(t, e.db.Create(&models.Contact{UserID: e.a.ID, Firstname: "Bob", Lastname: "Smith"}).Error)
 	require.NoError(t, e.db.Create(&models.Relationship{UserID: e.a.ID, ContactID: alice.ID, Name: "Charlie", Type: "Friend"}).Error)
 	require.NoError(t, e.db.Create(&models.Activity{UserID: e.a.ID, Title: "Coffee Meeting", Description: "Catch up", Location: "Local Cafe",
-		Date: now, Contacts: []models.Contact{alice}}).Error)
+		Date: now, EndDate: &endDay, Contacts: []models.Contact{alice}}).Error)
 	require.NoError(t, e.db.Create(&models.Note{UserID: e.a.ID, ContactID: &alice.ID, Content: "Follow up about the project", Date: now}).Error)
 	require.NoError(t, e.db.Create(&models.Reminder{UserID: e.a.ID, ContactID: &alice.ID, Message: "Birthday reminder", RemindAt: now, Recurrence: "yearly"}).Error)
 }
@@ -89,7 +90,7 @@ func TestCSVExportContainsEverySectionOfTheUsersData(t *testing.T) {
 	for _, want := range []string{
 		"=== CONTACTS ===", "Alice", "alice@example.com", "Friends; Work", ",Pet", ",cat", "Bob",
 		"=== RELATIONSHIPS ===", "Charlie", "Friend", "Alice Johnson",
-		"=== ACTIVITIES ===", "Coffee Meeting", "Local Cafe",
+		"=== ACTIVITIES ===", "Coffee Meeting", "Local Cafe", ",End Date,", "2026-03-13T",
 		"=== NOTES ===", "Follow up about the project",
 		"=== REMINDERS ===", "Birthday reminder", "yearly",
 	} {

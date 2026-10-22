@@ -385,7 +385,8 @@ func TestGetReturnsNotesActivitiesAndRemindersOfTheActor(t *testing.T) {
 	require.NoError(t, e.db.Create(&models.Note{UserID: e.a.ID, ContactID: &c.ID, Content: "met", Date: time.Now()}).Error)
 	require.NoError(t, e.db.Create(&models.Note{UserID: e.b.ID, ContactID: &c.ID, Content: "foreign", Date: time.Now()}).Error)
 	require.NoError(t, e.db.Create(&models.Reminder{UserID: e.a.ID, ContactID: &c.ID, Message: "call", RemindAt: time.Now(), Recurrence: "once"}).Error)
-	act := models.Activity{UserID: e.a.ID, Title: "Lunch", Date: time.Now(), Contacts: []models.Contact{c}}
+	end := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC)
+	act := models.Activity{UserID: e.a.ID, Title: "Lunch", Date: time.Now(), EndDate: &end, Contacts: []models.Contact{c}}
 	require.NoError(t, e.db.Create(&act).Error)
 
 	body := decode(t, do(e.asA, http.MethodGet, idPath(c, "")))
@@ -394,6 +395,7 @@ func TestGetReturnsNotesActivitiesAndRemindersOfTheActor(t *testing.T) {
 	assert.Equal(t, "met", notes[0].(map[string]any)["content"])
 	assert.Equal(t, "call", body["reminders"].([]any)[0].(map[string]any)["message"])
 	assert.Equal(t, "Lunch", body["activities"].([]any)[0].(map[string]any)["title"])
+	assert.Equal(t, "2026-03-04T00:00:00Z", body["activities"].([]any)[0].(map[string]any)["end_date"])
 }
 
 func TestGetWithoutRelationshipsReturnsAnEmptyListButFieldsLeaveItNull(t *testing.T) {

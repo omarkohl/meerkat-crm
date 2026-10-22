@@ -51,6 +51,7 @@ type Activity struct {
 	Description string
 	Location    string
 	Date        time.Time
+	EndDate     *time.Time
 	Contacts    []string // display names of the actor's contacts that took part
 }
 

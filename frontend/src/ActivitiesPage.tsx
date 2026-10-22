@@ -24,10 +24,11 @@ import DateField from './components/DateField';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useDateFormat } from './DateFormatProvider';
 import { now } from './utils/now';
+import { dayOf, endDateToSend } from './utils/activityDates';
 
 const ActivitiesPage: React.FC = () => {
   const { t } = useTranslation();
-  const { formatDate } = useDateFormat();
+  const { formatDateRange } = useDateFormat();
 
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get('search') ?? '';
@@ -65,6 +66,7 @@ const ActivitiesPage: React.FC = () => {
     activityDescription?: string;
     activityLocation?: string;
     activityDate?: string;
+    activityEndDate?: string;
     activityContacts?: Contact[];
   }>({});
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
@@ -103,12 +105,14 @@ const ActivitiesPage: React.FC = () => {
     description: string;
     location: string;
     date: string;
+    end_date?: string;
     contact_ids: number[];
   }) => {
     try {
       await createActivity({
         ...activity,
         date: new Date(activity.date).toISOString(),
+        end_date: endDateToSend(activity.date, activity.end_date),
       });
       setAddDialogOpen(false);
       refetch();
@@ -126,6 +130,7 @@ const ActivitiesPage: React.FC = () => {
       activityDescription: activity.description || '',
       activityLocation: activity.location || '',
       activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
+      activityEndDate: dayOf(activity.end_date),
       activityContacts: activity.contacts || [],
     });
   };
@@ -139,6 +144,7 @@ const ActivitiesPage: React.FC = () => {
         description: editValues.activityDescription || '',
         location: editValues.activityLocation || '',
         date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : now().toISOString(),
+        end_date: endDateToSend(editValues.activityDate ?? '', editValues.activityEndDate),
         contact_ids: editValues.activityContacts?.map((c) => c.ID) || [],
       });
       setEditingActivity(null);
@@ -247,7 +253,7 @@ const ActivitiesPage: React.FC = () => {
           {activities.map((activity, index) => (
             <TimelineItem key={activity.ID}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.2 }}>
-                <Typography variant="body2">{formatDate(activity.date)}</Typography>
+                <Typography variant="body2">{formatDateRange(activity.date, activity.end_date)}</Typography>
               </TimelineOppositeContent>
               <TimelineSeparator>
                 <TimelineDot color="primary">

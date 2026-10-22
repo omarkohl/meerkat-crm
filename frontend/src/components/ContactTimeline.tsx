@@ -34,7 +34,7 @@ interface ContactTimelineProps {
 export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCompletion }: ContactTimelineProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { formatDate } = useDateFormat();
+  const { formatDateRange } = useDateFormat();
 
   if (timelineItems.length === 0) {
     return (
@@ -53,7 +53,11 @@ export default function ContactTimeline({ timelineItems, onEditItem, onDeleteCom
         return (
           <TimelineItem key={`${item.type}-${item.data.ID}`}>
             <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
-              <Typography variant="caption">{isValidDate ? formatDate(item.date) : item.date || 'N/A'}</Typography>
+              <Typography variant="caption">
+                {isValidDate
+                  ? formatDateRange(item.date, item.type === 'activity' ? (item.data as Activity).end_date : undefined)
+                  : item.date || 'N/A'}
+              </Typography>
             </TimelineOppositeContent>
             <TimelineSeparator>
               <TimelineDot

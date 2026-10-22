@@ -166,6 +166,12 @@
   priority: medium
   status: implemented
 
+- id: 005-US6
+  title: Record an activity that spans several days
+  actor: user
+  priority: medium
+  status: implemented
+
 - id: 006-US1
   title: Create and complete reminders for a contact
   actor: user

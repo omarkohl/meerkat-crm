@@ -7,6 +7,7 @@ interface DateFormatContextValue {
   dateFormat: DateFormat;
   setDateFormat: (format: DateFormat) => void;
   formatDate: (dateString: string) => string;
+  formatDateRange: (start: string, end?: string | null) => string;
   formatBirthday: (birthday: string, includeAge?: boolean) => string;
   formatBirthdayForInput: (birthday: string) => string;
   parseBirthdayInput: (input: string) => string | null;
@@ -105,6 +106,30 @@ export function formatDateWithFormat(dateString: string, format: DateFormat): st
     default: // us
       return `${month}/${day}/${year}`;
   }
+}
+
+/**
+ * Format a date range, leaving out the month and year that start and end share (EU and US styles).
+ * Without an end, or with an end on the start day, it is a single date.
+ */
+export function formatDateRangeWithFormat(start: string, end: string | null | undefined, format: DateFormat): string {
+  const from = new Date(start);
+  const to = end ? new Date(end) : null;
+  if (!end || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return formatDateWithFormat(start, format);
+
+  const [y1, m1, d1] = [from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()];
+  const [y2, m2, d2] = [to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()];
+  if (y1 === y2 && m1 === m2 && d1 === d2) return formatDateWithFormat(start, format);
+
+  const full = `${formatDateWithFormat(start, format)} – ${formatDateWithFormat(end, format)}`;
+  if (format === 'iso' || y1 !== y2) return full;
+
+  const two = (n: number) => String(n).padStart(2, '0');
+  const [day1, day2, month1, month2, year] = [two(d1), two(d2), two(m1 + 1), two(m2 + 1), String(y1)];
+  if (format === 'eu') {
+    return m1 === m2 ? `${day1}.–${day2}.${month1}.${year}` : `${day1}.${month1}.–${day2}.${month2}.${year}`;
+  }
+  return m1 === m2 ? `${month1}/${day1}–${day2}/${year}` : `${month1}/${day1}–${month2}/${day2}/${year}`;
 }
 
 /**
@@ -374,6 +399,11 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
 
   const formatDate = useCallback((dateString: string) => formatDateWithFormat(dateString, dateFormat), [dateFormat]);
 
+  const formatDateRange = useCallback(
+    (start: string, end?: string | null) => formatDateRangeWithFormat(start, end, dateFormat),
+    [dateFormat],
+  );
+
   const formatBirthday = useCallback(
     (birthday: string, includeAge: boolean = false) => formatBirthdayWithFormat(birthday, dateFormat, includeAge),
     [dateFormat],
@@ -434,6 +464,7 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
       dateFormat,
       setDateFormat,
       formatDate,
+      formatDateRange,
       formatBirthday,
       formatBirthdayForInput,
       parseBirthdayInput,
@@ -446,6 +477,7 @@ export function DateFormatProvider({ children }: { children: ReactNode }) {
     [
       dateFormat,
       formatDate,
+      formatDateRange,
       formatBirthday,
       formatBirthdayForInput,
       parseBirthdayInput,

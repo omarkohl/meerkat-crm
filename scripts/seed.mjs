@@ -328,6 +328,18 @@ async function main() {
     }
   }
 
+  if (created.length > 0) {
+    const start = -int(30, 300);
+    await send('activity over several days', '/activities', {
+      title: 'Weekend trip',
+      location: 'Lake Constance',
+      description: 'Two nights in a guesthouse by the water',
+      date: daysFromNow(start, 0),
+      end_date: daysFromNow(start + 2, 0),
+      contact_ids: some(created, 2).map((c) => c.id),
+    });
+  }
+
   for (const [i, a] of created.entries()) {
     const b = created[(i * 7 + 3) % created.length];
     if (!b || b.id === a.id || rand() < 0.5) continue;

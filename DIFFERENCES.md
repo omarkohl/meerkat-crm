@@ -45,7 +45,7 @@ structure with a generated API contract, and a much larger automated test and ch
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000036.** No upstream migration is changed. Each has a down migration.
+- **New migrations 000024 to 000037.** No upstream migration is changed. Each has a down migration.
   A test steps every migration down and up on a seeded database and compares the schema. 000030 adds
   a column for thumbnail files and copies old thumbnails into files at startup; the old column
   stays.
@@ -102,6 +102,7 @@ code with moved code: the module move rewrites many existing files.
 | Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                                             |
 | Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                                      |
 | Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                                             |
+| Activities    | Activities with a date range            | S    | 37        | not proposed                                                                                                                             |
 | Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                                             |
 | Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                                             |
 | Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                                             |

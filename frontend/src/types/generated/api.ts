@@ -1489,6 +1489,11 @@ export interface components {
             /** Format: date-time */
             date: string;
             description?: string;
+            /**
+             * Format: date-time
+             * @description Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it.
+             */
+            end_date?: string | null;
             location?: string;
             title: string;
         };
@@ -1526,6 +1531,8 @@ export interface components {
             /** Format: date-time */
             date: string;
             description: string;
+            /** Format: date-time */
+            end_date: string | null;
             location: string;
             title: string;
         };
@@ -1534,6 +1541,8 @@ export interface components {
             contacts: string[] | null;
             /** Format: date-time */
             date: string;
+            /** Format: date-time */
+            end_date: string | null;
             /** Format: int64 */
             id: number;
             snippet: components["schemas"]["SegmentResponse"][] | null;
@@ -1769,6 +1778,8 @@ export interface components {
             /** Format: date-time */
             date: string;
             description: string;
+            /** Format: date-time */
+            end_date: string | null;
             location: string;
             title: string;
         };

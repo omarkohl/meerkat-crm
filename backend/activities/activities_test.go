@@ -344,3 +344,70 @@ func TestWithoutAnAuthenticatedUserEverythingRefuses(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, send(e.anon, call.method, call.path, body).Code, call.method+" "+call.path)
 	}
 }
+
+// @005-US6
+func TestAnActivityMayHaveAnEndDateThatCanBeChangedKeptAndCleared(t *testing.T) {
+	e := newEnv(t)
+	e.subscribe(t, e.a.ID, "activity.created")
+	end := "2026-03-04T00:00:00Z"
+
+	w := send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "Trip", "date": day, "end_date": end})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	act := decode(t, w)["activity"].(map[string]any)
+	assert.Equal(t, end, act["end_date"])
+	assert.Equal(t, end, e.delivery(t, "activity.created")["end_date"])
+
+	path := "/activities/" + sid(uint(act["ID"].(float64)))
+	assert.Equal(t, end, decode(t, send(e.asA, http.MethodGet, path, nil))["end_date"])
+
+	later := "2026-03-09T00:00:00Z"
+	assert.Equal(t, later, decode(t, send(e.asA, http.MethodPut, path, map[string]any{"title": "Trip", "date": day, "end_date": later}))["end_date"])
+	assert.Equal(t, later, decode(t, send(e.asA, http.MethodPut, path, map[string]any{"title": "Trip", "date": day}))["end_date"], "leaving it out keeps it")
+	assert.Nil(t, decode(t, send(e.asA, http.MethodPut, path, map[string]any{"title": "Trip", "date": day, "end_date": nil}))["end_date"], "null clears it")
+
+	w = send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "Day", "date": day})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Contains(t, decode(t, w)["activity"], "end_date")
+	assert.Nil(t, decode(t, w)["activity"].(map[string]any)["end_date"])
+}
+
+// @005-US6
+func TestAnEndDateBeforeTheStartIsRefused(t *testing.T) {
+	e := newEnv(t)
+	act := e.activity(t, e.a.ID, "Trip")
+	before := "2026-02-28T00:00:00Z"
+
+	assert.Equal(t, http.StatusBadRequest, send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "x", "date": day, "end_date": before}).Code)
+	assert.Equal(t, http.StatusBadRequest, send(e.asA, http.MethodPut, "/activities/"+sid(act.ID), map[string]any{"title": "x", "date": day, "end_date": before}).Code)
+	sameDay := "2026-03-01T00:00:00Z"
+	assert.Equal(t, http.StatusOK, send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "x", "date": day, "end_date": sameDay}).Code, "the end may be the start day")
+}
+
+// @005-US6
+func TestMovingTheStartPastAKeptEndDateIsRefused(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPost, "/activities", map[string]any{"title": "Trip", "date": day, "end_date": "2026-03-04T00:00:00Z"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	path := "/activities/" + sid(uint(decode(t, w)["activity"].(map[string]any)["ID"].(float64)))
+
+	assert.Equal(t, http.StatusBadRequest, send(e.asA, http.MethodPut, path, map[string]any{"title": "Trip", "date": "2026-03-05T00:00:00Z"}).Code)
+	assert.Equal(t, "2026-03-04T00:00:00Z", decode(t, send(e.asA, http.MethodGet, path, nil))["end_date"])
+	assert.Equal(t, http.StatusOK, send(e.asA, http.MethodPut, path, map[string]any{"title": "Trip", "date": "2026-03-04T00:00:00Z"}).Code, "the start may move onto the end day")
+}
+
+// @005-US6
+func TestListFilterKeepsActivitiesThatOverlapTheRange(t *testing.T) {
+	e := newEnv(t)
+	utc := func(m time.Month, d int) time.Time { return time.Date(2026, m, d, 0, 0, 0, 0, time.UTC) }
+	march := utc(3, 3)
+	trip := models.Activity{UserID: e.a.ID, Title: "Trip", Date: utc(2, 28), EndDate: &march}
+	lunch := models.Activity{UserID: e.a.ID, Title: "Lunch", Date: utc(3, 10)}
+	require.NoError(t, e.db.Create(&trip).Error)
+	require.NoError(t, e.db.Create(&lunch).Error)
+	list := func(q string) []string { return titles(decode(t, send(e.asA, http.MethodGet, "/activities?"+q, nil))) }
+
+	assert.Equal(t, []string{"Trip"}, list("fromDate=2026-03-01&toDate=2026-03-02"), "a range running into the filter")
+	assert.Equal(t, []string{"Trip"}, list("fromDate=2026-03-03&toDate=2026-03-05"), "the last day counts")
+	assert.Equal(t, []string{"Lunch"}, list("fromDate=2026-03-04"), "a range that ended is out")
+	assert.Equal(t, []string{"Trip"}, list("toDate=2026-02-28"))
+}

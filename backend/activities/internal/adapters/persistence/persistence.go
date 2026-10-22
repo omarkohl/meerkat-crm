@@ -52,7 +52,7 @@ func (r *Repository) List(ctx context.Context, actor domain.UserID, f app.Filter
 	db := r.db.WithContext(ctx)
 	base := db.Model(&models.Activity{}).Where("activities.user_id = ?", uint(actor))
 	if f.From != nil {
-		base = base.Where("activities.date >= ?", *f.From)
+		base = base.Where("COALESCE(activities.end_date, activities.date) >= ?", *f.From)
 	}
 	if f.To != nil {
 		base = base.Where("activities.date < ?", *f.To)
@@ -117,7 +117,7 @@ func (t *txRepo) CountContacts(ctx context.Context, actor domain.UserID, ids []d
 
 func (t *txRepo) Create(ctx context.Context, actor domain.UserID, a domain.Activity, contacts []domain.ContactID) (domain.Activity, error) {
 	db := t.tx.WithContext(ctx)
-	m := models.Activity{UserID: uint(actor), Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date}
+	m := models.Activity{UserID: uint(actor), Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate}
 	if err := db.Create(&m).Error; err != nil {
 		return domain.Activity{}, err
 	}
@@ -131,10 +131,10 @@ func (t *txRepo) Update(ctx context.Context, actor domain.UserID, a domain.Activ
 	db := t.tx.WithContext(ctx)
 	m := models.Activity{
 		Model: gorm.Model{ID: uint(a.ID), CreatedAt: a.CreatedAt}, UserID: uint(actor),
-		Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date,
+		Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate,
 	}
 	res := db.Model(&m).Where("user_id = ?", uint(actor)).
-		Select("title", "description", "location", "date").Updates(&m)
+		Select("title", "description", "location", "date", "end_date").Updates(&m)
 	if res.Error != nil {
 		return domain.Activity{}, res.Error
 	}
@@ -241,7 +241,7 @@ func contactIDs(ids []domain.ContactID) []uint {
 func toDomain(m models.Activity, contacts []domain.ContactRef) domain.Activity {
 	a := domain.Activity{
 		ID: domain.ActivityID(m.ID), UserID: domain.UserID(m.UserID), CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
-		Title: m.Title, Description: m.Description, Location: m.Location, Date: m.Date, Contacts: contacts,
+		Title: m.Title, Description: m.Description, Location: m.Location, Date: m.Date, EndDate: m.EndDate, Contacts: contacts,
 	}
 	if m.DeletedAt.Valid {
 		t := m.DeletedAt.Time

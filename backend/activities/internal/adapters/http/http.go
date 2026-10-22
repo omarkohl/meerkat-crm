@@ -52,11 +52,12 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 type handlers struct{ uc *app.UseCases }
 
 type ActivityBody struct {
-	Title       string    `json:"title" validate:"required,min=1,max=200"`
-	Description string    `json:"description" validate:"max=2000"`
-	Location    string    `json:"location" validate:"max=300"`
-	Date        time.Time `json:"date" validate:"required"`
-	ContactIDs  []uint    `json:"contact_ids,omitempty" doc:"The contacts that took part. On update, leaving it out keeps the current ones; an empty list removes them."`
+	Title       string                  `json:"title" validate:"required,min=1,max=200"`
+	Description string                  `json:"description" validate:"max=2000"`
+	Location    string                  `json:"location" validate:"max=300"`
+	Date        time.Time               `json:"date" validate:"required"`
+	EndDate     api.Optional[time.Time] `json:"end_date,omitempty" doc:"Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it."`
+	ContactIDs  []uint                  `json:"contact_ids,omitempty" doc:"The contacts that took part. On update, leaving it out keeps the current ones; an empty list removes them."`
 }
 
 type ContactRefResponse struct {
@@ -75,6 +76,7 @@ type ActivityResponse struct {
 	Description string               `json:"description"`
 	Location    string               `json:"location"`
 	Date        time.Time            `json:"date"`
+	EndDate     *time.Time           `json:"end_date" nullable:"true"`
 	Contacts    []ContactRefResponse `json:"contacts,omitempty"`
 }
 
@@ -89,7 +91,7 @@ type activityPath struct {
 type CreateInput struct{ Body ActivityBody }
 
 func (i *CreateInput) Resolve(_ huma.Context, prefix *huma.PathBuffer) []error {
-	return api.ValidateBody(prefix, &i.Body)
+	return i.Body.validate(prefix)
 }
 
 type UpdateInput struct {
@@ -98,7 +100,15 @@ type UpdateInput struct {
 }
 
 func (i *UpdateInput) Resolve(_ huma.Context, prefix *huma.PathBuffer) []error {
-	return api.ValidateBody(prefix, &i.Body)
+	return i.Body.validate(prefix)
+}
+
+func (b *ActivityBody) validate(prefix *huma.PathBuffer) []error {
+	errs := api.ValidateBody(prefix, b)
+	if b.draft().EndsBeforeStart() {
+		errs = append(errs, &huma.ErrorDetail{Message: "end_date must not be before date", Location: prefix.With("body") + ".end_date"})
+	}
+	return errs
 }
 
 // ListInput values are strings on purpose: one that does not parse falls back to its default,
@@ -206,7 +216,7 @@ func (h *handlers) update(ctx context.Context, in *UpdateInput) (*ActivityOutput
 	if err != nil {
 		return nil, err
 	}
-	a, err := h.uc.UpdateActivity(ctx, actor, domain.ActivityID(in.ID), in.Body.draft(), contactIDs(in.Body.ContactIDs), api.Now(ctx))
+	a, err := h.uc.UpdateActivity(ctx, actor, domain.ActivityID(in.ID), in.Body.draft(), !in.Body.EndDate.Set, contactIDs(in.Body.ContactIDs), api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, in.ID, 0)
 	}
@@ -227,7 +237,7 @@ func (h *handlers) delete(ctx context.Context, in *activityPath) (*ActivityMessa
 }
 
 func (b ActivityBody) draft() domain.Activity {
-	return domain.Activity{Title: b.Title, Description: b.Description, Location: b.Location, Date: b.Date}
+	return domain.Activity{Title: b.Title, Description: b.Description, Location: b.Location, Date: b.Date, EndDate: b.EndDate.Value}
 }
 
 func contactIDs(ids []uint) []domain.ContactID {
@@ -245,7 +255,7 @@ func contactIDs(ids []uint) []domain.ContactID {
 func NewActivityResponse(a domain.Activity) ActivityResponse {
 	r := ActivityResponse{
 		ID: uint(a.ID), CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, DeletedAt: a.DeletedAt,
-		Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date,
+		Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate,
 	}
 	for _, c := range a.Contacts {
 		r.Contacts = append(r.Contacts, ContactRefResponse{ID: uint(c.ID), Firstname: c.Firstname, Lastname: c.Lastname, Circles: c.Circles})
@@ -295,6 +305,8 @@ func toAppError(err error, activityID, contactID uint) error {
 		return apperrors.ErrNotFound("Contact").WithDetails("id", strconv.FormatUint(uint64(contactID), 10))
 	case errors.Is(err, domain.ErrContactsNotFound):
 		return apperrors.ErrNotFound("One or more contacts")
+	case errors.Is(err, domain.ErrEndBeforeStart):
+		return apperrors.ErrInvalidInput("end_date", "must not be before date")
 	}
 	var f *app.Failure
 	if errors.As(err, &f) {

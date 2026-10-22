@@ -13,6 +13,9 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Activities with a date range** (https://github.com/omarkohl/meerkat-crm/issues/209): give an
+  activity an optional end date, such as for a trip. Calendar subscriptions import multi-day events
+  as ranges.
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
 
