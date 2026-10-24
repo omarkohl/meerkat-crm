@@ -90,5 +90,6 @@ BACKLOG.md
 fly.demo.toml
 fly.test.toml
 
-# Local dev data (make dev)
+# Local dev data
 .dev/
+.jip.local.toml
