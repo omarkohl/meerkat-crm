@@ -355,10 +355,9 @@ func (m *ImportSessionManager) Confirm(db *gorm.DB, userID uint, req models.Impo
 // photoTask queues photo processing for a contact, deferred until after the import
 // transaction commits since it involves file I/O and network requests.
 type photoTask struct {
-	contactID      uint
-	photoData      []byte
-	photoMediaType string
-	photoURL       string // URL to fetch photo from (if not embedded)
+	contactID uint
+	photoData []byte
+	photoURL  string // URL to fetch photo from (if not embedded)
 }
 
 // ConfirmVCF executes a VCF import with photo processing, then deletes the session.
@@ -410,10 +409,9 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 					// Queue photo processing (either embedded data or URL)
 					if len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "" {
 						photoTasks = append(photoTasks, photoTask{
-							contactID:      contact.ID,
-							photoData:      vcfData.PhotoData,
-							photoMediaType: vcfData.PhotoMediaType,
-							photoURL:       vcfData.PhotoURL,
+							contactID: contact.ID,
+							photoData: vcfData.PhotoData,
+							photoURL:  vcfData.PhotoURL,
 						})
 					}
 				}
@@ -457,10 +455,9 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 					// Queue photo processing only if contact doesn't already have a photo
 					if existing.Photo == "" && (len(vcfData.PhotoData) > 0 || vcfData.PhotoURL != "") {
 						photoTasks = append(photoTasks, photoTask{
-							contactID:      existing.ID,
-							photoData:      vcfData.PhotoData,
-							photoMediaType: vcfData.PhotoMediaType,
-							photoURL:       vcfData.PhotoURL,
+							contactID: existing.ID,
+							photoData: vcfData.PhotoData,
+							photoURL:  vcfData.PhotoURL,
 						})
 					}
 				}
@@ -496,16 +493,16 @@ func (m *ImportSessionManager) ConfirmVCF(db *gorm.DB, userID uint, req models.I
 	sessionData.session.PreviewRows = nil
 	sessionData.session.ExpiresAt = m.now().Add(sessionExpiry)
 	m.mu.Unlock()
-	go m.processPhotos(db.WithContext(context.Background()), sessionData, photoTasks, cfg, log)
+	go m.processPhotos(db.WithContext(context.Background()), userID, sessionData, photoTasks, cfg, log)
 
 	return &result, nil
 }
 
 // processPhotos stores the photos of a confirmed vCard import (fetching photo URLs) and
 // reports progress through the session for status polling.
-func (m *ImportSessionManager) processPhotos(db *gorm.DB, sessionData *importSessionData, tasks []photoTask, cfg *config.Config, log *zerolog.Logger) {
+func (m *ImportSessionManager) processPhotos(db *gorm.DB, userID uint, sessionData *importSessionData, tasks []photoTask, cfg *config.Config, log *zerolog.Logger) {
 	for _, task := range tasks {
-		saved := m.savePhoto(db, task, cfg, log)
+		saved := m.savePhoto(db, userID, task, cfg, log)
 		m.mu.Lock()
 		p := sessionData.photos
 		p.Done++
@@ -522,11 +519,11 @@ func (m *ImportSessionManager) processPhotos(db *gorm.DB, sessionData *importSes
 	}
 }
 
-func (m *ImportSessionManager) savePhoto(db *gorm.DB, task photoTask, cfg *config.Config, log *zerolog.Logger) bool {
-	photoData, mediaType := task.photoData, task.photoMediaType
+func (m *ImportSessionManager) savePhoto(db *gorm.DB, userID uint, task photoTask, cfg *config.Config, log *zerolog.Logger) bool {
+	photoData := task.photoData
 	if len(photoData) == 0 {
 		var err error
-		photoData, mediaType, err = carddav.FetchPhotoFromURL(context.Background(), task.photoURL)
+		photoData, _, err = carddav.FetchPhotoFromURL(context.Background(), task.photoURL)
 		if err != nil {
 			log.Warn().Err(err).Uint("contact_id", task.contactID).Str("photo_url", task.photoURL).Msg("Failed to fetch photo from URL")
 			return false
@@ -536,13 +533,8 @@ func (m *ImportSessionManager) savePhoto(db *gorm.DB, task photoTask, cfg *confi
 		return false
 	}
 
-	photoPath, thumbnailFile, err := carddav.SaveContactPhoto(photoData, mediaType, cfg.ProfilePhotoDir)
-	if err != nil {
+	if _, err := ImportContactPhotoAt(context.Background(), db, cfg.ProfilePhotoDir, userID, task.contactID, photoData); err != nil {
 		log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to save imported photo")
-		return false
-	}
-	if err := replaceContactPhoto(db, cfg.ProfilePhotoDir, task.contactID, photoPath, thumbnailFile); err != nil {
-		log.Warn().Err(err).Uint("contact_id", task.contactID).Msg("Failed to update contact with photo")
 		return false
 	}
 	return true

@@ -455,18 +455,19 @@
     "invalidDate": "Invalid date"
   },
   "profilePicture": {
-    "title": "Upload Profile Picture",
-    "selectImage": "Select an image",
+    "title": "Add photos",
+    "selectImage": "Select images",
     "dragOrClick": "Click to browse or drag and drop",
-    "changeImage": "Change image",
+    "pasteHint": "You can also paste images ({{shortcut}})",
+    "useAsMain": "Use the first photo as main picture",
     "zoom": "Zoom",
     "uploading": "Uploading...",
-    "uploadError": "Failed to upload profile picture",
     "invalidFileType": "Please select an image file",
-    "fileTooLarge": "File is too large. Maximum size is 10MB.",
     "or": "or",
     "urlPlaceholder": "Paste image URL...",
-    "fetch": "Fetch"
+    "fetch": "Fetch",
+    "adjustCrop": "Adjust crop",
+    "change": "Change profile picture"
   },
   "settings": {
     "title": "Settings",
@@ -1181,6 +1182,7 @@
     "nothingMoves": "Nothing else has to move to {{name}}.",
     "deletes_one": "{{count}} contact will be deleted.",
     "deletes_other": "{{count}} contacts will be deleted.",
+    "tooManyImages": "Together these contacts have {{count}} photos. A contact can keep at most {{max}}. Delete some photos first.",
     "cannotUndo": "This cannot be undone. The merged contacts go to the trash, but their data is not split up again.",
     "confirm": "Merge contacts",
     "merging": "Merging…",
@@ -1207,5 +1209,29 @@
       "relationships_one": "{{count}} relationship",
       "relationships_other": "{{count}} relationships"
     }
+  },
+  "images": {
+    "removeImage": "Remove image {{n}}",
+    "tooLarge": "File is too large. Maximum size is 25 MB.",
+    "open": "Open image {{n}} of {{total}}",
+    "lightbox": {
+      "previous": "Previous image",
+      "next": "Next image",
+      "close": "Close",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "download": "Download"
+    },
+    "addPhoto": "Add photo",
+    "tabTitle": "Photos ({{count}})",
+    "noPhotos": "No photos yet",
+    "mainImage": "Main photo",
+    "actions": "Actions for image {{n}}",
+    "setMain": "Set as main",
+    "adjustCrop": "Adjust crop",
+    "delete": "Delete",
+    "retry": "Retry",
+    "uploadFailed": "Upload failed",
+    "addMore": "Add more"
   }
 }

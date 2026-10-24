@@ -2,6 +2,10 @@
 import { apiFetch, API_BASE_URL, getAuthHeaders, parseErrorResponse } from './client';
 import type { components, operations } from '../types/generated/api';
 import type { WithoutNull } from '../types/utils';
+import type { ImageRef } from './images';
+
+export type { ImageRef };
+import type { Crop } from '../utils/faceCrop';
 
 // Types of the contacts module's operations, generated from the OpenAPI document (docs/openapi.json).
 export type ContactResponse = components['schemas']['ContactResponse'];
@@ -137,19 +141,43 @@ export async function getContactProfilePicture(id: string | number, thumbnail: b
   return response.blob();
 }
 
-// Upload contact profile picture
-export async function uploadProfilePicture(id: string | number, imageBlob: Blob): Promise<void> {
-  const formData = new FormData();
-  formData.append('photo', imageBlob, 'profile.jpg');
+export type ImageCrop = components['schemas']['ImageCrop'];
 
-  const response = await apiFetch(`${API_BASE_URL}/contacts/${id}/profile_picture`, {
-    method: 'POST',
-    body: formData,
+export async function setContactImages(id: number, imageIds: number[]): Promise<ImageRef[]> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/${String(id)}/images`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ image_ids: imageIds }),
   });
 
   if (!response.ok) {
     throw await parseErrorResponse(response);
   }
+  return (await response.json()) as ImageRef[];
+}
+
+export async function setMainImage(id: number, imageId: number, crop: ImageCrop): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/${String(id)}/main_image`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ image_id: imageId, crop }),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response);
+  }
+}
+
+// Appends uploaded photos to the gallery. The first becomes the main image, with the crop, when one is given.
+export async function addContactPhotos(
+  id: number,
+  currentIds: number[],
+  images: ImageRef[],
+  crop: Crop | null,
+): Promise<void> {
+  await setContactImages(id, [...currentIds, ...images.map((i) => i.id)]);
+  const [first] = images;
+  if (crop && first) await setMainImage(id, first.id, crop);
 }
 
 // Get all circles

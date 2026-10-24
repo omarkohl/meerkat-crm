@@ -139,6 +139,7 @@ export default function ContactHeader({
             <IconButton
               className="camera-badge"
               size="small"
+              aria-label={t('profilePicture.change')}
               onClick={onUploadProfilePicture}
               sx={{
                 position: 'absolute',

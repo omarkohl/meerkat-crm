@@ -19,9 +19,10 @@ You can add **custom fields** through the settings menu. These will appear on ev
 hold any text value. When deleting a custom field the information will still be stored in the
 database but not be visible. It will reappear when you add the same custom field again.
 
-**Profile pictures** are stored downsized to 400x400px as files as well as as 48x48px thumbnails in
-the database (base64). You upload pictures directly or enter an image URL and have the backend pull
-it in from the web. Currently JPEG, PNG and HEIC up to 10 MB are supported file formats.
+**Profile pictures** are cut from the main image of a contact: a square crop, stored as a file of at
+most 400x400px with a 96x96px thumbnail. You upload pictures directly, paste or drop them, or enter
+an image URL and have the backend pull it in from the web. Currently JPEG, PNG and HEIC up to 10 MB
+are supported file formats. See [Images](#images).
 
 You can **archive** contacts to hide them from default search results and the dashboard. Archiving
 permanently deletes all active reminders for that contact. Notes, activities and relationships are
@@ -85,6 +86,16 @@ value that maps to the vCard `NOTE` property. It is filled by VCF/CSV import and
 so it matches the note your phone or address book shows. Timeline notes are not synced. Unassigned
 notes are not attached to any contact. They are accessible from the Notes page in the main
 navigation and can be used like a personal journal.
+
+## Images
+
+A contact, an activity or a note can have images. A contact can have up to 50; one is the main image
+and has a square face crop that makes the profile picture. An image has one owner at most; one with
+no owner is pending (uploaded, not saved with anything yet) and is deleted after 24 hours. Each
+image has a full variant (WebP, long edge at most 2048 px) and a thumbnail (480 px) under
+`PROFILE_PHOTO_DIR/images/u<user_id>/`. Images of a note or activity are deleted with it. Images of
+a contact stay with the contact in the trash and are deleted when it is purged. See
+[ADR 0019](adr/0019-images-storage-and-formats.md).
 
 ## Reminders
 

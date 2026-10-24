@@ -29,20 +29,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/components/ProfilePictureUploadDialog.tsx",
-    "to": "src/api/client.ts",
-    "unresolvedTo": "../api/client",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "api-client-is-private-to-api"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/components/TwoFactorSettings.tsx",
     "to": "src/api/client.ts",
     "unresolvedTo": "../api/client",

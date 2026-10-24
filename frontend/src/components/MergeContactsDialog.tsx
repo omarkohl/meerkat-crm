@@ -20,6 +20,7 @@ import AppDialog from './AppDialog';
 import { useContactMerge } from '../hooks/useContactMerge';
 import { useSnackbar } from '../context/SnackbarContext';
 import { CUSTOM_FIELD_PREFIX, type MergeContact, type MergeCounts } from '../utils/mergeContacts';
+import { MAX_CONTACT_IMAGES } from '../api/images';
 
 const FIELD_LABELS: Record<string, string> = {
   firstname: 'contacts.firstname',
@@ -125,6 +126,11 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
         )}
         {plan && step === 'review' && (
           <>
+            {plan.tooManyImages && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {t('merge.tooManyImages', { count: plan.imageCount, max: MAX_CONTACT_IMAGES })}
+              </Alert>
+            )}
             <FormControl sx={{ mb: 2 }}>
               <FormLabel id="merge-target-label">{t('merge.targetLegend')}</FormLabel>
               <Typography variant="caption" color="text.secondary">
@@ -236,7 +242,7 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
             <Button onClick={onClose}>{t('common.cancel')}</Button>
             <Button
               variant="contained"
-              disabled={!plan}
+              disabled={!plan || plan.tooManyImages}
               onClick={() => {
                 setStep('confirm');
               }}

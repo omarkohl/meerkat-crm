@@ -25,12 +25,12 @@ type Deps struct {
 type Module struct{ uc *app.UseCases }
 
 func New(d Deps) *Module {
-	repo := persistence.New(d.DB)
 	dir := ""
 	if d.Config != nil {
 		dir = d.Config.ProfilePhotoDir
 	}
-	return &Module{uc: app.New(repo, repo, files.New(dir))}
+	repo := persistence.New(d.DB, dir)
+	return &Module{uc: app.New(repo, files.New(dir))}
 }
 
 func (m *Module) Register(a huma.API, group gin.IRoutes) {

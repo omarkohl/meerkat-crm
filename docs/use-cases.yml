@@ -351,3 +351,15 @@
   actor: user
   priority: high
   status: implemented
+
+- id: 023-US3
+  title: Keep several photos of a contact
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 023-US4
+  title: Receive contact photos from CardDAV and imports without duplicates
+  actor: user
+  priority: medium
+  status: implemented

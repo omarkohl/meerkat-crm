@@ -140,7 +140,7 @@ func newEnv(t *testing.T) *env {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Activity{}, &models.Note{}, &models.Relationship{},
-		&models.Reminder{}, &models.Webhook{}, &models.WebhookDelivery{}))
+		&models.Reminder{}, &models.Webhook{}, &models.WebhookDelivery{}, &models.Image{}))
 	e := &env{db: db, clk: clock.NewFake(now)}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}

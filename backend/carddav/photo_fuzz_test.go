@@ -40,8 +40,5 @@ func FuzzDecodePhoto(f *testing.F) {
 		if img == nil {
 			t.Fatal("decodePhoto returned neither image nor error")
 		}
-		if b := img.Bounds(); b.Dx() > 0 && b.Dy() > 0 {
-			resizeTo(cropToSquare(img), 48)
-		}
 	})
 }

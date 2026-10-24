@@ -455,18 +455,19 @@
     "invalidDate": "Data non valida"
   },
   "profilePicture": {
-    "title": "Carica Foto Profilo",
-    "selectImage": "Seleziona un'immagine",
+    "title": "Aggiungi foto",
+    "selectImage": "Seleziona immagini",
     "dragOrClick": "Clicca per sfogliare o trascina e rilascia",
-    "changeImage": "Cambia immagine",
+    "pasteHint": "Puoi anche incollare immagini ({{shortcut}})",
+    "useAsMain": "Usa la prima foto come foto principale",
     "zoom": "Zoom",
     "uploading": "Caricamento in corso...",
-    "uploadError": "Caricamento foto profilo fallito",
     "invalidFileType": "Seleziona un file immagine",
-    "fileTooLarge": "Il file è troppo grande. La dimensione massima è 10MB.",
     "or": "o",
     "urlPlaceholder": "Incolla URL immagine...",
-    "fetch": "Recupera"
+    "fetch": "Recupera",
+    "adjustCrop": "Regola il ritaglio",
+    "change": "Cambia immagine del profilo"
   },
   "settings": {
     "title": "Impostazioni",
@@ -1181,6 +1182,7 @@
     "nothingMoves": "Nient'altro deve passare a {{name}}.",
     "deletes_one": "{{count}} contatto verrà eliminato.",
     "deletes_other": "{{count}} contatti verranno eliminati.",
+    "tooManyImages": "Insieme questi contatti hanno {{count}} foto. Un contatto può averne al massimo {{max}}. Elimina prima alcune foto.",
     "cannotUndo": "Non si può annullare. I contatti uniti vanno nel cestino, ma i loro dati non vengono separati di nuovo.",
     "confirm": "Unisci contatti",
     "merging": "Unione in corso…",
@@ -1207,5 +1209,29 @@
       "relationships_one": "{{count}} relazione",
       "relationships_other": "{{count}} relazioni"
     }
+  },
+  "images": {
+    "removeImage": "Rimuovi immagine {{n}}",
+    "tooLarge": "Il file è troppo grande. La dimensione massima è 25 MB.",
+    "open": "Apri immagine {{n}} di {{total}}",
+    "lightbox": {
+      "previous": "Immagine precedente",
+      "next": "Immagine successiva",
+      "close": "Chiudi",
+      "zoomIn": "Ingrandisci",
+      "zoomOut": "Riduci",
+      "download": "Scarica"
+    },
+    "addPhoto": "Aggiungi foto",
+    "tabTitle": "Foto ({{count}})",
+    "noPhotos": "Ancora nessuna foto",
+    "mainImage": "Foto principale",
+    "actions": "Azioni per l'immagine {{n}}",
+    "setMain": "Imposta come principale",
+    "adjustCrop": "Regola il ritaglio",
+    "delete": "Elimina",
+    "retry": "Riprova",
+    "uploadFailed": "Caricamento non riuscito",
+    "addMore": "Aggiungi altre"
   }
 }

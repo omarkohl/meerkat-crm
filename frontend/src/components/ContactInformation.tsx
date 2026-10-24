@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
@@ -47,6 +47,9 @@ interface ContactInformationProps {
   onDeleteRelationship?: (relationshipId: number) => void;
   // Custom fields
   customFieldNames?: string[];
+  // Photos tab
+  photosCount?: number;
+  photos?: ReactNode;
 }
 
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
@@ -69,6 +72,8 @@ export default function ContactInformation({
   onEditRelationship,
   onDeleteRelationship,
   customFieldNames = [],
+  photosCount = 0,
+  photos,
 }: ContactInformationProps) {
   const { t } = useTranslation();
   const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
@@ -123,6 +128,7 @@ export default function ContactInformation({
         >
           <Tab label={t('contactDetail.generalInfo')} />
           <Tab label={t('relationships.title')} />
+          {photos && <Tab label={t('images.tabTitle', { count: photosCount })} />}
         </Tabs>
       </Box>
 
@@ -460,6 +466,9 @@ export default function ContactInformation({
           />
         </CardContent>
       )}
+
+      {/* Photos Tab */}
+      {activeTab === 2 && photos}
     </Card>
   );
 }

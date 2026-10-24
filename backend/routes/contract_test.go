@@ -21,6 +21,7 @@ import (
 var notJSON = map[string]string{
 	"GET /api/v1/admin/backups/:name":          "sends a backup archive",
 	"GET /api/v1/contacts/:id/profile_picture": "sends an image (range requests, ETag)",
+	"GET /api/v1/images/:id/:variant":          "sends an image (conditional requests, cache)",
 	"GET /api/v1/export":                       "sends a CSV file",
 	"GET /api/v1/export/vcf":                   "sends a vCard file",
 	"GET /api/v1/ics/:file":                    "sends a calendar; its token in the path is the credential",

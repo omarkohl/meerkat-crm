@@ -455,18 +455,19 @@
     "invalidDate": "Ungültiges Datum"
   },
   "profilePicture": {
-    "title": "Profilbild hochladen",
-    "selectImage": "Bild auswählen",
+    "title": "Fotos hinzufügen",
+    "selectImage": "Bilder auswählen",
     "dragOrClick": "Klicken zum Durchsuchen oder per Drag & Drop",
-    "changeImage": "Bild ändern",
+    "pasteHint": "Sie können auch Bilder einfügen ({{shortcut}})",
+    "useAsMain": "Erstes Foto als Hauptbild verwenden",
     "zoom": "Zoom",
     "uploading": "Hochladen...",
-    "uploadError": "Profilbild konnte nicht hochgeladen werden",
     "invalidFileType": "Bitte wählen Sie eine Bilddatei",
-    "fileTooLarge": "Datei ist zu groß. Maximale Größe ist 10MB.",
     "or": "oder",
     "urlPlaceholder": "Bild-URL einfügen...",
-    "fetch": "Abrufen"
+    "fetch": "Abrufen",
+    "adjustCrop": "Ausschnitt anpassen",
+    "change": "Profilbild ändern"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1181,6 +1182,7 @@
     "nothingMoves": "Es muss nichts weiter an {{name}} übertragen werden.",
     "deletes_one": "{{count}} Kontakt wird gelöscht.",
     "deletes_other": "{{count}} Kontakte werden gelöscht.",
+    "tooManyImages": "Zusammen haben diese Kontakte {{count}} Fotos. Ein Kontakt kann höchstens {{max}} haben. Löschen Sie zuerst einige Fotos.",
     "cannotUndo": "Das lässt sich nicht rückgängig machen. Die zusammengeführten Kontakte landen im Papierkorb, ihre Daten werden aber nicht wieder aufgeteilt.",
     "confirm": "Kontakte zusammenführen",
     "merging": "Wird zusammengeführt…",
@@ -1207,5 +1209,29 @@
       "relationships_one": "{{count}} Beziehung",
       "relationships_other": "{{count}} Beziehungen"
     }
+  },
+  "images": {
+    "removeImage": "Bild {{n}} entfernen",
+    "tooLarge": "Datei ist zu groß. Maximale Größe ist 25 MB.",
+    "open": "Bild {{n}} von {{total}} öffnen",
+    "lightbox": {
+      "previous": "Vorheriges Bild",
+      "next": "Nächstes Bild",
+      "close": "Schließen",
+      "zoomIn": "Vergrößern",
+      "zoomOut": "Verkleinern",
+      "download": "Herunterladen"
+    },
+    "addPhoto": "Foto hinzufügen",
+    "tabTitle": "Fotos ({{count}})",
+    "noPhotos": "Noch keine Fotos",
+    "mainImage": "Hauptfoto",
+    "actions": "Aktionen für Bild {{n}}",
+    "setMain": "Als Hauptfoto festlegen",
+    "adjustCrop": "Ausschnitt anpassen",
+    "delete": "Löschen",
+    "retry": "Erneut versuchen",
+    "uploadFailed": "Hochladen fehlgeschlagen",
+    "addMore": "Weitere hinzufügen"
   }
 }

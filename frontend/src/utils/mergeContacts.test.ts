@@ -144,3 +144,23 @@ describe('planMerge moves', () => {
     expect(plan.counts.relationships).toBe(2);
   });
 });
+
+// @023-US3
+describe('planMerge images', () => {
+  const images = (n: number, from = 1) =>
+    Array.from({ length: n }, (_, i) => ({ id: from + i, crop: null })) as unknown as MergeContact['images'];
+
+  test('counts the images of all contacts, and a photo that is not an image yet as one', () => {
+    const plan = planMerge(contact(1, { images: images(30) }), [
+      contact(2, { images: images(20, 100) }),
+      contact(3, { photo: 'p.jpg' }),
+    ]);
+    expect(plan.imageCount).toBe(51);
+    expect(plan.tooManyImages).toBe(true);
+  });
+
+  test('fifty images fit', () => {
+    const plan = planMerge(contact(1, { images: images(25) }), [contact(2, { images: images(25, 100) })]);
+    expect(plan.tooManyImages).toBe(false);
+  });
+});

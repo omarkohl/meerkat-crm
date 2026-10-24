@@ -455,18 +455,19 @@
     "invalidDate": "Date invalide"
   },
   "profilePicture": {
-    "title": "Télécharger une photo de profil",
-    "selectImage": "Sélectionner une image",
+    "title": "Ajouter des photos",
+    "selectImage": "Sélectionner des images",
     "dragOrClick": "Cliquez pour parcourir ou glissez-déposez",
-    "changeImage": "Changer l'image",
+    "pasteHint": "Vous pouvez aussi coller des images ({{shortcut}})",
+    "useAsMain": "Utiliser la première photo comme photo principale",
     "zoom": "Zoom",
     "uploading": "Téléchargement en cours...",
-    "uploadError": "Échec du téléchargement de la photo de profil",
     "invalidFileType": "Veuillez sélectionner un fichier image",
-    "fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de 10 Mo.",
     "or": "ou",
     "urlPlaceholder": "Collez l'URL de l'image...",
-    "fetch": "Récupérer"
+    "fetch": "Récupérer",
+    "adjustCrop": "Ajuster le cadrage",
+    "change": "Changer la photo de profil"
   },
   "settings": {
     "title": "Paramètres",
@@ -1181,6 +1182,7 @@
     "nothingMoves": "Rien d'autre ne doit passer à {{name}}.",
     "deletes_one": "{{count}} contact sera supprimé.",
     "deletes_other": "{{count}} contacts seront supprimés.",
+    "tooManyImages": "Ensemble, ces contacts ont {{count}} photos. Un contact peut en avoir au plus {{max}}. Supprimez d'abord quelques photos.",
     "cannotUndo": "Cette action est irréversible. Les contacts fusionnés vont dans la corbeille, mais leurs données ne sont pas séparées à nouveau.",
     "confirm": "Fusionner les contacts",
     "merging": "Fusion en cours…",
@@ -1207,5 +1209,29 @@
       "relationships_one": "{{count}} relation",
       "relationships_other": "{{count}} relations"
     }
+  },
+  "images": {
+    "removeImage": "Retirer l'image {{n}}",
+    "tooLarge": "Le fichier est trop volumineux. La taille maximale est de 25 Mo.",
+    "open": "Ouvrir l'image {{n}} sur {{total}}",
+    "lightbox": {
+      "previous": "Image précédente",
+      "next": "Image suivante",
+      "close": "Fermer",
+      "zoomIn": "Agrandir",
+      "zoomOut": "Réduire",
+      "download": "Télécharger"
+    },
+    "addPhoto": "Ajouter une photo",
+    "tabTitle": "Photos ({{count}})",
+    "noPhotos": "Pas encore de photos",
+    "mainImage": "Photo principale",
+    "actions": "Actions pour l'image {{n}}",
+    "setMain": "Définir comme principale",
+    "adjustCrop": "Ajuster le cadrage",
+    "delete": "Supprimer",
+    "retry": "Réessayer",
+    "uploadFailed": "Échec du téléversement",
+    "addMore": "Ajouter d'autres"
   }
 }

@@ -30,7 +30,15 @@ const (
 type Backend struct {
 	db       *gorm.DB
 	photoDir string
+	photos   PhotoImporter
 }
+
+// PhotoImporter adds the photo of a card to the contact's images and reports whether it added one.
+// Without one, photos in cards are ignored.
+type PhotoImporter func(ctx context.Context, db *gorm.DB, dir string, userID, contactID uint, data []byte) (bool, error)
+
+// SetPhotoImporter chooses how photos in cards are stored.
+func (b *Backend) SetPhotoImporter(f PhotoImporter) { b.photos = f }
 
 // NewBackend creates a new CardDAV backend
 func NewBackend(db *gorm.DB, photoDir string) *Backend {
@@ -256,10 +264,8 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		}
 	}
 
-	swap := NewPhotoSwap(&contact)
-
 	// Convert vCard to contact
-	updatedContact, photoData, photoMediaType, photoURL := VCardToContact(card, &contact)
+	updatedContact, photoData, _, photoURL := VCardToContact(card, &contact)
 	updatedContact.UserID = userID
 
 	// Ensure VCardUID is set (RFC 6352 requires every contact to have a UID)
@@ -274,48 +280,36 @@ func (b *Backend) PutAddressObject(ctx context.Context, urlPath string, card vca
 		}
 	}
 
-	// Handle photo if provided (embedded base64)
-	if len(photoData) > 0 {
-		photoPath, thumbnailFile, err := SaveContactPhoto(photoData, photoMediaType, b.getPhotoDir(ctx))
-		if err != nil {
-			logger.Warn().
-				Err(err).
-				Str("vcard_uid", updatedContact.VCardUID).
-				Str("media_type", photoMediaType).
-				Int("photo_size", len(photoData)).
-				Msg("CardDAV: failed to save contact photo")
-		} else {
-			swap.Apply(updatedContact, photoPath, thumbnailFile)
-		}
-	} else if photoURL != "" {
-		// Handle URL-based photo - fetch and save
-		fetchedData, fetchedMediaType, err := FetchPhotoFromURL(ctx, photoURL)
+	if len(photoData) == 0 && photoURL != "" {
+		fetched, _, err := FetchPhotoFromURL(ctx, photoURL)
 		if err != nil {
 			logger.Warn().
 				Err(err).
 				Str("vcard_uid", updatedContact.VCardUID).
 				Str("photo_url", photoURL).
 				Msg("CardDAV: failed to fetch photo from URL")
-		} else if len(fetchedData) > 0 {
-			photoPath, thumbnailFile, err := SaveContactPhoto(fetchedData, fetchedMediaType, b.getPhotoDir(ctx))
-			if err != nil {
-				logger.Warn().
-					Err(err).
-					Str("vcard_uid", updatedContact.VCardUID).
-					Str("photo_url", photoURL).
-					Msg("CardDAV: failed to save fetched photo")
-			} else {
-				swap.Apply(updatedContact, photoPath, thumbnailFile)
+		}
+		photoData = fetched
+	}
+
+	if err := db.Save(updatedContact).Error; err != nil {
+		return nil, err
+	}
+	if len(photoData) > 0 && b.photos != nil {
+		added, err := b.photos(ctx, db, b.getPhotoDir(ctx), userID, updatedContact.ID, photoData)
+		switch {
+		case err != nil:
+			logger.Warn().
+				Err(err).
+				Str("vcard_uid", updatedContact.VCardUID).
+				Int("photo_size", len(photoData)).
+				Msg("CardDAV: failed to save contact photo")
+		case added:
+			if err := db.First(updatedContact, updatedContact.ID).Error; err != nil {
+				return nil, err
 			}
 		}
 	}
-
-	// Save contact
-	if err := db.Save(updatedContact).Error; err != nil {
-		swap.Rollback(b.getPhotoDir(ctx), updatedContact)
-		return nil, err
-	}
-	swap.Commit(b.getPhotoDir(ctx))
 
 	return b.contactToAddressObject(ctx, updatedContact), nil
 }

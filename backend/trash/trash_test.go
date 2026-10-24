@@ -42,7 +42,7 @@ func newEnv(t *testing.T, retentionDays int) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Reminder{}, &models.ReminderCompletion{},
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Image{}, &models.Reminder{}, &models.ReminderCompletion{},
 		&models.Relationship{}, &models.Activity{}, &models.CardDAVContactLink{}, &models.Webhook{}, &models.WebhookDelivery{}))
 	e := &env{db: db, photos: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}

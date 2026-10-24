@@ -455,18 +455,19 @@
     "invalidDate": "Fecha no válida"
   },
   "profilePicture": {
-    "title": "Subir Foto de Perfil",
-    "selectImage": "Seleccionar una imagen",
+    "title": "Añadir fotos",
+    "selectImage": "Seleccionar imágenes",
     "dragOrClick": "Haz clic para explorar o arrastra y suelta",
-    "changeImage": "Cambiar imagen",
+    "pasteHint": "También puedes pegar imágenes ({{shortcut}})",
+    "useAsMain": "Usar la primera foto como foto principal",
     "zoom": "Zoom",
     "uploading": "Subiendo...",
-    "uploadError": "Error al subir la foto de perfil",
     "invalidFileType": "Selecciona un archivo de imagen",
-    "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es 10MB.",
     "or": "o",
     "urlPlaceholder": "Pegar URL de imagen...",
-    "fetch": "Obtener"
+    "fetch": "Obtener",
+    "adjustCrop": "Ajustar el recorte",
+    "change": "Cambiar imagen de perfil"
   },
   "settings": {
     "title": "Configuración",
@@ -1181,6 +1182,7 @@
     "nothingMoves": "No hay nada más que pasar a {{name}}.",
     "deletes_one": "Se eliminará {{count}} contacto.",
     "deletes_other": "Se eliminarán {{count}} contactos.",
+    "tooManyImages": "Juntos, estos contactos tienen {{count}} fotos. Un contacto puede tener como máximo {{max}}. Elimina antes algunas fotos.",
     "cannotUndo": "No se puede deshacer. Los contactos combinados van a la papelera, pero sus datos no se vuelven a separar.",
     "confirm": "Combinar contactos",
     "merging": "Combinando…",
@@ -1207,5 +1209,29 @@
       "relationships_one": "{{count}} relación",
       "relationships_other": "{{count}} relaciones"
     }
+  },
+  "images": {
+    "removeImage": "Quitar imagen {{n}}",
+    "tooLarge": "El archivo es demasiado grande. El tamaño máximo es 25 MB.",
+    "open": "Abrir imagen {{n}} de {{total}}",
+    "lightbox": {
+      "previous": "Imagen anterior",
+      "next": "Imagen siguiente",
+      "close": "Cerrar",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "download": "Descargar"
+    },
+    "addPhoto": "Añadir foto",
+    "tabTitle": "Fotos ({{count}})",
+    "noPhotos": "Aún no hay fotos",
+    "mainImage": "Foto principal",
+    "actions": "Acciones de la imagen {{n}}",
+    "setMain": "Establecer como principal",
+    "adjustCrop": "Ajustar el recorte",
+    "delete": "Eliminar",
+    "retry": "Reintentar",
+    "uploadFailed": "Error al subir",
+    "addMore": "Añadir más"
   }
 }

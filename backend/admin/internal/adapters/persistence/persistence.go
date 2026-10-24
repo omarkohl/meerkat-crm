@@ -173,6 +173,12 @@ func (r *Users) Count(ctx context.Context) (int64, error) {
 	return n, err
 }
 
+func (r *Users) ImageTotals(ctx context.Context) (int64, int64, error) {
+	var t struct{ N, Bytes int64 }
+	err := r.db.WithContext(ctx).Model(&models.Image{}).Select("COUNT(*) AS n, COALESCE(SUM(bytes), 0) AS bytes").Scan(&t).Error
+	return t.N, t.Bytes, err
+}
+
 func (r *Users) CountAdmins(ctx context.Context) (int64, error) {
 	var n int64
 	err := r.db.WithContext(ctx).Model(&models.User{}).Where("is_admin = ?", true).Count(&n).Error

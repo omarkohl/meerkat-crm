@@ -48,9 +48,11 @@ func newMeerkatServerWith(t *testing.T, wellKnownHits *atomic.Int32, withoutPrin
 	user := models.User{Username: "remote", Password: "password123!A", Email: "remote@example.com"}
 	require.NoError(t, db.Create(&user).Error)
 	photoDir := t.TempDir()
-	var backend carddavlib.Backend = mcarddav.NewBackend(db, photoDir)
+	meerkat := mcarddav.NewBackend(db, photoDir)
+	meerkat.SetPhotoImporter(ImportContactPhotoAt)
+	var backend carddavlib.Backend = meerkat
 	if withoutPrincipal {
-		backend = noPrincipalBackend{mcarddav.NewBackend(db, photoDir)}
+		backend = noPrincipalBackend{meerkat}
 	}
 	lib := &carddavlib.Handler{Backend: backend, Prefix: "/carddav"}
 	r := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -189,10 +191,9 @@ func TestContactSyncPushesAProfilePictureToTheServer(t *testing.T) {
 		contact := env.createContact(t, "Quin", "Quick", "")
 		data, err := base64.StdEncoding.DecodeString(pngBase64(t))
 		require.NoError(t, err)
-		photo, thumb, err := mcarddav.SaveContactPhoto(data, "image/png", env.cfg.ProfilePhotoDir)
+		var eff ImageEffects
+		_, err = AddContactImage(context.Background(), env.db, env.cfg.ProfilePhotoDir, contact.UserID, contact.ID, data, true, &eff)
 		require.NoError(t, err)
-		require.NoError(t, env.db.Model(&models.Contact{}).Where("id = ?", contact.ID).
-			UpdateColumns(map[string]any{"photo": photo, "photo_thumbnail_file": thumb}).Error)
 
 		env.sync(t)
 
@@ -242,4 +243,25 @@ func TestScheduledSyncRunsEveryEnabledConnectionEvenWhenOneFails(t *testing.T) {
 	var untouched int64
 	require.NoError(t, env.db.Model(&models.Contact{}).Where("user_id = ?", off.ID).Count(&untouched).Error)
 	assert.Zero(t, untouched, "a disabled connection is not synced")
+}
+
+// @023-US4
+func TestContactSyncAddsOneImageForAPhotoThatComesBackUnchanged(t *testing.T) {
+	runContactSync(t, models.CardDAVDirectionTwoWay, func(t *testing.T, env *contactSyncEnv) {
+		card := func(last string) string {
+			return "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:uid-photo\r\nFN:Pia " + last + "\r\nN:" + last + ";Pia;;;\r\n" +
+				"PHOTO;ENCODING=b;TYPE=PNG:" + pngBase64(t) + "\r\nEND:VCARD\r\n"
+		}
+		env.remote.putRaw(t, "uid-photo", card("Photo"))
+		env.sync(t)
+		env.remote.putRaw(t, "uid-photo", card("Photographer"))
+		env.sync(t)
+
+		contacts := env.localContacts(t)
+		require.Len(t, contacts, 1)
+		assert.Equal(t, "Photographer", contacts[0].Lastname, "the second sync pulled the change")
+		var images int64
+		require.NoError(t, env.db.Model(&models.Image{}).Where("contact_id = ?", contacts[0].ID).Count(&images).Error)
+		assert.EqualValues(t, 1, images)
+	})
 }

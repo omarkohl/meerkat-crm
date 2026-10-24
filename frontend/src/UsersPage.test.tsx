@@ -25,6 +25,8 @@ vi.mock('./auth', async (importOriginal) => ({
 vi.mock('./api/twoFactor', () => ({ resetUserTwoFactor: vi.fn() }));
 
 const status = (over: Partial<adminApi.SystemStatus> = {}): adminApi.SystemStatus => ({
+  image_count: 0,
+  image_bytes: 0,
   private_urls_allowed: true,
   user_count: 3,
   private_url_warning: true,

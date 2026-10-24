@@ -56,7 +56,9 @@ Android does not include a native CardDAV client. You will need a third-party ap
 ## Sync Behavior
 
 - **Two-way sync**: Changes made in Meerkat CRM appear on your phone, and changes made on your phone
-  are synced back to Meerkat CRM. This also applies to profile pictures.
+  are synced back to Meerkat CRM. This also applies to profile pictures: a photo that arrives with a
+  card is added to the contact's images as the main image, unless it shows the picture the contact
+  has already (a phone may re-encode it). Earlier images stay.
 - **Conflict detection**: Meerkat CRM uses ETags to detect conflicts. If a contact has been modified
   on both the server and the client since the last sync, the client will be notified and can resolve
   the conflict. A client that saves with a stale ETag (`If-Match`), or creates a contact that

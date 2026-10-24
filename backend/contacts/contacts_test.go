@@ -42,7 +42,7 @@ func newEnv(t *testing.T) *env {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Activity{}, &models.Note{}, &models.Relationship{},
-		&models.Reminder{}, &models.Webhook{}, &models.WebhookDelivery{}))
+		&models.Reminder{}, &models.Image{}, &models.Webhook{}, &models.WebhookDelivery{}))
 	e := &env{db: db, photos: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
@@ -564,4 +564,33 @@ func TestListsRefuseWithoutAUser(t *testing.T) {
 	for _, p := range []string{"/contacts", "/contacts/random", "/contacts/birthdays"} {
 		assert.Equal(t, http.StatusUnauthorized, do(e.anon, http.MethodGet, p).Code, p)
 	}
+}
+
+// @023-US3
+func TestAContactShowsItsImagesInOrderAndWhichOneIsMain(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID, "Alice")
+	mk := func(name string, position int) models.Image {
+		img := models.Image{UserID: e.a.ID, ContactID: &c.ID, Position: position, File: "images/u1/" + name + "_image.webp", ThumbFile: "images/u1/" + name + "_thumb.webp", Mime: "image/webp", Width: 40, Height: 30}
+		require.NoError(t, e.db.Create(&img).Error)
+		return img
+	}
+	second, first := mk("b", 1), mk("a", 0)
+	crop := 30
+	zero := 0
+	require.NoError(t, e.db.Model(&models.Image{}).Where("id = ?", first.ID).Updates(map[string]any{"crop_x": zero, "crop_y": zero, "crop_size": crop}).Error)
+	require.NoError(t, e.db.Model(&c).Update("main_image_id", first.ID).Error)
+
+	body := decode(t, do(e.asA, http.MethodGet, idPath(c, "")))
+	assert.Equal(t, float64(first.ID), body["main_image_id"])
+	images := body["images"].([]any)
+	require.Len(t, images, 2)
+	assert.Equal(t, float64(first.ID), images[0].(map[string]any)["id"])
+	assert.Equal(t, float64(second.ID), images[1].(map[string]any)["id"])
+	assert.Equal(t, map[string]any{"x": float64(0), "y": float64(0), "size": float64(30)}, images[0].(map[string]any)["crop"])
+
+	assert.Nil(t, decode(t, do(e.asA, http.MethodGet, idPath(e.contact(t, e.a.ID, "Bob"), "")))["main_image_id"])
+
+	edited := decode(t, send(e.asA, http.MethodPut, idPath(c, ""), map[string]any{"firstname": "Alicia"}))
+	assert.Equal(t, float64(first.ID), edited["main_image_id"], "editing the contact keeps the main image")
 }

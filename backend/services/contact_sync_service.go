@@ -982,12 +982,12 @@ func (r *contactSyncRun) newLink(contact *models.Contact, obj *remoteObject) *mo
 // pullCreate imports a remote object as a new local contact. When link is
 // non-nil the existing link row is reused (contact row vanished).
 func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVContactLink) {
-	contact, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, nil)
+	contact, photoData, _, photoURL := mcarddav.VCardToContact(obj.Card, nil)
 	contact.UserID = r.conn.UserID
 	if contact.VCardUID == "" {
 		contact.VCardUID = remoteUID(obj)
 	}
-	swap := r.applyPhoto(contact, photoData, mediaType, photoURL)
+	photoData = r.fetchPhoto(photoData, photoURL)
 
 	var hash string
 	err := r.db.Transaction(func(tx *gorm.DB) error {
@@ -1011,11 +1011,10 @@ func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVConta
 		return tx.Omit("PurgedAt").Save(link).Error
 	})
 	if err != nil {
-		swap.Rollback(r.cfg.ProfilePhotoDir, contact)
 		r.recordItemError(err, "Failed to import remote contact", map[string]string{"path": obj.Path})
 		return
 	}
-	swap.Commit(r.cfg.ProfilePhotoDir)
+	hash = r.importPhoto(contact, link, photoData, hash)
 	r.contactByID[contact.ID] = contact
 	r.setLocalHash(contact.ID, hash)
 	r.linkByPath[obj.Path] = link
@@ -1025,9 +1024,9 @@ func (r *contactSyncRun) pullCreate(obj *remoteObject, link *models.CardDAVConta
 
 // pullUpdate applies a remote card onto an existing local contact.
 func (r *contactSyncRun) pullUpdate(obj *remoteObject, link *models.CardDAVContactLink, contact *models.Contact) {
-	updated, photoData, mediaType, photoURL := mcarddav.VCardToContact(obj.Card, contact)
+	updated, photoData, _, photoURL := mcarddav.VCardToContact(obj.Card, contact)
 	updated.UserID = r.conn.UserID
-	swap := r.applyPhoto(updated, photoData, mediaType, photoURL)
+	photoData = r.fetchPhoto(photoData, photoURL)
 	r.invalidateLocalHash(updated.ID) // the contact just changed
 
 	var hash string
@@ -1044,11 +1043,10 @@ func (r *contactSyncRun) pullUpdate(obj *remoteObject, link *models.CardDAVConta
 		return tx.Omit("PurgedAt").Save(link).Error
 	})
 	if err != nil {
-		swap.Rollback(r.cfg.ProfilePhotoDir, updated)
 		r.recordItemError(err, "Failed to update contact from remote", map[string]string{"path": obj.Path})
 		return
 	}
-	swap.Commit(r.cfg.ProfilePhotoDir)
+	hash = r.importPhoto(updated, link, photoData, hash)
 	r.contactByID[updated.ID] = updated
 	r.setLocalHash(updated.ID, hash)
 	r.stats.PulledUpdated++
@@ -1076,29 +1074,44 @@ func (r *contactSyncRun) resolveByRevision(obj *remoteObject, link *models.CardD
 	r.pullUpdate(obj, link, contact)
 }
 
-// applyPhoto stores an embedded or URL-referenced photo on the contact,
-// mirroring the CardDAV server's PutAddressObject behavior. Photo failures
-// are logged, never fatal.
-func (r *contactSyncRun) applyPhoto(contact *models.Contact, photoData []byte, mediaType, photoURL string) mcarddav.PhotoSwap {
-	swap := mcarddav.NewPhotoSwap(contact)
-	if len(photoData) == 0 && photoURL != "" {
-		fetched, fetchedType, err := mcarddav.FetchPhotoFromURL(r.ctx, photoURL)
-		if err != nil {
-			logger.Warn().Err(err).Str("photo_url", photoURL).Msg("Contact sync: failed to fetch photo from URL")
-			return swap
-		}
-		photoData, mediaType = fetched, fetchedType
+// fetchPhoto returns the embedded photo of a card or, for a photo given by URL, the fetched
+// bytes. Failures are logged, never fatal.
+func (r *contactSyncRun) fetchPhoto(photoData []byte, photoURL string) []byte {
+	if len(photoData) > 0 || photoURL == "" {
+		return photoData
 	}
+	fetched, _, err := mcarddav.FetchPhotoFromURL(r.ctx, photoURL)
+	if err != nil {
+		logger.Warn().Err(err).Str("photo_url", photoURL).Msg("Contact sync: failed to fetch photo from URL")
+		return nil
+	}
+	return fetched
+}
+
+// importPhoto adds the photo of a pulled card to the contact's images. A new photo changes the
+// vCard, so the link's hash is made again; it returns the hash to use.
+func (r *contactSyncRun) importPhoto(contact *models.Contact, link *models.CardDAVContactLink, photoData []byte, hash string) string {
 	if len(photoData) == 0 {
-		return swap
+		return hash
 	}
-	photoPath, thumbnail, err := mcarddav.SaveContactPhoto(photoData, mediaType, r.cfg.ProfilePhotoDir)
+	added, err := ImportContactPhotoAt(r.ctx, r.db, r.cfg.ProfilePhotoDir, contact.UserID, contact.ID, photoData)
 	if err != nil {
 		logger.Warn().Err(err).Msg("Contact sync: failed to save contact photo")
-		return swap
+		return hash
 	}
-	swap.Apply(contact, photoPath, thumbnail)
-	return swap
+	if !added {
+		return hash
+	}
+	if err := r.db.Unscoped().First(contact, contact.ID).Error; err != nil {
+		logger.Warn().Err(err).Msg("Contact sync: failed to reload contact after photo")
+		return hash
+	}
+	hash = canonicalVCardHash(mcarddav.ContactToVCard(contact, r.cfg.ProfilePhotoDir))
+	link.LocalHash = hash
+	if err := r.db.Model(link).Update("local_hash", hash).Error; err != nil {
+		logger.Warn().Err(err).Msg("Contact sync: failed to update link hash")
+	}
+	return hash
 }
 
 // reconcileRemoteDeletions handles objects that disappeared from the server.

@@ -12,24 +12,13 @@ import (
 
 type Contacts interface {
 	Photos(ctx context.Context, actor domain.UserID, id domain.ContactID, trashed bool) (domain.Photos, error)
-}
-
-type Tx interface {
-	Photos(ctx context.Context, actor domain.UserID, id domain.ContactID, trashed bool) (domain.Photos, error)
-	// Replace points the contact at new pictures and drops the legacy database thumbnail.
-	Replace(ctx context.Context, actor domain.UserID, id domain.ContactID, photo, thumbnail string) error
-}
-
-type Store interface {
-	InTx(ctx context.Context, fn func(Tx) error) error
+	// AddPhoto stores data as a new image of the contact and makes it the main image, which also
+	// cuts a new avatar from it. An image that cannot be used is domain.ErrInvalidPhoto.
+	AddPhoto(ctx context.Context, actor domain.UserID, id domain.ContactID, data []byte) (domain.Photos, error)
 }
 
 type Files interface {
 	Open(name string) (domain.File, error)
-	// Save makes a photo and a thumbnail from an uploaded image and returns their names.
-	// An image that cannot be used is domain.ErrInvalidPhoto.
-	Save(src io.Reader) (photo, thumbnail string, err error)
-	Remove(names ...string)
 }
 
 type Stage string
@@ -52,12 +41,11 @@ func (f *Failure) Unwrap() error { return f.Err }
 
 type UseCases struct {
 	contacts Contacts
-	store    Store
 	files    Files
 }
 
-func New(contacts Contacts, store Store, files Files) *UseCases {
-	return &UseCases{contacts: contacts, store: store, files: files}
+func New(contacts Contacts, files Files) *UseCases {
+	return &UseCases{contacts: contacts, files: files}
 }
 
 func find(err error) error {
@@ -117,9 +105,9 @@ func (u *UseCases) OpenThumbnail(ctx context.Context, actor domain.UserID, id do
 	return Thumbnail{Name: p.Thumbnail, File: f}, nil
 }
 
-// UploadPhoto replaces the actor's contact's picture with one made from src. A nil src
-// only checks the contact. The image is processed before the transaction, which only swaps
-// the names, so the database is not locked while pictures are written.
+// UploadPhoto adds src to the images of the actor's contact and makes it the main one. A nil
+// src only checks the contact. The upload is converted before the transaction; only the avatar
+// is cut inside it.
 func (u *UseCases) UploadPhoto(ctx context.Context, actor domain.UserID, id domain.ContactID, src io.Reader) (domain.Photos, error) {
 	current, err := u.contacts.Photos(ctx, actor, id, false)
 	if err != nil {
@@ -128,28 +116,16 @@ func (u *UseCases) UploadPhoto(ctx context.Context, actor domain.UserID, id doma
 	if src == nil {
 		return current, nil
 	}
-	photo, thumbnail, err := u.files.Save(src)
-	if errors.Is(err, domain.ErrInvalidPhoto) {
-		return domain.Photos{}, err
-	}
+	data, err := io.ReadAll(src)
 	if err != nil {
 		return domain.Photos{}, &Failure{Stage: StageProcess, Err: err}
 	}
-	err = u.store.InTx(ctx, func(tx Tx) error {
-		var err error
-		current, err = tx.Photos(ctx, actor, id, false)
-		if err != nil {
-			return find(err)
-		}
-		if err := tx.Replace(ctx, actor, id, photo, thumbnail); err != nil {
-			return &Failure{Stage: StageUpdate, Err: err}
-		}
-		return nil
-	})
-	if err != nil {
-		u.files.Remove(photo, thumbnail)
+	photos, err := u.contacts.AddPhoto(ctx, actor, id, data)
+	if errors.Is(err, domain.ErrInvalidPhoto) || errors.Is(err, domain.ErrTooManyImages) {
 		return domain.Photos{}, err
 	}
-	u.files.Remove(current.Photo, current.Thumbnail)
-	return domain.Photos{ContactID: id, Photo: photo, Thumbnail: thumbnail}, nil
+	if err != nil {
+		return domain.Photos{}, &Failure{Stage: StageUpdate, Err: err}
+	}
+	return photos, nil
 }

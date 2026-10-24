@@ -7,7 +7,8 @@ import {
   updateContact,
   getContactProfilePicture,
   deleteContact,
-  uploadProfilePicture,
+  addContactPhotos,
+  type ImageRef,
   getCircles,
   archiveContact,
   unarchiveContact,
@@ -32,7 +33,9 @@ import MergePickerDialog from './components/MergePickerDialog';
 import MergeContactsDialog from './components/MergeContactsDialog';
 import ContactInformation from './components/ContactInformation';
 import ContactTimeline from './components/ContactTimeline';
-import ProfilePictureUploadDialog from './components/ProfilePictureUploadDialog';
+import AddPhotosDialog from './components/images/AddPhotosDialog';
+import ContactPhotos from './components/images/ContactPhotos';
+import type { Crop } from './utils/faceCrop';
 import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
@@ -65,6 +68,7 @@ const CONTACT_FIELDS = [
   'contact_information',
   'circles',
   'photo',
+  'main_image_id',
   'custom_fields',
   'archived',
   'emails',
@@ -122,8 +126,10 @@ export default function ContactDetailPage() {
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
 
-  // Profile picture upload state
-  const [profilePictureDialogOpen, setProfilePictureDialogOpen] = useState(false);
+  // Add photos dialog state
+  const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
+  const [photoAsMain, setPhotoAsMain] = useState(true);
+  const [droppedPhotos, setDroppedPhotos] = useState<File[]>([]);
 
   // Custom field names
   const [customFieldNames, setCustomFieldNames] = useState<string[]>([]);
@@ -602,20 +608,33 @@ export default function ContactDetailPage() {
     setReminderDialogOpen(true);
   };
 
-  const handleUploadProfilePicture = async (croppedImageBlob: Blob) => {
+  const refreshProfilePicture = async () => {
     if (!id) return;
-
-    await uploadProfilePicture(id, croppedImageBlob);
-
-    // Refresh the profile picture
     const blob = await getContactProfilePicture(id);
-    if (blob) {
-      // Revoke old URL to prevent memory leaks
-      if (profilePic) {
-        URL.revokeObjectURL(profilePic);
-      }
-      setProfilePic(URL.createObjectURL(blob));
-    }
+    if (profilePic) URL.revokeObjectURL(profilePic);
+    setProfilePic(blob ? URL.createObjectURL(blob) : '');
+  };
+
+  const reloadPhotos = async () => {
+    if (!id) return;
+    const updated = await getContact(id);
+    setContact((current) =>
+      current
+        ? { ...current, images: updated.images, main_image_id: updated.main_image_id, photo: updated.photo }
+        : updated,
+    );
+    await refreshProfilePicture();
+  };
+
+  const handleAddPhotos = async (images: ImageRef[], crop: Crop | null) => {
+    if (!id) return;
+    await addContactPhotos(
+      Number(id),
+      (contact?.images ?? []).map((i) => i.id),
+      images,
+      crop,
+    );
+    await reloadPhotos();
   };
 
   // Lazy-load circles only when entering edit mode
@@ -667,7 +686,8 @@ export default function ContactDetailPage() {
         onDeleteCircle={handleDeleteCircle}
         onNewCircleNameChange={setNewCircleName}
         onUploadProfilePicture={() => {
-          setProfilePictureDialogOpen(true);
+          setPhotoAsMain(true);
+          setPhotosDialogOpen(true);
         }}
         onStayInTouch={contact.archived ? undefined : handleStayInTouch}
         onArchiveContact={contact.archived ? undefined : handleArchiveContact}
@@ -738,6 +758,20 @@ export default function ContactDetailPage() {
           onEditRelationship={handleEditRelationship}
           onDeleteRelationship={handleDeleteRelationship}
           customFieldNames={customFieldNames}
+          photosCount={contact.images?.length ?? 0}
+          photos={
+            <ContactPhotos
+              contactId={contact.ID}
+              images={contact.images ?? []}
+              mainId={contact.main_image_id ?? null}
+              onAdd={(files) => {
+                setDroppedPhotos(files ?? []);
+                setPhotoAsMain(false);
+                setPhotosDialogOpen(true);
+              }}
+              onChanged={reloadPhotos}
+            />
+          }
         />
 
         {/* Timeline and Reminders Tabs */}
@@ -871,14 +905,17 @@ export default function ContactDetailPage() {
         />
       )}
 
-      <ProfilePictureUploadDialog
-        open={profilePictureDialogOpen}
+      <AddPhotosDialog
+        open={photosDialogOpen}
         onClose={() => {
-          setProfilePictureDialogOpen(false);
+          setPhotosDialogOpen(false);
+          setDroppedPhotos([]);
         }}
-        onUpload={handleUploadProfilePicture}
+        onSave={handleAddPhotos}
+        initialFiles={droppedPhotos}
+        mainDefault={photoAsMain || !contact.images?.length}
+        mainLocked={!contact.images?.length}
       />
-
       <AddRelationshipDialog
         open={relationshipDialogOpen}
         onClose={() => {

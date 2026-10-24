@@ -10,6 +10,7 @@ import (
 	"meerkat/database"
 	apperrors "meerkat/errors"
 	"meerkat/i18n"
+	"meerkat/images"
 	"meerkat/logger"
 	"meerkat/metrics"
 	"meerkat/middleware"
@@ -94,6 +95,14 @@ func main() {
 		logger.Info().Int("thumbnails", n).Msg("Moved contact thumbnails from the database into files")
 	}
 
+	go func() {
+		if n, err := services.MigrateContactPhotos(context.Background(), db, cfg.ProfilePhotoDir); err != nil {
+			logger.Error().Err(err).Msg("Could not turn profile pictures into images")
+		} else if n > 0 {
+			logger.Info().Int("images", n).Msg("Turned profile pictures into images")
+		}
+	}()
+
 	var metricsSrv *http.Server
 	if cfg.MetricsEnabled {
 		services.RegisterJobMetrics(metrics.Default, db)
@@ -164,6 +173,11 @@ func main() {
 			logger.Error().Err(err).Msg("Error purging the audit log")
 		} else if n > 0 {
 			logger.Info().Int64("entries", n).Msg("Purged old audit log entries")
+		}
+		if pending, orphans, err := images.New(images.Deps{DB: db, Config: cfg}).Sweep(context.Background(), now); err != nil {
+			logger.Error().Err(err).Msg("Error sweeping unused images")
+		} else if pending+orphans > 0 {
+			logger.Info().Int("pending", pending).Int("orphan_files", orphans).Msg("Removed unused images")
 		}
 	}
 	backupTask := func() {

@@ -23,7 +23,6 @@ import (
 	"github.com/emersion/go-vcard"
 	"github.com/gen2brain/heic"
 	"github.com/google/uuid"
-	"golang.org/x/image/draw"
 	"golang.org/x/image/webp"
 )
 
@@ -469,89 +468,6 @@ func VCardToContact(card vcard.Card, existing *models.Contact) (*models.Contact,
 	return contact, photoData, photoMediaType, photoURL
 }
 
-// PhotoSwap tracks a contact's photo being replaced: the files it had (Old...) and the files
-// just written (New...). Commit after the database change succeeded, Rollback when it failed,
-// so neither the old nor the new files are left behind.
-type PhotoSwap struct {
-	OldPhoto, OldThumbnail, OldLegacy string
-	NewPhoto, NewThumbnail            string
-}
-
-// NewPhotoSwap starts a swap from the photo files the contact has now.
-func NewPhotoSwap(c *models.Contact) PhotoSwap {
-	return PhotoSwap{OldPhoto: c.Photo, OldThumbnail: c.PhotoThumbnailFile, OldLegacy: c.LegacyThumbnail}
-}
-
-// Replaced reports whether new files were written.
-func (s PhotoSwap) Replaced() bool { return s.NewPhoto != "" }
-
-// Apply points the contact at the new files and drops the legacy copy of the old picture.
-func (s *PhotoSwap) Apply(c *models.Contact, photo, thumbnail string) {
-	s.NewPhoto, s.NewThumbnail = photo, thumbnail
-	c.Photo, c.PhotoThumbnailFile, c.LegacyThumbnail = photo, thumbnail, ""
-}
-
-// Commit deletes the old files.
-func (s PhotoSwap) Commit(dir string) {
-	if s.Replaced() {
-		photofile.Remove(dir, s.OldPhoto, s.OldThumbnail, s.OldLegacy)
-	}
-}
-
-// Rollback deletes the new files and restores the old values on the contact.
-func (s PhotoSwap) Rollback(dir string, c *models.Contact) {
-	if !s.Replaced() {
-		return
-	}
-	photofile.Remove(dir, s.NewPhoto, s.NewThumbnail)
-	c.Photo, c.PhotoThumbnailFile, c.LegacyThumbnail = s.OldPhoto, s.OldThumbnail, s.OldLegacy
-}
-
-// SaveContactPhoto saves photo data to disk and writes the 48px thumbnail next to it.
-// Returns the photo filename and the thumbnail filename (both in photoDir).
-func SaveContactPhoto(photoData []byte, mediaType string, photoDir string) (string, string, error) {
-	if len(photoData) == 0 {
-		return "", "", nil
-	}
-
-	img, err := decodePhoto(photoData, mediaType)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Crop to centered square if rectangular
-	img = cropToSquare(img)
-
-	// Generate unique filenames
-	baseFilename := uuid.New().String()
-	photoPath := baseFilename + "_photo.jpg"
-	thumbnailPath := baseFilename + "_thumb.jpg"
-
-	// Ensure directory exists
-	if err := photofile.EnsureDir(photoDir); err != nil {
-		return "", "", err
-	}
-
-	// Save photo (max 400x400, only downscale - smaller images keep their size)
-	const maxPhotoSize = 400
-	bounds := img.Bounds()
-	photoImg := img
-	if bounds.Dx() > maxPhotoSize || bounds.Dy() > maxPhotoSize {
-		photoImg = resizeTo(img, maxPhotoSize)
-	}
-
-	fullPhotoPath := filepath.Join(photoDir, photoPath)
-	if err := photofile.SaveJPEG(fullPhotoPath, photoImg); err != nil {
-		return "", "", err
-	}
-	if err := photofile.SaveJPEG(filepath.Join(photoDir, thumbnailPath), resizeTo(img, 48)); err != nil {
-		os.Remove(fullPhotoPath)
-		return "", "", err
-	}
-
-	return photoPath, thumbnailPath, nil
-}
-
 // decodePhoto decodes untrusted image bytes (JPEG, PNG, GIF, WebP, HEIC), using the
 // media type as a hint and falling back to sniffing. It writes nothing.
 func decodePhoto(photoData []byte, mediaType string) (image.Image, error) {
@@ -614,41 +530,6 @@ func decodePhoto(photoData []byte, mediaType string) (image.Image, error) {
 		return nil, err
 	}
 	return img, nil
-}
-
-// cropToSquare crops an image to a centered square
-// If the image is already square, it returns the original image unchanged
-func cropToSquare(img image.Image) image.Image {
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	// Already square, return as-is
-	if width == height {
-		return img
-	}
-
-	// Calculate the size of the square (use the smaller dimension)
-	size := width
-	if height < width {
-		size = height
-	}
-
-	// Calculate crop offset to center the square
-	offsetX := (width - size) / 2
-	offsetY := (height - size) / 2
-
-	// Create a new RGBA image for the cropped result
-	cropped := image.NewRGBA(image.Rect(0, 0, size, size))
-
-	// Copy the centered square region
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			cropped.Set(x, y, img.At(bounds.Min.X+offsetX+x, bounds.Min.Y+offsetY+y))
-		}
-	}
-
-	return cropped
 }
 
 // ReencodePhoto decodes a photo and encodes it again as JPEG, so no byte of the input is passed on.
@@ -1089,12 +970,4 @@ func extractUnmappedProperties(card vcard.Card) VCardExtra {
 	}
 
 	return extra
-}
-
-// resizeTo scales img to exactly size x size pixels. x/image/draw offers no
-// Lanczos kernel; CatmullRom is the closest high-quality (bicubic) choice.
-func resizeTo(img image.Image, size int) image.Image {
-	dst := image.NewRGBA(image.Rect(0, 0, size, size))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Src, nil)
-	return dst
 }

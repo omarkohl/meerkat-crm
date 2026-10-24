@@ -24,7 +24,7 @@ func setupTrashTestDB(t *testing.T) *gorm.DB {
 	sqlDB.SetMaxOpenConns(1)
 	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Activity{}, &models.Note{},
 		&models.Relationship{}, &models.Reminder{}, &models.ReminderCompletion{}, &models.CardDAVConnection{},
-		&models.CardDAVContactLink{}))
+		&models.CardDAVContactLink{}, &models.Image{}))
 	return db
 }
 
@@ -420,4 +420,37 @@ func TestTrashContactSoftDeletesDependantsAndKeepsActivityLinks(t *testing.T) {
 	_, err := RestoreTrashedContact(db, a.ID, cid)
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, count(t, db, &models.Reminder{}, "contact_id = ? AND deleted_at IS NULL", cid))
+}
+
+func TestPurgeRemovesTheImagesOfTheContactAndOfItsNotesButKeepsOthers(t *testing.T) {
+	db := setupTrashTestDB(t)
+	dir := t.TempDir()
+	a := trashUser(t, db, "a")
+	f := newTrashFixture(t, db, a.ID, "Alice")
+	keeper := newTrashFixture(t, db, a.ID, "Keeper")
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "images", "u1"), 0o750))
+	mk := func(name string, update map[string]any) models.Image {
+		img := models.Image{UserID: a.ID, File: "images/u1/" + name + "_image.webp", ThumbFile: "images/u1/" + name + "_thumb.webp", Mime: "image/webp", Width: 1, Height: 1, Bytes: 1}
+		require.NoError(t, db.Create(&img).Error)
+		require.NoError(t, db.Model(&img).Updates(update).Error)
+		for _, n := range []string{img.File, img.ThumbFile} {
+			require.NoError(t, os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o600))
+		}
+		return img
+	}
+	ofContact := mk("c", map[string]any{"contact_id": f.contact.ID})
+	ofNote := mk("n", map[string]any{"note_id": f.note.ID})
+	kept := mk("k", map[string]any{"contact_id": keeper.contact.ID})
+	softDeleteLikeController(t, db, f)
+
+	n, err := PurgeTrashedContacts(db, a.ID, []uint{f.contact.ID}, dir, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+
+	assert.EqualValues(t, 1, count(t, db, &models.Image{}, "1 = 1"))
+	for _, img := range []models.Image{ofContact, ofNote} {
+		assert.NoFileExists(t, filepath.Join(dir, img.File))
+		assert.NoFileExists(t, filepath.Join(dir, img.ThumbFile))
+	}
+	assert.FileExists(t, filepath.Join(dir, kept.File))
 }

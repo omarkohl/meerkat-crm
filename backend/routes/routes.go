@@ -12,6 +12,7 @@ import (
 	"meerkat/controllers"
 	"meerkat/exports"
 	"meerkat/globalsearch"
+	"meerkat/images"
 	"meerkat/imports"
 	"meerkat/metrics"
 	"meerkat/middleware"
@@ -40,6 +41,7 @@ type Modules struct {
 	Reminders     *reminders.Module
 	Relationships *relationships.Module
 	Photos        *photos.Module
+	Images        *images.Module
 	Trash         *trash.Module
 	Tokens        *tokens.Module
 	Webhooks      *webhooks.Module
@@ -64,6 +66,7 @@ func NewModules(db *gorm.DB, cfg *config.Config, oidcProvider *services.OIDCProv
 		Reminders:     reminderModule,
 		Relationships: relationships.New(relationships.Deps{DB: db, Config: cfg}),
 		Photos:        photos.New(photos.Deps{DB: db, Config: cfg}),
+		Images:        images.New(images.Deps{DB: db, Config: cfg}),
 		Trash:         trash.New(trash.Deps{DB: db, Config: cfg}),
 		Tokens:        tokens.New(tokens.Deps{DB: db}),
 		Webhooks:      webhooks.New(webhooks.Deps{DB: db, Config: cfg}),
@@ -100,6 +103,7 @@ func RegisterAPI(a huma.API, cfg *config.Config, m Modules, g Groups) {
 	m.Reminders.Register(a, g.Protected)
 	m.Relationships.Register(a, g.Protected)
 	m.Photos.Register(a, g.Protected)
+	m.Images.Register(a, g.Protected)
 	m.Trash.Register(a, g.Protected)
 	m.Tokens.Register(a, g.Public, g.Protected)
 	m.Webhooks.Register(a, g.Protected)
@@ -156,6 +160,7 @@ func registerCardDAVRoutes(router *gin.Engine, cfg *config.Config, db *gorm.DB) 
 	router.GET("/.well-known/carddav", carddav.WellKnownRedirect)
 
 	handler := carddav.NewHandler(db, cfg.ProfilePhotoDir)
+	handler.SetPhotoImporter(services.ImportContactPhotoAt)
 
 	cardDAVGroup := router.Group("/carddav")
 	cardDAVGroup.Use(func(c *gin.Context) {

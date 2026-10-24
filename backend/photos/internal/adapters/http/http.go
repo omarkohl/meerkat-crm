@@ -29,7 +29,7 @@ func Register(a huma.API, group gin.IRoutes, uc *app.UseCases) {
 	h := &handlers{uc: uc}
 	api.RegisterOn(a, group, huma.Operation{
 		OperationID: "upload-profile-picture", Method: http.MethodPost, Path: path,
-		Summary: "Replace a contact's profile picture with an uploaded JPEG, PNG or HEIC image", Tags: []string{"photos"},
+		Summary: "Add an uploaded JPEG, PNG, HEIC, WebP or GIF image to a contact and make it the main image, cropped to a centred square", Tags: []string{"photos"},
 	}, h.upload)
 	if group == nil { // cmd/openapi describes operations only; the downloads are not
 		return
@@ -141,8 +141,10 @@ func toAppError(err error) *apperrors.AppError {
 		return apperrors.ErrValidation("Invalid thumbnail path")
 	case errors.Is(err, domain.ErrBadLegacyThumbnail):
 		return apperrors.ErrInternal("Invalid thumbnail format")
+	case errors.Is(err, domain.ErrTooManyImages):
+		return apperrors.ErrInvalidInput("photo", "A contact can have at most 50 images")
 	case errors.Is(err, domain.ErrInvalidPhoto):
-		return apperrors.ErrInvalidInput("photo", "must be a valid JPEG, PNG or HEIC image of reasonable size").WithError(err)
+		return apperrors.ErrInvalidInput("photo", "must be a valid JPEG, PNG, HEIC, WebP or GIF image of reasonable size").WithError(err)
 	}
 	var f *app.Failure
 	if errors.As(err, &f) {

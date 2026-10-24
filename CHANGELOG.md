@@ -13,11 +13,20 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Paste a profile picture** (https://github.com/omarkohl/meerkat-crm/issues/194): paste an image
+  from the clipboard into the profile picture dialog, or drop it there.
 - **Activities with a date range** (https://github.com/omarkohl/meerkat-crm/issues/209): give an
   activity an optional end date, such as for a trip. Calendar subscriptions import multi-day events
   as ranges.
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
+- **Several photos per contact** (https://github.com/omarkohl/meerkat-crm/issues/112): keep a
+  gallery in a Photos tab on each contact and frame the face. Add several photos at once. Photos
+  from CardDAV and imports are added instead of replacing the old one.
+
+### Internal
+
+- **Image storage**: pictures are stored as WebP with a thumbnail.
 
 ### Security
 

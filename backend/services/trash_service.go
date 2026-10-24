@@ -188,9 +188,10 @@ func purgeContacts(db *gorm.DB, candidates []models.Contact, photoDir string, no
 	for start := 0; start < len(candidates); start += purgeChunk {
 		end := min(start+purgeChunk, len(candidates))
 		var confirmed []models.Contact
+		var imageFiles []string
 		err := db.Transaction(func(tx *gorm.DB) error {
 			var err error
-			confirmed, err = purgeChunkTx(tx, candidates[start:end], now)
+			confirmed, imageFiles, err = purgeChunkTx(tx, candidates[start:end], now)
 			return err
 		})
 		if err != nil {
@@ -201,6 +202,7 @@ func purgeContacts(db *gorm.DB, candidates []models.Contact, photoDir string, no
 		for _, c := range confirmed {
 			RemoveContactPhotoFiles(photoDir, c)
 		}
+		photofile.Remove(photoDir, imageFiles...)
 	}
 	return purged, nil
 }
@@ -209,8 +211,10 @@ func purgeContacts(db *gorm.DB, candidates []models.Contact, photoDir string, no
 // deletion time, and everything that belongs to them. It returns those contacts.
 // CardDAV links are kept on purpose and marked purged (a tombstone): the sync
 // engine uses them to delete the remote object (two-way, push) or to never import
-// it again (pull-only), and drops the link itself when it is done.
-func purgeChunkTx(tx *gorm.DB, chunk []models.Contact, now time.Time) ([]models.Contact, error) {
+// it again (pull-only), and drops the link itself when it is done. The image rows of the
+// contacts and of their notes are deleted with them; their files are returned.
+func purgeChunkTx(tx *gorm.DB, chunk []models.Contact, now time.Time) ([]models.Contact, []string, error) {
+	var imageFiles []string
 	byUser := map[uint][]models.Contact{}
 	for _, c := range chunk {
 		byUser[c.UserID] = append(byUser[c.UserID], c)
@@ -227,7 +231,7 @@ func purgeChunkTx(tx *gorm.DB, chunk []models.Contact, now time.Time) ([]models.
 		if err := tx.Unscoped().Select("id", "user_id", "photo", "photo_thumbnail", "photo_thumbnail_file", "deleted_at").
 			Where("id IN ? AND user_id = ? AND deleted_at IS NOT NULL", candidateIDs, userID).
 			Find(&current).Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		var ids []uint
 		for _, c := range current {
@@ -239,31 +243,47 @@ func purgeChunkTx(tx *gorm.DB, chunk []models.Contact, now time.Time) ([]models.
 		if len(ids) == 0 {
 			continue
 		}
+		var images []models.Image
+		if err := tx.Unscoped().Select("file", "thumb_file").
+			Where("user_id = ? AND (contact_id IN ? OR note_id IN (SELECT id FROM notes WHERE contact_id IN ? AND user_id = ?))", userID, ids, ids, userID).
+			Find(&images).Error; err != nil {
+			return nil, nil, err
+		}
+		for _, img := range images {
+			imageFiles = append(imageFiles, img.File, img.ThumbFile)
+		}
+		if len(images) > 0 {
+			if err := tx.Unscoped().
+				Where("user_id = ? AND (contact_id IN ? OR note_id IN (SELECT id FROM notes WHERE contact_id IN ? AND user_id = ?))", userID, ids, ids, userID).
+				Delete(&models.Image{}).Error; err != nil {
+				return nil, nil, err
+			}
+		}
 		if err := tx.Exec("DELETE FROM activity_contacts WHERE contact_id IN ? AND activity_id IN (SELECT id FROM activities WHERE user_id = ?)", ids, userID).Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		for _, model := range []any{&models.Note{}, &models.Reminder{}, &models.ReminderCompletion{}, &models.Relationship{}} {
 			if err := tx.Unscoped().Where("contact_id IN ? AND user_id = ?", ids, userID).Delete(model).Error; err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		// Other contacts' relationships that point here become plain name entries.
 		if err := tx.Unscoped().Model(&models.Relationship{}).
 			Where("related_contact_id IN ? AND user_id = ?", ids, userID).
 			UpdateColumn("related_contact_id", nil).Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err := tx.Model(&models.CardDAVContactLink{}).
 			Where("contact_id IN ? AND user_id = ? AND purged_at IS NULL", ids, userID).
 			UpdateColumn("purged_at", now).Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if err := tx.Unscoped().Where("id IN ? AND user_id = ? AND deleted_at IS NOT NULL", ids, userID).
 			Delete(&models.Contact{}).Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return confirmed, nil
+	return confirmed, imageFiles, nil
 }
 
 // RemoveContactPhotoFiles deletes the profile photo and the thumbnail file of a contact

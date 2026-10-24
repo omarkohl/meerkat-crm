@@ -1,4 +1,5 @@
 import type { ContactResponse, ContactInput, ContactValue, ContactAddress } from '../api/contacts';
+import { MAX_CONTACT_IMAGES } from '../api/images';
 
 export type MergeContact = ContactResponse;
 
@@ -95,6 +96,8 @@ export interface MergePlan {
     selfRelationships: RelationshipMove[];
   };
   counts: MergeCounts;
+  imageCount: number;
+  tooManyImages: boolean;
 }
 
 const trimmed = (s: string | null | undefined) => (s ?? '').trim();
@@ -227,6 +230,8 @@ export function planMerge(target: MergeContact, sources: MergeContact[]): MergeP
   }
 
   const added = (merged: unknown[], before: unknown[] | null | undefined) => merged.length - (before?.length ?? 0);
+  // A photo that is not an image yet is uploaded as one during the merge.
+  const imageCount = all.reduce((n, c) => n + (c.images?.length || (c.photo ? 1 : 0)), 0);
   return {
     target,
     sources,
@@ -248,6 +253,8 @@ export function planMerge(target: MergeContact, sources: MergeContact[]): MergeP
       reminders: moves.reminders.length,
       relationships: moves.relationships.length,
     },
+    imageCount,
+    tooManyImages: imageCount > MAX_CONTACT_IMAGES,
   };
 }
 
