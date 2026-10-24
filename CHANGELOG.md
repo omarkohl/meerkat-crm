@@ -27,6 +27,12 @@ of this fork (see [fork.md](docs/development/fork.md)).
   gallery in a Photos tab on each contact, with the photos of its notes and activities, and frame
   the face. Photos from CardDAV and imports no longer replace the old one.
 
+### Fixed
+
+- **Contact sync with servers that send unusual version tags**
+  (https://github.com/omarkohl/meerkat-crm/issues/224): sync no longer fails with "failed to unquote
+  ETag". This probably fixes sync with Mailbox.org.
+
 ### Internal
 
 - **Image storage**: pictures are stored as WebP with a thumbnail.

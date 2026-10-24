@@ -155,6 +155,9 @@ settings page shows when the feed was last fetched. Migrations 24 and 26.
 contact and an `If-Match` on a missing one answer `412`; ETags change on every save; a missing
 contact or another user's address book answers `404`.
 
+**CardDAV sync.** Accepts unquoted and weak ETags (probably what Mailbox.org sends). Upstream fails
+the whole sync with "failed to unquote ETag".
+
 **Birthday mail.** The day of the last birthday mail is stored per user, so a restart on a birthday
 does not send it again. Migration 35.
 

@@ -4,11 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/xml"
 	"errors"
 	"image"
 	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -264,4 +270,63 @@ func TestContactSyncAddsOneImageForAPhotoThatComesBackUnchanged(t *testing.T) {
 		require.NoError(t, env.db.Model(&models.Image{}).Where("contact_id = ?", contacts[0].ID).Count(&images).Error)
 		assert.EqualValues(t, 1, images)
 	})
+}
+
+// serves the remote's address book with its ETags rewritten by etag, as servers that do not quote
+// them or that send weak ETags do
+func proxyWithETags(t *testing.T, remote *davRemote, etag func(opaque string) string) string {
+	t.Helper()
+	target, err := url.Parse(remote.directURL)
+	require.NoError(t, err)
+	quoted := regexp.MustCompile(`(<[^>/]*getetag[^>]*>)(?:"|&#34;)([^"&<]*)(?:"|&#34;)(</)`)
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		if h := resp.Header.Get("ETag"); h != "" {
+			resp.Header.Set("ETag", etag(strings.Trim(h, `"`)))
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		body = quoted.ReplaceAllFunc(body, func(m []byte) []byte {
+			parts := quoted.FindSubmatch(m)
+			var out bytes.Buffer
+			_ = xml.EscapeText(&out, []byte(etag(string(parts[2]))))
+			return []byte(string(parts[1]) + out.String() + string(parts[3]))
+		})
+		resp.Body = io.NopCloser(bytes.NewReader(body))
+		resp.ContentLength = int64(len(body))
+		resp.Header.Set("Content-Length", strconv.Itoa(len(body)))
+		return nil
+	}
+	srv := httptest.NewServer(proxy)
+	t.Cleanup(srv.Close)
+	return srv.URL
+}
+
+// @017-US4
+func TestContactSyncWorksWithServersThatSendUnusualETags(t *testing.T) {
+	cases := map[string]func(string) string{
+		"unquoted": func(o string) string { return o },
+		"weak":     func(o string) string { return `W/"` + o + `"` },
+	}
+	for name, etag := range cases {
+		t.Run(name, func(t *testing.T) {
+			remote := newMeerkatRemote(t)
+			remote.putContact(t, "uid-remote", "Rita", "Remote", "")
+			env := setupContactSyncEnv(t, models.CardDAVDirectionTwoWay, remote)
+			env.conn.BaseURL = proxyWithETags(t, remote, etag)
+			env.createContact(t, "Lou", "Local", "")
+
+			stats := env.sync(t)
+
+			assert.Equal(t, 1, stats.PulledCreated)
+			assert.Equal(t, 1, stats.PushedCreated)
+			assert.Zero(t, stats.Errors, env.conn.LastSyncError)
+			assert.Equal(t, 2, remote.count(t))
+
+			again := env.sync(t)
+			assert.Zero(t, again.PulledUpdated+again.PushedUpdated+again.Conflicts+again.Errors, "a second run changes nothing")
+		})
+	}
 }
