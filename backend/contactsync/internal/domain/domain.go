@@ -88,6 +88,7 @@ const (
 	SyncNoAddressBooks
 	SyncInvalidData
 	SyncUnreachable
+	SyncServerError
 )
 
 type SyncError struct {

@@ -252,6 +252,7 @@ func syncError(kind domain.SyncKind) *apperrors.AppError {
 		domain.SyncNoAddressBooks: "no address books found on the server",
 		domain.SyncInvalidData:    "server returned data that could not be parsed",
 		domain.SyncUnreachable:    "server could not be reached",
+		domain.SyncServerError:    "server answered with an error",
 	}
 	if kind == domain.SyncInvalidURL {
 		return apperrors.ErrInvalidInput("base_url", "CardDAV URL is invalid")

@@ -156,6 +156,7 @@ func syncKind(err error) domain.SyncKind {
 		{services.ErrContactSyncTooMany, domain.SyncTooMany},
 		{services.ErrContactSyncNoAddressBooks, domain.SyncNoAddressBooks},
 		{services.ErrContactSyncInvalidData, domain.SyncInvalidData},
+		{services.ErrContactSyncServerError, domain.SyncServerError},
 		{services.ErrContactSyncUnreachable, domain.SyncUnreachable},
 	}
 	for _, k := range kinds {

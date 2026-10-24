@@ -32,6 +32,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **Contact sync with servers that send unusual version tags**
   (https://github.com/omarkohl/meerkat-crm/issues/224): sync no longer fails with "failed to unquote
   ETag". This probably fixes sync with Mailbox.org.
+- **Clearer contact sync errors**: a server error or an unreadable answer no longer shows as "could
+  not be reached".
 
 ### Internal
 
