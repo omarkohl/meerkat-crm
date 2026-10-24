@@ -28,9 +28,13 @@ server {
         proxy_pass http://localhost:7300;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;
+        client_max_body_size 26m;
     }
 }
 ```
+
+`client_max_body_size 26m` lets image uploads (up to 25 MB) through. nginx rejects bodies over 1 MB
+by default with `413 Request Entity Too Large`. Set the equivalent limit in any other proxy.
 
 ### Security headers
 

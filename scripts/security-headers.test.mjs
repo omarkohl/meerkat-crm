@@ -88,3 +88,10 @@ test('checkConfig flags stray add_header, headerless static locations and header
     ).some((p) => p.includes('must not add headers')),
   );
 });
+
+test('both nginx configs let image uploads through the API proxy @023-US2', () => {
+  for (const p of ['frontend/nginx.conf', 'docker/nginx.conf']) {
+    const api = parseLocations(read(p)).find((l) => l.path.includes('/api/'));
+    assert.match(api.body, /client_max_body_size\s+26m;/, p);
+  }
+});

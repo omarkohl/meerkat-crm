@@ -9,6 +9,13 @@ Versions `X.Y.Z` are upstream releases of
 [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm). Versions `X.Y.Z-omk.N` are releases
 of this fork (see [fork.md](docs/development/fork.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **Image uploads over 1 MB no longer fail**: they were rejected with "413 Request Entity Too
+  Large".
+
 ## [1.7.0-omk.4] - 2026-10-24
 
 ### Added
