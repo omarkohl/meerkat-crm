@@ -9,7 +9,7 @@ Versions `X.Y.Z` are upstream releases of
 [fbuchner/meerkat-crm](https://github.com/fbuchner/meerkat-crm). Versions `X.Y.Z-omk.N` are releases
 of this fork (see [fork.md](docs/development/fork.md)).
 
-## [Unreleased]
+## [1.7.0-omk.5] - 2026-10-24
 
 ### Fixed
 
@@ -353,7 +353,8 @@ First fork release. Based on upstream 1.7.0 plus later upstream changes.
 
 - **`/health` endpoint** is reachable through the frontend.
 
-[Unreleased]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.4...HEAD
+[Unreleased]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.5...HEAD
+[1.7.0-omk.5]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.4...v1.7.0-omk.5
 [1.7.0-omk.4]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.3...v1.7.0-omk.4
 [1.7.0-omk.3]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.2...v1.7.0-omk.3
 [1.7.0-omk.2]: https://github.com/omarkohl/meerkat-crm/compare/v1.7.0-omk.1...v1.7.0-omk.2
