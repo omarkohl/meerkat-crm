@@ -12,7 +12,7 @@ export function useContactDialogs(
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
 
-  const handleSaveNote = async (content: string, date: string) => {
+  const handleSaveNote = async (content: string, date: string, imageIds: number[]) => {
     if (!contactId) return;
 
     try {
@@ -20,6 +20,7 @@ export function useContactDialogs(
         content,
         date: new Date(date).toISOString(),
         contact_id: parseInt(contactId),
+        image_ids: imageIds,
       });
       await onRefresh();
     } catch (err) {
@@ -35,6 +36,7 @@ export function useContactDialogs(
     date: string;
     end_date?: string;
     contact_ids: number[];
+    image_ids: number[];
   }) => {
     try {
       await createActivity({
@@ -44,6 +46,7 @@ export function useContactDialogs(
         date: new Date(activity.date).toISOString(),
         end_date: endDateToSend(activity.date, activity.end_date),
         contact_ids: activity.contact_ids,
+        image_ids: activity.image_ids,
       });
       await onRefresh();
     } catch (err) {

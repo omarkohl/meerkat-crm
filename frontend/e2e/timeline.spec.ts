@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { createTestContact, deleteTestContact, openContact } from './fixtures';
+import { createTestContact, deleteTestContact, openContact, addPhotos } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 // Notes and activities both render in the contact's Timeline tab. Each test
@@ -22,6 +22,94 @@ test.describe('Timeline', () => {
 
       await expect(dialog).toBeHidden();
       await expect(page.getByText(noteContent)).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('offer the date of a photo for a new note @023-US5', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await addPhotos(page, 'dated-jpeg');
+
+      await dialog.getByRole('button', { name: /use photo date/i }).click();
+      await expect(dialog.getByRole('button', { name: /use photo date/i })).toBeHidden();
+      await expect(dialog.getByLabel('Date')).toHaveValue(/2026-10-20|20\.10\.2026|10\/20\/2026/);
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('see the images of notes and activities on the contact page @023-US6', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await expect(page.getByRole('tab', { name: 'Photos (0)' })).toBeVisible();
+
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByLabel('Content').fill('Hiking day');
+      await addPhotos(page);
+      await expect(dialog.getByRole('button', { name: /remove image/i })).toBeVisible();
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+
+      await page.getByRole('tab', { name: 'Photos (1)' }).click();
+      await expect(page.getByText('From notes and activities')).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Hiking day' })).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('attach a pasted image to a note and open it @023-US1', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+
+      await addPhotos(page);
+
+      await expect(dialog.getByRole('button', { name: /remove image/i })).toBeVisible();
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+
+      await page.getByRole('button', { name: /open image 1 of 1/i }).click();
+      await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: /open image 1 of 1/i }).hover();
+      await page.getByRole('button', { name: 'Edit', exact: true }).last().click();
+      const edit = page.getByRole('dialog');
+      await edit.getByRole('button', { name: /remove image/i }).click();
+      await expect(edit.getByRole('button', { name: /^save$/i })).toBeDisabled();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('attach several images to a note at once @023-US1', async ({ page }) => {
+    const contact = await createTestContact(page.request);
+
+    try {
+      await openContact(page, contact);
+      await page.getByRole('button', { name: /add note/i }).click();
+      const dialog = page.getByRole('dialog');
+
+      await addPhotos(page, 'png', 'dated-jpeg');
+
+      await expect(dialog.getByRole('button', { name: /remove image/i })).toHaveCount(2);
+      await dialog.getByRole('button', { name: /^save$/i }).click();
+      await expect(dialog).toBeHidden();
+      await expect(page.getByRole('button', { name: /open image \d of 2/i })).toHaveCount(2);
     } finally {
       await deleteTestContact(page.request, contact.ID);
     }

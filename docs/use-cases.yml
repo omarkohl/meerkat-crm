@@ -352,6 +352,18 @@
   priority: high
   status: implemented
 
+- id: 023-US1
+  title: Attach images to a note
+  actor: user
+  priority: medium
+  status: implemented
+
+- id: 023-US2
+  title: Attach images to an activity
+  actor: user
+  priority: medium
+  status: implemented
+
 - id: 023-US3
   title: Keep several photos of a contact
   actor: user
@@ -362,4 +374,16 @@
   title: Receive contact photos from CardDAV and imports without duplicates
   actor: user
   priority: medium
+  status: implemented
+
+- id: 023-US5
+  title: Use the date of a photo for a new note or activity
+  actor: user
+  priority: low
+  status: implemented
+
+- id: 023-US6
+  title: See the images of notes and activities on a contact
+  actor: user
+  priority: low
   status: implemented

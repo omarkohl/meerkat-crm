@@ -356,8 +356,8 @@
     "date": "Datum",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "required": "Inhalt ist erforderlich",
-    "saveError": "Notiz konnte nicht gespeichert werden"
+    "saveError": "Notiz konnte nicht gespeichert werden",
+    "requiredOrImage": "Text oder ein Bild hinzufügen"
   },
   "activityDialog": {
     "title": "Aktivität hinzufügen",
@@ -1212,7 +1212,9 @@
   },
   "images": {
     "removeImage": "Bild {{n}} entfernen",
+    "imageOf": "Bild {{n}} von {{total}}",
     "tooLarge": "Datei ist zu groß. Maximale Größe ist 25 MB.",
+    "reorderHint": "Alt + Pfeiltasten verschieben das Bild",
     "open": "Bild {{n}} von {{total}} öffnen",
     "lightbox": {
       "previous": "Vorheriges Bild",
@@ -1225,11 +1227,16 @@
     "addPhoto": "Foto hinzufügen",
     "tabTitle": "Fotos ({{count}})",
     "noPhotos": "Noch keine Fotos",
+    "contactPhotos": "Fotos des Kontakts",
     "mainImage": "Hauptfoto",
     "actions": "Aktionen für Bild {{n}}",
     "setMain": "Als Hauptfoto festlegen",
     "adjustCrop": "Ausschnitt anpassen",
     "delete": "Löschen",
+    "usePhotoDate": "Fotodatum verwenden ({{date}})",
+    "related": "Aus Notizen und Aktivitäten",
+    "showMore": "Mehr anzeigen",
+    "openRelated": "Verknüpftes Bild {{n}} von {{total}} ansehen",
     "retry": "Erneut versuchen",
     "uploadFailed": "Hochladen fehlgeschlagen",
     "addMore": "Weitere hinzufügen"

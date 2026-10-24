@@ -45,7 +45,7 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Image{}))
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Activity{}, &models.Image{}))
 	e := &env{db: db, dir: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
@@ -348,4 +348,80 @@ func TestMoreThanFiftyImagesAreRefused(t *testing.T) {
 		ids[i] = uint(i + 1)
 	}
 	assert.Equal(t, http.StatusBadRequest, putJSON(e.asA, contactPath(c, "/images"), map[string]any{"image_ids": ids}).Code)
+}
+
+type relatedPage struct {
+	Images []struct {
+		Image  models.ImageRef `json:"image"`
+		Source struct {
+			Type  string    `json:"type"`
+			ID    uint      `json:"id"`
+			Label string    `json:"label"`
+			Date  time.Time `json:"date"`
+		} `json:"source"`
+	} `json:"images"`
+	Total int `json:"total"`
+	Page  int `json:"page"`
+	Limit int `json:"limit"`
+}
+
+func (e *env) claim(t *testing.T, r http.Handler, field string, id uint) uint {
+	t.Helper()
+	img := e.uploaded(t, r)
+	require.NoError(t, e.db.Model(&models.Image{}).Where("id = ?", img.ID).Update(field, id).Error)
+	return img.ID
+}
+
+// @023-US6
+func TestRelatedImagesListTheImagesOfNotesAndActivitiesOfTheContactNewestFirst(t *testing.T) {
+	e := newEnv(t)
+	c, other := e.contact(t, e.a.ID), e.contact(t, e.a.ID)
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 12, 0, 0, 0, time.UTC) }
+
+	oldNote := models.Note{UserID: e.a.ID, Content: "Hiking", Date: day(1), ContactID: &c.ID}
+	otherNote := models.Note{UserID: e.a.ID, Content: "Not about Ann", Date: day(5), ContactID: &other.ID}
+	trip := models.Activity{UserID: e.a.ID, Title: "Trip", Date: day(10), Contacts: []models.Contact{c}}
+	elsewhere := models.Activity{UserID: e.a.ID, Title: "Elsewhere", Date: day(11), Contacts: []models.Contact{other}}
+	for _, v := range []any{&oldNote, &otherNote, &trip, &elsewhere} {
+		require.NoError(t, e.db.Create(v).Error)
+	}
+	first := e.claim(t, e.asA, "note_id", oldNote.ID)
+	second := e.claim(t, e.asA, "note_id", oldNote.ID)
+	third := e.claim(t, e.asA, "activity_id", trip.ID)
+	e.claim(t, e.asA, "note_id", otherNote.ID)
+	e.claim(t, e.asA, "activity_id", elsewhere.ID)
+	require.NoError(t, e.db.Model(&models.Image{}).Where("id = ?", second).Update("position", 1).Error)
+
+	w := get(e.asA, contactPath(c, "/related_images"))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var got relatedPage
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
+	require.Equal(t, 3, got.Total)
+	require.Len(t, got.Images, 3)
+	assert.Equal(t, []uint{third, first, second}, []uint{got.Images[0].Image.ID, got.Images[1].Image.ID, got.Images[2].Image.ID})
+	assert.Equal(t, "activity", got.Images[0].Source.Type)
+	assert.Equal(t, "Trip", got.Images[0].Source.Label)
+	assert.Equal(t, trip.ID, got.Images[0].Source.ID)
+	assert.Equal(t, "note", got.Images[1].Source.Type)
+	assert.Equal(t, "Hiking", got.Images[1].Source.Label)
+
+	paged := get(e.asA, contactPath(c, "/related_images")+"?limit=2&page=2")
+	require.Equal(t, http.StatusOK, paged.Code)
+	var rest relatedPage
+	require.NoError(t, json.Unmarshal(paged.Body.Bytes(), &rest))
+	assert.Equal(t, 3, rest.Total)
+	require.Len(t, rest.Images, 1)
+	assert.Equal(t, second, rest.Images[0].Image.ID)
+}
+
+// @023-US6
+func TestRelatedImagesOfAnotherUsersContactAreNotFound(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID)
+	note := models.Note{UserID: e.a.ID, Content: "Mine", Date: time.Now(), ContactID: &c.ID}
+	require.NoError(t, e.db.Create(&note).Error)
+	e.claim(t, e.asA, "note_id", note.ID)
+
+	assert.Equal(t, http.StatusNotFound, get(e.asB, contactPath(c, "/related_images")).Code)
+	assert.Equal(t, http.StatusUnauthorized, get(e.anon, contactPath(c, "/related_images")).Code)
 }

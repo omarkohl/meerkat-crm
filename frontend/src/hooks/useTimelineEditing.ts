@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateNote, deleteNote, Note } from '../api/notes';
+import type { ImageRef } from '../api/images';
 import { updateActivity, deleteActivity, Activity } from '../api/activities';
 import { handleError, ErrorNotifier } from '../utils/errorHandler';
 import { now } from '../utils/now';
@@ -15,12 +16,14 @@ export function useTimelineEditing(
   );
   const [editTimelineValues, setEditTimelineValues] = useState<{
     noteContent?: string;
+    noteImages?: ImageRef[];
     noteDate?: string;
     activityTitle?: string;
     activityDescription?: string;
     activityLocation?: string;
     activityDate?: string;
     activityEndDate?: string;
+    activityImages?: ImageRef[];
     activityContacts?: { ID: number; firstname: string; lastname: string; nickname?: string }[];
   }>({});
 
@@ -31,6 +34,7 @@ export function useTimelineEditing(
       const note = item as Note;
       setEditTimelineValues({
         noteContent: note.content || '',
+        noteImages: note.images,
         noteDate: note.date ? new Date(note.date).toISOString().split('T')[0] : '',
       });
     } else {
@@ -42,6 +46,7 @@ export function useTimelineEditing(
         activityLocation: activity.location || '',
         activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
         activityEndDate: dayOf(activity.end_date),
+        activityImages: activity.images,
         activityContacts: activity.contacts || [],
       });
     }
@@ -52,14 +57,15 @@ export function useTimelineEditing(
     setEditTimelineValues({});
   };
 
-  const handleUpdateNote = async (noteId: number) => {
-    if (!editTimelineValues.noteContent?.trim()) return;
+  const handleUpdateNote = async (noteId: number, imageIds: number[]) => {
+    if (!editTimelineValues.noteContent?.trim() && imageIds.length === 0) return;
 
     try {
       await updateNote(noteId, {
-        content: editTimelineValues.noteContent,
+        content: editTimelineValues.noteContent ?? '',
         date: editTimelineValues.noteDate ? new Date(editTimelineValues.noteDate).toISOString() : now().toISOString(),
         contact_id: contactId,
+        image_ids: imageIds,
       });
       await onRefresh();
       handleCancelEditTimelineItem();
@@ -68,7 +74,7 @@ export function useTimelineEditing(
     }
   };
 
-  const handleUpdateActivity = async (activityId: number) => {
+  const handleUpdateActivity = async (activityId: number, imageIds: number[]) => {
     if (!editTimelineValues.activityTitle?.trim()) return;
     if (endsBeforeStart(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate)) return;
 
@@ -82,6 +88,7 @@ export function useTimelineEditing(
           : now().toISOString(),
         end_date: endDateToSend(editTimelineValues.activityDate ?? '', editTimelineValues.activityEndDate),
         contact_ids: editTimelineValues.activityContacts?.map((c) => c.ID) || [],
+        image_ids: imageIds,
       });
       await onRefresh();
       handleCancelEditTimelineItem();

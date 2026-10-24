@@ -309,20 +309,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/NetworkPage.tsx",
-    "to": "src/api/contacts.ts",
-    "unresolvedTo": "./api/contacts",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "pages-use-api-through-hooks"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/NotesPage.tsx",
     "to": "src/api/notes.ts",
     "unresolvedTo": "./api/notes",

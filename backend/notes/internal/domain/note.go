@@ -18,6 +18,22 @@ var ErrNotFound = errors.New("note not found")
 
 var ErrContactNotFound = errors.New("contact not found")
 
+var (
+	ErrEmpty         = errors.New("a note needs text or an image")
+	ErrImageNotFound = errors.New("image not found")
+	ErrTooManyImages = errors.New("too many images")
+)
+
+// ImageRef is an image of a note as it is shown: sizes and where to fetch it.
+type ImageRef struct {
+	ID            uint
+	Width, Height int
+	Mime          string
+	Bytes         int64
+	TakenAt       *time.Time
+	URL, ThumbURL string
+}
+
 type Note struct {
 	ID        NoteID
 	UserID    UserID
@@ -28,6 +44,7 @@ type Note struct {
 	Content   string
 	Date      time.Time
 	ContactID *ContactID
+	Images    []ImageRef
 }
 
 // Edit replaces the content and date. A note already about a contact stays with it when the

@@ -35,6 +35,10 @@ type Tx interface {
 	Get(ctx context.Context, actor domain.UserID, id domain.NoteID) (domain.Note, error)
 	ContactExists(ctx context.Context, actor domain.UserID, id domain.ContactID) (bool, error)
 	Create(ctx context.Context, actor domain.UserID, n domain.Note) (domain.Note, error)
+	// SetImages makes ids the ordered images of the note and returns them, with the files of the images it deleted.
+	SetImages(ctx context.Context, actor domain.UserID, id domain.NoteID, ids []uint) (images []domain.ImageRef, removed []string, err error)
+	// DeleteImages deletes the images of the note and returns their files.
+	DeleteImages(ctx context.Context, actor domain.UserID, id domain.NoteID) (removed []string, err error)
 	Update(ctx context.Context, actor domain.UserID, n domain.Note) (domain.Note, error)
 	Delete(ctx context.Context, actor domain.UserID, id domain.NoteID) error
 }
@@ -48,6 +52,11 @@ type Events interface {
 	NoteCreated(ctx context.Context, actor domain.UserID, n domain.Note, now time.Time)
 	NoteUpdated(ctx context.Context, actor domain.UserID, n domain.Note, now time.Time)
 	NoteDeleted(ctx context.Context, actor domain.UserID, id domain.NoteID, now time.Time)
+}
+
+// Files removes image files that no row refers to any more.
+type Files interface {
+	Remove(names ...string)
 }
 
 type Stage string
@@ -75,14 +84,16 @@ type UseCases struct {
 	notes  Notes
 	store  Store
 	events Events
+	files  Files
 }
 
-func New(notes Notes, store Store, events Events) *UseCases {
-	return &UseCases{notes: notes, store: store, events: events}
+func New(notes Notes, store Store, events Events, files Files) *UseCases {
+	return &UseCases{notes: notes, store: store, events: events, files: files}
 }
 
 func isDomain(err error) bool {
-	return errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrContactNotFound)
+	return errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrContactNotFound) ||
+		errors.Is(err, domain.ErrEmpty) || errors.Is(err, domain.ErrImageNotFound) || errors.Is(err, domain.ErrTooManyImages)
 }
 
 func fail(stage Stage, err error) error {
@@ -129,8 +140,13 @@ func (u *UseCases) ListUnassigned(ctx context.Context, actor domain.UserID, f Fi
 	return notes, total, f.Page, f.Limit, nil
 }
 
-func (u *UseCases) CreateNote(ctx context.Context, actor domain.UserID, content string, date time.Time, contact *domain.ContactID, now time.Time) (domain.Note, error) {
+// CreateNote adds a note. images are the ids of uploaded images, in order; the note needs text or one.
+func (u *UseCases) CreateNote(ctx context.Context, actor domain.UserID, content string, date time.Time, contact *domain.ContactID, images []uint, now time.Time) (domain.Note, error) {
+	if content == "" && len(images) == 0 {
+		return domain.Note{}, domain.ErrEmpty
+	}
 	var created domain.Note
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		if contact != nil {
 			if err := requireContact(ctx, tx, actor, *contact); err != nil {
@@ -139,11 +155,16 @@ func (u *UseCases) CreateNote(ctx context.Context, actor domain.UserID, content 
 		}
 		var err error
 		created, err = tx.Create(ctx, actor, domain.Note{Content: content, Date: date, ContactID: contact})
+		if err != nil || len(images) == 0 {
+			return err
+		}
+		created.Images, removed, err = tx.SetImages(ctx, actor, created.ID, images)
 		return err
 	})
 	if err != nil {
 		return domain.Note{}, writeFailure(StageCreate, err)
 	}
+	u.files.Remove(removed...)
 	u.events.NoteCreated(ctx, actor, created, now)
 	return created, nil
 }
@@ -167,8 +188,10 @@ func writeFailure(stage Stage, err error) error {
 	return &Failure{Stage: stage, Err: err}
 }
 
-func (u *UseCases) UpdateNote(ctx context.Context, actor domain.UserID, id domain.NoteID, content string, date time.Time, contact *domain.ContactID, now time.Time) (domain.Note, error) {
+// UpdateNote replaces content, date and contact. images nil keeps the images; an empty list removes them.
+func (u *UseCases) UpdateNote(ctx context.Context, actor domain.UserID, id domain.NoteID, content string, date time.Time, contact *domain.ContactID, images []uint, now time.Time) (domain.Note, error) {
 	var updated domain.Note
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		n, err := tx.Get(ctx, actor, id)
 		if err != nil {
@@ -179,27 +202,45 @@ func (u *UseCases) UpdateNote(ctx context.Context, actor domain.UserID, id domai
 				return err
 			}
 		}
+		if content == "" && (images == nil && len(n.Images) == 0 || images != nil && len(images) == 0) {
+			return domain.ErrEmpty
+		}
 		n.Edit(content, date, contact)
 		updated, err = tx.Update(ctx, actor, n)
+		if err != nil {
+			return err
+		}
+		if images != nil {
+			updated.Images, removed, err = tx.SetImages(ctx, actor, id, images)
+		} else {
+			updated.Images = n.Images
+		}
 		return err
 	})
 	if err != nil {
 		return domain.Note{}, writeFailure(StageUpdate, err)
 	}
+	u.files.Remove(removed...)
 	u.events.NoteUpdated(ctx, actor, updated, now)
 	return updated, nil
 }
 
 func (u *UseCases) DeleteNote(ctx context.Context, actor domain.UserID, id domain.NoteID, now time.Time) error {
+	var removed []string
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		if _, err := tx.Get(ctx, actor, id); err != nil {
 			return fail(StageRetrieve, err)
+		}
+		var err error
+		if removed, err = tx.DeleteImages(ctx, actor, id); err != nil {
+			return err
 		}
 		return tx.Delete(ctx, actor, id)
 	})
 	if err != nil {
 		return writeFailure(StageDelete, err)
 	}
+	u.files.Remove(removed...)
 	u.events.NoteDeleted(ctx, actor, id, now)
 	return nil
 }

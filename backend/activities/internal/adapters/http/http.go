@@ -58,6 +58,7 @@ type ActivityBody struct {
 	Date        time.Time               `json:"date" validate:"required"`
 	EndDate     api.Optional[time.Time] `json:"end_date,omitempty" doc:"Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it."`
 	ContactIDs  []uint                  `json:"contact_ids,omitempty" doc:"The contacts that took part. On update, leaving it out keeps the current ones; an empty list removes them."`
+	ImageIDs    []uint                  `json:"image_ids,omitempty" validate:"max=20,dive,gt=0" doc:"Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them."`
 }
 
 type ContactRefResponse struct {
@@ -78,6 +79,7 @@ type ActivityResponse struct {
 	Date        time.Time            `json:"date"`
 	EndDate     *time.Time           `json:"end_date" nullable:"true"`
 	Contacts    []ContactRefResponse `json:"contacts,omitempty"`
+	Images      []api.ImageRef       `json:"images" nullable:"false"`
 }
 
 type contactPath struct {
@@ -171,7 +173,7 @@ func (h *handlers) create(ctx context.Context, in *CreateInput) (*ActivityCreate
 	if err != nil {
 		return nil, err
 	}
-	a, err := h.uc.CreateActivity(ctx, actor, in.Body.draft(), contactIDs(in.Body.ContactIDs), api.Now(ctx))
+	a, err := h.uc.CreateActivity(ctx, actor, in.Body.draft(), contactIDs(in.Body.ContactIDs), in.Body.ImageIDs, api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, 0, 0)
 	}
@@ -216,7 +218,7 @@ func (h *handlers) update(ctx context.Context, in *UpdateInput) (*ActivityOutput
 	if err != nil {
 		return nil, err
 	}
-	a, err := h.uc.UpdateActivity(ctx, actor, domain.ActivityID(in.ID), in.Body.draft(), !in.Body.EndDate.Set, contactIDs(in.Body.ContactIDs), api.Now(ctx))
+	a, err := h.uc.UpdateActivity(ctx, actor, domain.ActivityID(in.ID), in.Body.draft(), !in.Body.EndDate.Set, contactIDs(in.Body.ContactIDs), in.Body.ImageIDs, api.Now(ctx))
 	if err != nil {
 		return nil, toAppError(err, in.ID, 0)
 	}
@@ -256,6 +258,13 @@ func NewActivityResponse(a domain.Activity) ActivityResponse {
 	r := ActivityResponse{
 		ID: uint(a.ID), CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt, DeletedAt: a.DeletedAt,
 		Title: a.Title, Description: a.Description, Location: a.Location, Date: a.Date, EndDate: a.EndDate,
+		Images: make([]api.ImageRef, len(a.Images)),
+	}
+	for i, img := range a.Images {
+		r.Images[i] = api.ImageRef{
+			ID: img.ID, Width: img.Width, Height: img.Height, Mime: img.Mime, Bytes: img.Bytes, TakenAt: img.TakenAt,
+			URL: img.URL, ThumbURL: img.ThumbURL,
+		}
 	}
 	for _, c := range a.Contacts {
 		r.Contacts = append(r.Contacts, ContactRefResponse{ID: uint(c.ID), Firstname: c.Firstname, Lastname: c.Lastname, Circles: c.Circles})
@@ -305,6 +314,10 @@ func toAppError(err error, activityID, contactID uint) error {
 		return apperrors.ErrNotFound("Contact").WithDetails("id", strconv.FormatUint(uint64(contactID), 10))
 	case errors.Is(err, domain.ErrContactsNotFound):
 		return apperrors.ErrNotFound("One or more contacts")
+	case errors.Is(err, domain.ErrImageNotFound):
+		return apperrors.ErrNotFound("Image")
+	case errors.Is(err, domain.ErrTooManyImages):
+		return apperrors.ErrInvalidInput("image_ids", "An activity can have at most 20 images")
 	case errors.Is(err, domain.ErrEndBeforeStart):
 		return apperrors.ErrInvalidInput("end_date", "must not be before date")
 	}

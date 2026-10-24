@@ -14,12 +14,15 @@ import {
 } from '@mui/material';
 import AppDialog from './AppDialog';
 import ActivityDateFields from './ActivityDateFields';
+import PhotoDateHint from './images/PhotoDateHint';
 import { endsBeforeStart } from '../utils/activityDates';
 import { useTranslation } from 'react-i18next';
 import { Contact, getContacts } from '../api/contacts';
 import { Activity } from '../api/activities';
 import ExistingActivitiesPicker from './ExistingActivitiesPicker';
 import { now } from '../utils/now';
+import { useAttachedImages } from '../hooks/useAttachedImages';
+import ImageAttachmentField from './images/ImageAttachmentField';
 
 interface AddActivityDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ interface AddActivityDialogProps {
     date: string;
     end_date?: string;
     contact_ids: number[];
+    image_ids: number[];
   }) => Promise<void>;
   onAddToActivities?: (activities: Activity[]) => Promise<void>;
   preselectedContact?: Contact;
@@ -50,6 +54,7 @@ export default function AddActivityDialog({
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState(now().toISOString().slice(0, 10));
+  const [dateTouched, setDateTouched] = useState(false);
   const [endDate, setEndDate] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -57,6 +62,7 @@ export default function AddActivityDialog({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const attached = useAttachedImages();
 
   const loadContacts = useCallback(async (search: string = '') => {
     setLoading(true);
@@ -120,6 +126,7 @@ export default function AddActivityDialog({
         date,
         end_date: endDate || undefined,
         contact_ids: selectedContacts.map((c) => c.ID),
+        image_ids: attached.imageIds,
       });
       handleClose();
     } catch {
@@ -136,11 +143,13 @@ export default function AddActivityDialog({
     setDescription('');
     setLocation('');
     setDate(now().toISOString().slice(0, 10));
+    setDateTouched(false);
     setEndDate('');
     setSelectedContacts([]);
     setSearchInput('');
     setContacts([]);
     setError('');
+    attached.reset();
     onClose();
   };
 
@@ -219,9 +228,11 @@ export default function AddActivityDialog({
                 onChange={(next) => {
                   setDate(next.date);
                   setEndDate(next.endDate);
+                  setDateTouched(true);
                 }}
                 required
               />
+              <PhotoDateHint takenAt={attached.items[0]?.takenAt} date={date} touched={dateTouched} onUse={setDate} />
 
               <Autocomplete
                 multiple
@@ -260,6 +271,8 @@ export default function AddActivityDialog({
                   ))
                 }
               />
+
+              <ImageAttachmentField attached={attached} disabled={saving} />
             </>
           )}
         </Box>

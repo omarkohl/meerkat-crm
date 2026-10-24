@@ -18,10 +18,15 @@ import ActivityDateFields from './ActivityDateFields';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Contact, getContacts } from '../api/contacts';
 import { endsBeforeStart } from '../utils/activityDates';
+import type { ImageRef } from '../api/images';
+import { useAttachedImages } from '../hooks/useAttachedImages';
+import ImageAttachmentField from './images/ImageAttachmentField';
 
 export interface TimelineItemValues {
   noteContent?: string;
+  noteImages?: ImageRef[];
   noteDate?: string;
+  activityImages?: ImageRef[];
   activityTitle?: string;
   activityDescription?: string;
   activityLocation?: string;
@@ -33,7 +38,7 @@ export interface TimelineItemValues {
 interface EditTimelineItemDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (imageIds: number[]) => void;
   onDelete: () => void;
   type: 'note' | 'activity';
   values: TimelineItemValues;
@@ -53,6 +58,7 @@ export default function EditTimelineItemDialog({
   const [contactOptions, setContactOptions] = useState<Contact[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const attached = useAttachedImages(values.noteImages ?? values.activityImages);
 
   useEffect(() => {
     if (!open || type !== 'activity') return;
@@ -77,8 +83,10 @@ export default function EditTimelineItemDialog({
   }, [open, type, searchInput]);
 
   const handleSave = () => {
-    onSave();
+    onSave(attached.imageIds);
   };
+
+  const noteIsEmpty = !values.noteContent?.trim() && attached.imageIds.length === 0;
 
   const handleDelete = () => {
     if (window.confirm(t('contactDetail.confirmDelete'))) {
@@ -113,6 +121,7 @@ export default function EditTimelineItemDialog({
               }}
               label={t('noteDialog.date')}
             />
+            <ImageAttachmentField attached={attached} />
           </Box>
         ) : (
           // Edit Activity
@@ -197,6 +206,7 @@ export default function EditTimelineItemDialog({
                 ))
               }
             />
+            <ImageAttachmentField attached={attached} />
           </Box>
         )}
       </DialogContent>
@@ -211,7 +221,10 @@ export default function EditTimelineItemDialog({
           <Button
             onClick={handleSave}
             variant="contained"
-            disabled={type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)}
+            disabled={
+              (type === 'activity' && endsBeforeStart(values.activityDate ?? '', values.activityEndDate)) ||
+              (type === 'note' && noteIsEmpty)
+            }
           >
             {t('contactDetail.save')}
           </Button>

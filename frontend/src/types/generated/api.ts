@@ -767,6 +767,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/{id}/related_images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Images of the notes and activities of a contact, newest first */
+        get: operations["related-images"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/{id}/relationships": {
         parameters: {
             query?: never;
@@ -1545,6 +1562,8 @@ export interface components {
              * @description Last day of an activity that spans several days; on or after date. On update, leaving it out keeps the current one; null removes it.
              */
             end_date?: string | null;
+            /** @description Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them. */
+            image_ids?: number[] | null;
             location?: string;
             title: string;
         };
@@ -1584,6 +1603,7 @@ export interface components {
             description: string;
             /** Format: date-time */
             end_date: string | null;
+            images: components["schemas"]["ImageRef"][];
             location: string;
             title: string;
         };
@@ -2498,9 +2518,12 @@ export interface components {
              * @description Ignored when the note is added under /contacts/{id}/notes. On update, leaving it out keeps the current contact.
              */
             contact_id?: number;
-            content: string;
+            /** @description May be empty when the note has images */
+            content?: string;
             /** Format: date-time */
             date: string;
+            /** @description Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them. */
+            image_ids?: number[] | null;
         };
         NoteGroup: {
             items: components["schemas"]["NoteResult"][] | null;
@@ -2533,6 +2556,7 @@ export interface components {
             content: string;
             /** Format: date-time */
             date: string;
+            images: components["schemas"]["ImageRef"][];
         };
         NoteResult: {
             /**
@@ -2644,6 +2668,29 @@ export interface components {
             firstname: string;
             gender: string;
             lastname: string;
+        };
+        RelatedImage: {
+            image: components["schemas"]["ImageRef"];
+            source: components["schemas"]["RelatedSource"];
+        };
+        RelatedOutputBody: {
+            images: components["schemas"]["RelatedImage"][];
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            total: number;
+        };
+        RelatedSource: {
+            /** Format: date-time */
+            date: string;
+            /** Format: int64 */
+            id: number;
+            /** @description The start of the note, or the title of the activity */
+            label: string;
+            /** @enum {string} */
+            type: "note" | "activity";
         };
         RelationshipBody: {
             birthday?: string;
@@ -4940,6 +4987,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhotoUploadedOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    "related-images": {
+        parameters: {
+            query?: {
+                /** @description Page number, from 1 */
+                page?: string;
+                /** @description Page size, 1 to 100, default 20 */
+                limit?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The contact's ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatedOutputBody"];
                 };
             };
             /** @description Error */

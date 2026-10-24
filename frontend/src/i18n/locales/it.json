@@ -356,8 +356,8 @@
     "date": "Data",
     "cancel": "Annulla",
     "save": "Salva",
-    "required": "Il contenuto è obbligatorio",
-    "saveError": "Impossibile salvare la nota"
+    "saveError": "Impossibile salvare la nota",
+    "requiredOrImage": "Aggiungi del testo o un'immagine"
   },
   "activityDialog": {
     "title": "Aggiungi Attività",
@@ -1212,7 +1212,9 @@
   },
   "images": {
     "removeImage": "Rimuovi immagine {{n}}",
+    "imageOf": "Immagine {{n}} di {{total}}",
     "tooLarge": "Il file è troppo grande. La dimensione massima è 25 MB.",
+    "reorderHint": "Alt + frecce spostano l'immagine",
     "open": "Apri immagine {{n}} di {{total}}",
     "lightbox": {
       "previous": "Immagine precedente",
@@ -1225,11 +1227,16 @@
     "addPhoto": "Aggiungi foto",
     "tabTitle": "Foto ({{count}})",
     "noPhotos": "Ancora nessuna foto",
+    "contactPhotos": "Foto del contatto",
     "mainImage": "Foto principale",
     "actions": "Azioni per l'immagine {{n}}",
     "setMain": "Imposta come principale",
     "adjustCrop": "Regola il ritaglio",
     "delete": "Elimina",
+    "usePhotoDate": "Usa la data della foto ({{date}})",
+    "related": "Da note e attività",
+    "showMore": "Mostra altro",
+    "openRelated": "Mostra l'immagine collegata {{n}} di {{total}}",
     "retry": "Riprova",
     "uploadFailed": "Caricamento non riuscito",
     "addMore": "Aggiungi altre"

@@ -142,6 +142,18 @@
               "null"
             ]
           },
+          "image_ids": {
+            "description": "Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them.",
+            "items": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "location": {
             "type": "string"
           },
@@ -285,6 +297,12 @@
               "null"
             ]
           },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": "array"
+          },
           "location": {
             "type": "string"
           },
@@ -301,7 +319,8 @@
           "description",
           "location",
           "date",
-          "end_date"
+          "end_date",
+          "images"
         ],
         "type": "object"
       },
@@ -3553,15 +3572,27 @@
             "type": "integer"
           },
           "content": {
+            "description": "May be empty when the note has images",
             "type": "string"
           },
           "date": {
             "format": "date-time",
             "type": "string"
+          },
+          "image_ids": {
+            "description": "Uploaded images (POST /images), in order, at most 20. On update, leaving it out keeps the current ones; an empty list removes them.",
+            "items": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
-          "content",
           "date"
         ],
         "type": "object"
@@ -3671,6 +3702,12 @@
           "date": {
             "format": "date-time",
             "type": "string"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/ImageRef"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -3680,7 +3717,8 @@
           "DeletedAt",
           "content",
           "date",
-          "contact_id"
+          "contact_id",
+          "images"
         ],
         "type": "object"
       },
@@ -4066,6 +4104,84 @@
           "lastname",
           "gender",
           "birthday"
+        ],
+        "type": "object"
+      },
+      "RelatedImage": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/ImageRef"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RelatedSource"
+          }
+        },
+        "required": [
+          "image",
+          "source"
+        ],
+        "type": "object"
+      },
+      "RelatedOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedImage"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "images",
+          "total",
+          "page",
+          "limit"
+        ],
+        "type": "object"
+      },
+      "RelatedSource": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "label": {
+            "description": "The start of the note, or the title of the activity",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "note",
+              "activity"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "label",
+          "date"
         ],
         "type": "object"
       },
@@ -8003,6 +8119,71 @@
         "summary": "Add an uploaded JPEG, PNG, HEIC, WebP or GIF image to a contact and make it the main image, cropped to a centred square",
         "tags": [
           "photos"
+        ]
+      }
+    },
+    "/contacts/{id}/related_images": {
+      "get": {
+        "operationId": "related-images",
+        "parameters": [
+          {
+            "description": "The contact's ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The contact's ID",
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page number, from 1",
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "description": "Page number, from 1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size, 1 to 100, default 20",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "Page size, 1 to 100, default 20",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Images of the notes and activities of a contact, newest first",
+        "tags": [
+          "images"
         ]
       }
     },

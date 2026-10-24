@@ -22,6 +22,9 @@ type Store interface {
 	SetContactImages(ctx context.Context, actor domain.UserID, contact domain.ContactID, ids []uint) ([]domain.Image, error)
 	// SetMainImage makes an image of the contact its main image and cuts the avatar from the crop.
 	SetMainImage(ctx context.Context, actor domain.UserID, contact domain.ContactID, image domain.ImageID, crop domain.Crop) (domain.Image, error)
+	// Related lists the images of the notes and activities of the contact, newest item first, with the total.
+	// It returns domain.ErrContactNotFound for a contact the actor does not have.
+	Related(ctx context.Context, actor domain.UserID, contact domain.ContactID, offset, limit int) ([]domain.Related, int64, error)
 }
 
 type Files interface {
@@ -86,6 +89,26 @@ func (u *UseCases) SetContactImages(ctx context.Context, actor domain.UserID, co
 // SetMainImage makes an image of the contact its main image with the given face crop.
 func (u *UseCases) SetMainImage(ctx context.Context, actor domain.UserID, contact domain.ContactID, image domain.ImageID, crop domain.Crop) (domain.Image, error) {
 	return u.store.SetMainImage(ctx, actor, contact, image, crop)
+}
+
+type RelatedPage struct {
+	Images      []domain.Related
+	Total       int64
+	Page, Limit int
+}
+
+// RelatedImages lists the images that notes and activities of a contact carry.
+func (u *UseCases) RelatedImages(ctx context.Context, actor domain.UserID, contact domain.ContactID, page, limit int) (RelatedPage, error) {
+	page = max(page, 1)
+	if limit < 1 {
+		limit = domain.DefaultRelatedLimit
+	}
+	limit = min(limit, domain.MaxRelatedLimit)
+	list, total, err := u.store.Related(ctx, actor, contact, (page-1)*limit, limit)
+	if err != nil {
+		return RelatedPage{}, err
+	}
+	return RelatedPage{Images: list, Total: total, Page: page, Limit: limit}, nil
 }
 
 type SweepResult struct{ Pending, Orphans int }

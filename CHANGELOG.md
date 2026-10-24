@@ -20,9 +20,12 @@ of this fork (see [fork.md](docs/development/fork.md)).
   as ranges.
 - **Add a contact to existing activities** (https://github.com/omarkohl/meerkat-crm/issues/210):
   "Add Activity" on a contact page can switch to existing activities. Pick several by title at once.
+- **Images on notes and activities** (https://github.com/omarkohl/meerkat-crm/issues/111): add
+  images and open them full size, also on the timeline of each contact. A note may have only images.
+  The capture date of the first image is offered as the date.
 - **Several photos per contact** (https://github.com/omarkohl/meerkat-crm/issues/112): keep a
-  gallery in a Photos tab on each contact and frame the face. Add several photos at once. Photos
-  from CardDAV and imports are added instead of replacing the old one.
+  gallery in a Photos tab on each contact, with the photos of its notes and activities, and frame
+  the face. Photos from CardDAV and imports no longer replace the old one.
 
 ### Internal
 

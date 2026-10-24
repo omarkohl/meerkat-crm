@@ -122,12 +122,13 @@ Every request and response carries an `X-Request-ID` header created by the middl
 
 ### Images
 
-| Method | Path                       | Description                                                                                                                                                                                                                                                                       |
-| ------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/images`                  | Upload an image (multipart, field `file`; JPEG, PNG, HEIC, WebP or GIF, at most 25 MB). Answers `201` with the image (`id`, `width`, `height`, `mime`, `bytes`, `taken_at`, `crop`, `url`, `thumb_url`). The image is pending until it is saved with a note, activity or contact. |
-| `GET`  | `/images/:id/:variant`     | The bytes of an image of the user. `variant` is `image` or `thumb`. With `?download=1` the response is an attachment. It has an `ETag`, `Cache-Control: private, max-age=31536000, immutable` and `304` support                                                                   |
-| `PUT`  | `/contacts/:id/images`     | Set the gallery of a contact: body `{"image_ids"}`, at most 50, in order. Images not listed are removed. The main image stays if it is listed; otherwise the first image becomes main. An empty list clears the profile picture. Answers the images                               |
-| `PUT`  | `/contacts/:id/main_image` | Choose the main image of a contact: body `{"image_id", "crop": {"x", "y", "size"}}` (square, in pixels of the image). The profile picture and its thumbnail are cut from the crop. Answers `{"main_image_id", "image"}`; `400` for a crop outside the image                       |
+| Method | Path                           | Description                                                                                                                                                                                                                                                                       |
+| ------ | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/images`                      | Upload an image (multipart, field `file`; JPEG, PNG, HEIC, WebP or GIF, at most 25 MB). Answers `201` with the image (`id`, `width`, `height`, `mime`, `bytes`, `taken_at`, `crop`, `url`, `thumb_url`). The image is pending until it is saved with a note, activity or contact. |
+| `GET`  | `/images/:id/:variant`         | The bytes of an image of the user. `variant` is `image` or `thumb`. With `?download=1` the response is an attachment. It has an `ETag`, `Cache-Control: private, max-age=31536000, immutable` and `304` support                                                                   |
+| `PUT`  | `/contacts/:id/images`         | Set the gallery of a contact: body `{"image_ids"}`, at most 50, in order. Images not listed are removed. The main image stays if it is listed; otherwise the first image becomes main. An empty list clears the profile picture. Answers the images                               |
+| `PUT`  | `/contacts/:id/main_image`     | Choose the main image of a contact: body `{"image_id", "crop": {"x", "y", "size"}}` (square, in pixels of the image). The profile picture and its thumbnail are cut from the crop. Answers `{"main_image_id", "image"}`; `400` for a crop outside the image                       |
+| `GET`  | `/contacts/:id/related_images` | Images of the notes and activities of a contact, newest item first. Paged (`page`, `limit`, default 20, at most 100). Answers `{"images": [{"image", "source": {"type": "note" or "activity", "id", "label", "date"}}], "total", "page", "limit"}`                                |
 
 The `photo_thumbnail` field of contact lists, the trash, birthdays and the graph is the URL of that
 thumbnail (`/api/v1/contacts/:id/profile_picture?thumbnail=true&v=<name>`, empty when the contact
@@ -177,6 +178,11 @@ everywhere else (lists, search, circles, birthdays, graph, ICS feed, reminders, 
 | `PUT`    | `/notes/:id`          | Update a note. Leaving out `contact_id` keeps the note's contact |
 | `DELETE` | `/notes/:id`          | Delete a note                                                    |
 
+A note has `images` (the image objects of [Images](#images), in order). On create and update the
+body can carry `image_ids`: IDs of uploaded images, at most 20. On update, leaving it out keeps the
+images and an empty list removes them. `content` may be empty when the note has an image; a note
+needs text or an image. Deleting a note deletes its images.
+
 ### Activities
 
 The optional `end_date` is the last day of an activity that spans several days. It may not be before
@@ -190,6 +196,10 @@ The optional `end_date` is the last day of an activity that spans several days. 
 | `PUT`    | `/activities/:id`          | Update an activity. Leaving out `contact_ids` keeps its contacts, an empty list removes them. Leaving out `end_date` keeps it, `null` removes it |
 | `DELETE` | `/activities/:id`          | Delete an activity                                                                                                                               |
 | `GET`    | `/contacts/:id/activities` | List activities for a contact                                                                                                                    |
+
+An activity has `images`, and its body takes `image_ids`, in the same way as a note: at most 20,
+leaving them out on update keeps them, an empty list removes them. Deleting an activity deletes its
+images.
 
 ### Reminders
 

@@ -19,12 +19,14 @@ import { useDebouncedValue } from './hooks/useDebounce';
 import { createActivity, updateActivity, deleteActivity, Activity } from './api/activities';
 import { Contact } from './api/contacts';
 import AddActivityDialog from './components/AddActivityDialog';
-import EditTimelineItemDialog from './components/EditTimelineItemDialog';
+import EditTimelineItemDialog, { type TimelineItemValues } from './components/EditTimelineItemDialog';
 import DateField from './components/DateField';
 import { ListSkeleton } from './components/LoadingSkeletons';
 import { useDateFormat } from './DateFormatProvider';
 import { now } from './utils/now';
 import { dayOf, endDateToSend } from './utils/activityDates';
+import ImagePreview from './components/images/ImagePreview';
+import ImageLightbox from './components/images/ImageLightbox';
 
 const ActivitiesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +43,7 @@ const ActivitiesPage: React.FC = () => {
     setSearchInput(urlSearch);
     setPage(1);
   }, [urlSearch]);
+  const [lightbox, setLightbox] = useState<{ activity: Activity; index: number } | null>(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const ACTIVITIES_PER_PAGE = 25;
@@ -61,14 +64,7 @@ const ActivitiesPage: React.FC = () => {
   const { activities, total, page: serverPage, limit, loading, refetch } = useActivities(activityParams);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [editValues, setEditValues] = useState<{
-    activityTitle?: string;
-    activityDescription?: string;
-    activityLocation?: string;
-    activityDate?: string;
-    activityEndDate?: string;
-    activityContacts?: Contact[];
-  }>({});
+  const [editValues, setEditValues] = useState<TimelineItemValues>({});
   const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLElement | null>(null);
   const infoOpen = Boolean(infoAnchorEl);
   const infoPopoverId = infoOpen ? 'activities-info-popover' : undefined;
@@ -107,6 +103,7 @@ const ActivitiesPage: React.FC = () => {
     date: string;
     end_date?: string;
     contact_ids: number[];
+    image_ids: number[];
   }) => {
     try {
       await createActivity({
@@ -131,11 +128,12 @@ const ActivitiesPage: React.FC = () => {
       activityLocation: activity.location || '',
       activityDate: activity.date ? new Date(activity.date).toISOString().split('T')[0] : '',
       activityEndDate: dayOf(activity.end_date),
+      activityImages: activity.images,
       activityContacts: activity.contacts || [],
     });
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (imageIds: number[]) => {
     if (!editingActivity || !editValues.activityTitle?.trim()) return;
 
     try {
@@ -146,6 +144,7 @@ const ActivitiesPage: React.FC = () => {
         date: editValues.activityDate ? new Date(editValues.activityDate).toISOString() : now().toISOString(),
         end_date: endDateToSend(editValues.activityDate ?? '', editValues.activityEndDate),
         contact_ids: editValues.activityContacts?.map((c) => c.ID) || [],
+        image_ids: imageIds,
       });
       setEditingActivity(null);
       setEditValues({});
@@ -306,6 +305,12 @@ const ActivitiesPage: React.FC = () => {
                         </IconButton>
                       </Box>
                     </Box>
+                    <ImagePreview
+                      images={activity.images}
+                      onOpen={(index) => {
+                        setLightbox({ activity, index });
+                      }}
+                    />
                     {activity.contacts && activity.contacts.length > 0 && (
                       <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
                         {activity.contacts.map((contact: Contact) => (
@@ -348,6 +353,14 @@ const ActivitiesPage: React.FC = () => {
           setAddDialogOpen(false);
         }}
         onSave={handleActivitySave}
+      />
+
+      <ImageLightbox
+        images={lightbox?.activity.images ?? []}
+        index={lightbox?.index ?? null}
+        onClose={() => {
+          setLightbox(null);
+        }}
       />
 
       {editingActivity && (

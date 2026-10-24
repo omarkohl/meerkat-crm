@@ -1,9 +1,10 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '../../i18n/config';
 import ContactPhotos from './ContactPhotos';
 import { DateFormatProvider } from '../../DateFormatProvider';
-import type { ImageRef } from '../../api/images';
+import type { ImageRef, RelatedImage } from '../../api/images';
 
 const image = (id: number): ImageRef => ({
   id,
@@ -17,17 +18,33 @@ const image = (id: number): ImageRef => ({
   thumb_url: `/thumb/${String(id)}`,
 });
 
-const setup = (props: { images?: ImageRef[] } = {}) => {
+const item = (id: number, type: 'note' | 'activity', label: string): RelatedImage => ({
+  image: image(id),
+  source: { type, id: id * 10, label, date: '2026-10-20T12:00:00Z' },
+});
+
+const setup = (props: { images?: ImageRef[]; items?: RelatedImage[]; total?: number } = {}) => {
+  const items = props.items ?? [];
+  const more = vi.fn().mockResolvedValue(undefined);
   const onAdd = vi.fn();
   render(
-    <DateFormatProvider>
-      <ContactPhotos contactId={7} images={props.images ?? []} mainId={null} onAdd={onAdd} onChanged={vi.fn()} />
-    </DateFormatProvider>,
+    <MemoryRouter>
+      <DateFormatProvider>
+        <ContactPhotos
+          contactId={7}
+          images={props.images ?? []}
+          mainId={null}
+          related={{ items, total: props.total ?? items.length, more }}
+          onAdd={onAdd}
+          onChanged={vi.fn()}
+        />
+      </DateFormatProvider>
+    </MemoryRouter>,
   );
-  return { onAdd };
+  return { more, onAdd };
 };
 
-// @023-US3
+// @023-US6
 describe('ContactPhotos', () => {
   test('says so when there are no photos, and adds one from the tab', () => {
     const { onAdd } = setup();
@@ -43,11 +60,25 @@ describe('ContactPhotos', () => {
     expect(onAdd).toHaveBeenCalledWith(files);
   });
 
-  test('opens a photo in the gallery', async () => {
-    setup({ images: [image(1), image(2)] });
-    fireEvent.click(screen.getByRole('button', { name: 'Open image 1 of 2' }));
+  test('lists the photos of the contact apart from those of notes and activities', () => {
+    setup({ images: [image(1)], items: [item(2, 'activity', 'Trip'), item(3, 'note', '')] });
+    expect(screen.getByText('Contact photos')).toBeTruthy();
+    expect(screen.getByText('From notes and activities')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Trip' }).getAttribute('href')).toBe('/activities?search=Trip');
+    expect(screen.getByRole('link', { name: 'Note' }).getAttribute('href')).toBe('#timeline-note-30');
+  });
+
+  test('one gallery runs from the contact photos on to the related photos', async () => {
+    setup({ images: [image(1)], items: [item(2, 'activity', 'Trip')] });
+    fireEvent.click(screen.getByRole('button', { name: 'Open image 1 of 1' }));
     expect(await screen.findByText('1 / 2')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next image' }));
     expect(await screen.findByText('2 / 2')).toBeTruthy();
+  });
+
+  test('more related photos can be loaded on request', () => {
+    const { more } = setup({ images: [image(1)], items: [item(2, 'activity', 'Trip')], total: 3 });
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    expect(more).toHaveBeenCalled();
   });
 });

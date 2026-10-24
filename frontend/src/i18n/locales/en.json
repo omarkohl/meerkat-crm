@@ -356,8 +356,8 @@
     "date": "Date",
     "cancel": "Cancel",
     "save": "Save",
-    "required": "Content is required",
-    "saveError": "Failed to save note"
+    "saveError": "Failed to save note",
+    "requiredOrImage": "Add text or an image"
   },
   "activityDialog": {
     "title": "Add Activity",
@@ -1212,7 +1212,9 @@
   },
   "images": {
     "removeImage": "Remove image {{n}}",
+    "imageOf": "Image {{n}} of {{total}}",
     "tooLarge": "File is too large. Maximum size is 25 MB.",
+    "reorderHint": "Alt + arrow keys move the image",
     "open": "Open image {{n}} of {{total}}",
     "lightbox": {
       "previous": "Previous image",
@@ -1225,11 +1227,16 @@
     "addPhoto": "Add photo",
     "tabTitle": "Photos ({{count}})",
     "noPhotos": "No photos yet",
+    "contactPhotos": "Contact photos",
     "mainImage": "Main photo",
     "actions": "Actions for image {{n}}",
     "setMain": "Set as main",
     "adjustCrop": "Adjust crop",
     "delete": "Delete",
+    "usePhotoDate": "Use photo date ({{date}})",
+    "related": "From notes and activities",
+    "showMore": "Show more",
+    "openRelated": "View related image {{n}} of {{total}}",
     "retry": "Retry",
     "uploadFailed": "Upload failed",
     "addMore": "Add more"

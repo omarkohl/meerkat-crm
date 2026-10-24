@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,6 +27,7 @@ import (
 )
 
 type env struct {
+	dir  string
 	db   *gorm.DB
 	a, b models.User
 	asA  *gin.Engine
@@ -39,14 +42,14 @@ func newEnv(t *testing.T) *env {
 	require.NoError(t, err)
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Webhook{}, &models.WebhookDelivery{}))
-	e := &env{db: db}
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Contact{}, &models.Note{}, &models.Image{}, &models.Webhook{}, &models.WebhookDelivery{}))
+	e := &env{db: db, dir: t.TempDir()}
 	e.a = models.User{Username: "a", Email: "a@example.com", Password: "x"}
 	e.b = models.User{Username: "b", Email: "b@example.com", Password: "x"}
 	require.NoError(t, db.Create(&e.a).Error)
 	require.NoError(t, db.Create(&e.b).Error)
 
-	cfg := &config.Config{WebhookBlockPrivateURLs: true}
+	cfg := &config.Config{WebhookBlockPrivateURLs: true, ProfilePhotoDir: e.dir}
 	mount := func(userID uint) *gin.Engine {
 		r := gin.New()
 		r.Use(middleware.ClockMiddleware(clock.Real()))
@@ -347,4 +350,154 @@ func TestWithoutAnAuthenticatedUserEverythingRefuses(t *testing.T) {
 	} {
 		assert.Equal(t, http.StatusUnauthorized, send(e.anon, call.method, call.path, body).Code, call.method+" "+call.path)
 	}
+}
+
+func (e *env) image(t *testing.T, owner uint, name string) models.Image {
+	t.Helper()
+	img := models.Image{
+		UserID: owner, File: "images/u1/" + name + "_image.webp", ThumbFile: "images/u1/" + name + "_thumb.webp",
+		Mime: "image/webp", Width: 30, Height: 20, Bytes: 7,
+	}
+	require.NoError(t, e.db.Create(&img).Error)
+	require.NoError(t, os.MkdirAll(filepath.Join(e.dir, "images", "u1"), 0o750))
+	for _, f := range []string{img.File, img.ThumbFile} {
+		require.NoError(t, os.WriteFile(filepath.Join(e.dir, f), []byte("x"), 0o600))
+	}
+	return img
+}
+
+func imageIDs(body map[string]any) []float64 {
+	out := []float64{}
+	for _, i := range body["images"].([]any) {
+		out = append(out, i.(map[string]any)["id"].(float64))
+	}
+	return out
+}
+
+func (e *env) has(img models.Image) bool {
+	_, err := os.Stat(filepath.Join(e.dir, img.File))
+	return err == nil
+}
+
+// @023-US1
+func TestANoteCarriesItsImagesInOrderEverywhereItIsListed(t *testing.T) {
+	e := newEnv(t)
+	c := e.contact(t, e.a.ID, "Ann")
+	one, two := e.image(t, e.a.ID, "1"), e.image(t, e.a.ID, "2")
+
+	w := send(e.asA, http.MethodPost, "/contacts/"+cid(c)+"/notes", map[string]any{
+		"content": "with pictures", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{two.ID, one.ID},
+	})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	created := decode(t, w)["note"].(map[string]any)
+	assert.Equal(t, []float64{float64(two.ID), float64(one.ID)}, imageIDs(created))
+	first := created["images"].([]any)[0].(map[string]any)
+	assert.Equal(t, float64(30), first["width"])
+	assert.Contains(t, first["thumb_url"], "/api/v1/images/")
+
+	var n models.Note
+	require.NoError(t, e.db.Last(&n).Error)
+	assert.Equal(t, []float64{float64(two.ID), float64(one.ID)}, imageIDs(decode(t, send(e.asA, http.MethodGet, "/notes/"+id(n), nil))))
+	listed := decode(t, send(e.asA, http.MethodGet, "/contacts/"+cid(c)+"/notes", nil))["notes"].([]any)
+	assert.Equal(t, []float64{float64(two.ID), float64(one.ID)}, imageIDs(listed[0].(map[string]any)))
+}
+
+func TestAFreeFloatingNoteListsItsImages(t *testing.T) {
+	e := newEnv(t)
+	img := e.image(t, e.a.ID, "1")
+	w := send(e.asA, http.MethodPost, "/notes", map[string]any{"content": "", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{img.ID}})
+	require.Equal(t, http.StatusOK, w.Code, "an image is enough: "+w.Body.String())
+	plain := e.note(t, e.a.ID, "plain", nil)
+	_ = plain
+
+	listed := decode(t, send(e.asA, http.MethodGet, "/notes", nil))["notes"].([]any)
+	require.Len(t, listed, 2)
+	byContent := map[string][]float64{}
+	for _, n := range listed {
+		m := n.(map[string]any)
+		byContent[m["content"].(string)] = imageIDs(m)
+	}
+	assert.Equal(t, []float64{float64(img.ID)}, byContent[""])
+	assert.Equal(t, []float64{}, byContent["plain"])
+}
+
+func TestANoteNeedsTextOrAnImage(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPost, "/notes", map[string]any{"content": "", "date": "2026-03-01T12:00:00Z"})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "A note needs text or an image")
+
+	n := e.note(t, e.a.ID, "text", nil)
+	img := e.image(t, e.a.ID, "1")
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPut, "/notes/"+id(n), map[string]any{
+		"content": "text", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{img.ID},
+	}).Code)
+	w = send(e.asA, http.MethodPut, "/notes/"+id(n), map[string]any{"content": "", "date": "2026-03-01T12:00:00Z"})
+	assert.Equal(t, http.StatusOK, w.Code, "the image stays, so the note may lose its text: "+w.Body.String())
+	w = send(e.asA, http.MethodPut, "/notes/"+id(n), map[string]any{"content": "", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{}})
+	assert.Equal(t, http.StatusBadRequest, w.Code, "removing the last image of a note without text")
+}
+
+func TestUpdateKeepsImagesWhenTheFieldIsLeftOutAndRemovesThemWithAnEmptyList(t *testing.T) {
+	e := newEnv(t)
+	img := e.image(t, e.a.ID, "1")
+	w := send(e.asA, http.MethodPost, "/notes", map[string]any{"content": "x", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{img.ID}})
+	require.Equal(t, http.StatusOK, w.Code)
+	var n models.Note
+	require.NoError(t, e.db.Last(&n).Error)
+
+	w = send(e.asA, http.MethodPut, "/notes/"+id(n), map[string]any{"content": "edited", "date": "2026-03-01T12:00:00Z"})
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []float64{float64(img.ID)}, imageIDs(decode(t, w)["note"].(map[string]any)))
+	assert.True(t, e.has(img))
+
+	w = send(e.asA, http.MethodPut, "/notes/"+id(n), map[string]any{"content": "edited", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{}})
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, []float64{}, imageIDs(decode(t, w)["note"].(map[string]any)))
+	var rows int64
+	e.db.Model(&models.Image{}).Count(&rows)
+	assert.Zero(t, rows)
+	assert.False(t, e.has(img), "the file goes with the row")
+}
+
+// @023-US1
+func TestDeletingANoteDeletesItsImagesAndFiles(t *testing.T) {
+	e := newEnv(t)
+	img := e.image(t, e.a.ID, "1")
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPost, "/notes", map[string]any{"content": "x", "date": "2026-03-01T12:00:00Z", "image_ids": []uint{img.ID}}).Code)
+	var n models.Note
+	require.NoError(t, e.db.Last(&n).Error)
+
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodDelete, "/notes/"+id(n), nil).Code)
+	var rows int64
+	e.db.Model(&models.Image{}).Count(&rows)
+	assert.Zero(t, rows)
+	assert.False(t, e.has(img))
+}
+
+func TestImagesOfOtherUsersOrOtherNotesCannotBeAttached(t *testing.T) {
+	e := newEnv(t)
+	theirs := e.image(t, e.b.ID, "theirs")
+	mine := e.image(t, e.a.ID, "mine")
+	body := func(ids ...uint) map[string]any {
+		return map[string]any{"content": "x", "date": "2026-03-01T12:00:00Z", "image_ids": ids}
+	}
+
+	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodPost, "/notes", body(theirs.ID)).Code)
+	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodPost, "/notes", body(99999)).Code)
+	require.Equal(t, http.StatusOK, send(e.asA, http.MethodPost, "/notes", body(mine.ID)).Code)
+	assert.Equal(t, http.StatusNotFound, send(e.asA, http.MethodPost, "/notes", body(mine.ID)).Code, "an image already on a note")
+
+	var attached int64
+	e.db.Model(&models.Image{}).Where("id = ? AND note_id IS NOT NULL", theirs.ID).Count(&attached)
+	assert.Zero(t, attached)
+	var notes int64
+	e.db.Model(&models.Note{}).Count(&notes)
+	assert.EqualValues(t, 1, notes, "a refused request creates no note")
+
+	var many []uint
+	for i := range 21 {
+		many = append(many, e.image(t, e.a.ID, "m"+strconv.Itoa(i)).ID)
+	}
+	assert.Equal(t, http.StatusBadRequest, send(e.asA, http.MethodPost, "/notes", body(many...)).Code)
 }

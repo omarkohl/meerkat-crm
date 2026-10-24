@@ -40,6 +40,7 @@ import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationships } from './hooks/useRelationships';
+import { useRelatedImages } from './hooks/useRelatedImages';
 import AddRelationshipDialog from './components/AddRelationshipDialog';
 import { useSnackbar } from './context/SnackbarContext';
 import { ApiError } from './api/client';
@@ -214,6 +215,11 @@ export default function ContactDetailPage() {
     setRelationshipDialogOpen,
     setEditingRelationship,
   } = useRelationships(id, { showError });
+
+  const related = useRelatedImages(
+    Number(id),
+    [...notes, ...activities].map((i) => `${String(i.ID)}:${String(i.images.length)}`).join(),
+  );
 
   // Fetch available circles
   const fetchCircles = useCallback(async () => {
@@ -758,12 +764,13 @@ export default function ContactDetailPage() {
           onEditRelationship={handleEditRelationship}
           onDeleteRelationship={handleDeleteRelationship}
           customFieldNames={customFieldNames}
-          photosCount={contact.images?.length ?? 0}
+          photosCount={(contact.images?.length ?? 0) + related.total}
           photos={
             <ContactPhotos
               contactId={contact.ID}
               images={contact.images ?? []}
               mainId={contact.main_image_id ?? null}
+              related={related}
               onAdd={(files) => {
                 setDroppedPhotos(files ?? []);
                 setPhotoAsMain(false);
@@ -885,11 +892,11 @@ export default function ContactDetailPage() {
         <EditTimelineItemDialog
           open={!!editingTimelineItem}
           onClose={handleCancelEditTimelineItem}
-          onSave={() => {
+          onSave={(imageIds) => {
             if (editingTimelineItem.type === 'note') {
-              handleUpdateNote(editingTimelineItem.id);
+              handleUpdateNote(editingTimelineItem.id, imageIds);
             } else {
-              handleUpdateActivity(editingTimelineItem.id);
+              handleUpdateActivity(editingTimelineItem.id, imageIds);
             }
           }}
           onDelete={() => {
