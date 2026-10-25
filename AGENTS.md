@@ -11,6 +11,9 @@ copy it.
 - [Architecture](docs/development/architecture.md), [backend](docs/development/backend.md),
   [frontend](docs/development/frontend.md), [testing](docs/development/testing.md),
   [contributing and release](docs/development/contributing.md)
+- To merge upstream, follow [Integrate upstream](docs/development/fork.md#integrate-upstream). Port
+  commit by commit, then record the merge. Never merge upstream into `omk` with the conflict work in
+  the merge commit.
 - [Decisions (ADRs)](docs/adr/README.md): read them before you re-open a decision. A significant new
   decision gets an ADR in the same commit.
 - Docs change in the same commit as the code they describe.
