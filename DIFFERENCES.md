@@ -29,8 +29,7 @@ structure with a generated API contract, and a much larger automated test and ch
   changelog), not review comments.
 - A typed API contract: OpenAPI is generated from the code, and the frontend types come from it.
 - New features (see [Overview](#overview)).
-- Fixes upstream bug [#232](https://github.com/fbuchner/meerkat-crm/issues/232) and implements
-  requested feature [#190](https://github.com/fbuchner/meerkat-crm/issues/190).
+- Implements requested feature [#190](https://github.com/fbuchner/meerkat-crm/issues/190).
 - Faster local setup: `make dev` and `make test-e2e` need no Docker.
 
 **Downsides**
@@ -55,7 +54,7 @@ What can hurt when you merge, or when you look at the diff.
 - **Frontend toolchain.** Create React App is replaced by Vite, Yarn by npm (`yarn.lock` removed,
   `package-lock.json` added), Node 26 is pinned. The build variable is `VITE_API_URL`, not
   `REACT_APP_API_URL`. Dockerfiles and compose files changed to match.
-- **Go 1.27.** `go.mod` is raised from 1.25. `gocron` v1 to v2, `golang-jwt` v4 to v5, `nfnt/resize`
+- **Go 1.27.** `go.mod` is raised from 1.26. `gocron` v1 to v2, `golang-jwt` v4 to v5, `nfnt/resize`
   (archived) to `x/image/draw`. New: `huma/v2`.
 - **Backend layout.** Sixteen features (contacts, notes, activities, reminders, relationships,
   photos, trash, users, tokens, webhooks, exports, imports, monicaimport, calendars, contactsync,
@@ -95,37 +94,37 @@ code with moved code: the module move rewrites many existing files.
 
 "Upstream" is where you can see discussion or an open pull request.
 
-| Area          | Change                                  | Size | Migration | Upstream                                                                                                                                 |
-| ------------- | --------------------------------------- | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Users         | Two-factor login (TOTP)                 | M    | 28        | not proposed                                                                                                                             |
-| Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                                             |
-| Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                                             |
-| Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                                      |
-| Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                                             |
-| Activities    | Activities with a date range            | S    | 37        | not proposed                                                                                                                             |
-| Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                                             |
-| Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                                             |
-| Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                                             |
-| Import        | Preview filter, sort, bulk set          | M    | –         | not proposed                                                                                                                             |
-| Import        | vCard fixes and NOTE field              | S    | 33        | [PR #251](https://github.com/fbuchner/meerkat-crm/pull/251), [#250](https://github.com/fbuchner/meerkat-crm/issues/250) (vCard 2.1 part) |
-| CardDAV sync  | Unquoted and weak ETags                 | S    | –         | [PR #259](https://github.com/fbuchner/meerkat-crm/pull/259), [#255](https://github.com/fbuchner/meerkat-crm/issues/255)                  |
-| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed; fixes [#232](https://github.com/fbuchner/meerkat-crm/issues/232) (open upstream bug)                                       |
-| Storage       | Thumbnails as files                     | S    | 30        | not proposed                                                                                                                             |
-| Integrations  | Outbox with retries                     | M    | 32        | not proposed                                                                                                                             |
-| Operations    | Prometheus metrics                      | S    | –         | not proposed                                                                                                                             |
-| Security      | One SSRF switch, CSP, session checks    | M    | –         | not proposed                                                                                                                             |
-| Security      | Separate `ENCRYPTION_KEY`               | S    | 36        | not proposed                                                                                                                             |
-| Architecture  | Hexagonal modules                       | L    | –         | not proposed                                                                                                                             |
-| Architecture  | huma API contract, OpenAPI, TS types    | L    | –         | not proposed                                                                                                                             |
-| Architecture  | Injected clock, `FAKE_NOW`              | S    | –         | not proposed                                                                                                                             |
-| Build         | Vite, npm, Node 26, strict TS/ESLint    | M    | –         | not proposed                                                                                                                             |
-| Build         | Root Makefile, Docker-free E2E          | M    | –         | [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                                                              |
-| CI            | ESLint, tsc, Prettier, gofmt gates      | S    | –         | [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                                                              |
-| CI            | golangci-lint                           | S    | –         | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247)                                                                              |
-| CI            | Scans, pinned actions, SBOM, provenance | M    | –         | not proposed                                                                                                                             |
-| Testing       | Coverage thresholds, fuzzing, more      | M    | –         | not proposed                                                                                                                             |
-| Docs          | ADRs, API reference test, CONTRIBUTING  | S    | –         | not proposed                                                                                                                             |
-| Design drafts | Relationships, "myself", phonebook      | –    | –         | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184)                   |
+| Area          | Change                                  | Size | Migration | Upstream                                                                                                               |
+| ------------- | --------------------------------------- | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Users         | Two-factor login (TOTP)                 | M    | 28        | not proposed                                                                                                           |
+| Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                           |
+| Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                           |
+| Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                    |
+| Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                           |
+| Activities    | Activities with a date range            | S    | 37        | not proposed                                                                                                           |
+| Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                           |
+| Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                           |
+| Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                           |
+| Import        | Preview filter, sort, bulk set          | M    | –         | not proposed                                                                                                           |
+| Import        | vCard fixes and NOTE field              | S    | 33        | not proposed; upstream has the vCard 2.1 part ([PR #251](https://github.com/fbuchner/meerkat-crm/pull/251))            |
+| CardDAV sync  | Sync error reporting                    | S    | –         | not proposed; upstream has the ETag part ([PR #259](https://github.com/fbuchner/meerkat-crm/pull/259))                 |
+| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed                                                                                                           |
+| Storage       | Thumbnails as files                     | S    | 30        | not proposed                                                                                                           |
+| Integrations  | Outbox with retries                     | M    | 32        | not proposed                                                                                                           |
+| Operations    | Prometheus metrics                      | S    | –         | not proposed                                                                                                           |
+| Security      | One SSRF switch, CSP, session checks    | M    | –         | not proposed                                                                                                           |
+| Security      | Separate `ENCRYPTION_KEY`               | S    | 36        | not proposed                                                                                                           |
+| Architecture  | Hexagonal modules                       | L    | –         | not proposed                                                                                                           |
+| Architecture  | huma API contract, OpenAPI, TS types    | L    | –         | not proposed                                                                                                           |
+| Architecture  | Injected clock, `FAKE_NOW`              | S    | –         | not proposed                                                                                                           |
+| Build         | Vite, npm, Node 26, strict TS/ESLint    | M    | –         | not proposed                                                                                                           |
+| Build         | Docker-free E2E stack                   | M    | –         | dropped from [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                               |
+| CI            | Prettier gate                           | S    | –         | dropped from [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                               |
+| CI            | Stricter golangci-lint set              | S    | –         | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247) took a smaller set                                         |
+| CI            | Scans, pinned actions, SBOM, provenance | M    | –         | not proposed                                                                                                           |
+| Testing       | Coverage thresholds, fuzzing, more      | M    | –         | not proposed                                                                                                           |
+| Docs          | ADRs, API reference test, CONTRIBUTING  | S    | –         | not proposed                                                                                                           |
+| Design drafts | Relationships, "myself", phonebook      | –    | –         | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184) |
 
 ## User-visible changes
 
@@ -156,9 +155,8 @@ settings page shows when the feed was last fetched. Migrations 24 and 26.
 contact and an `If-Match` on a missing one answer `412`; ETags change on every save; a missing
 contact or another user's address book answers `404`.
 
-**CardDAV sync.** Accepts unquoted and weak ETags (probably what Mailbox.org sends). Upstream fails
-the whole sync with "failed to unquote ETag". Server errors and unreadable responses are reported as
-such, not as "could not be reached".
+**CardDAV sync.** Server errors and unreadable responses are reported as such, not as "could not be
+reached".
 
 **Birthday mail.** The day of the last birthday mail is stored per user, so a restart on a birthday
 does not send it again. Migration 35.
@@ -176,20 +174,19 @@ fields (`search_all`).
 ![Search results for "book", grouped into contacts and notes with the match marked and the matching field named](docs/assets/differences/search.png)
 
 **Import.** The preview can filter, sort and set a value on many rows at once, and the result lists
-skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, vCard 2.1 and
-Apple labels work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported and
-synced as a contact note (migration 33). Rows with errors are never imported, and an unreadable card
-no longer shifts the cards after it. Importing a deleted contact asks whether to restore it. vCard
-photos load after the import, and the result shows their progress. The Monica import timeout is
-longer, and a private Monica URL can be allowed.
+skipped rows with the reason. vCard fixes: nameless and partly invalid cards import, Apple labels
+work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported and synced as a
+contact note (migration 33). Rows with errors are never imported, and an unreadable card no longer
+shifts the cards after it. Importing a deleted contact asks whether to restore it. vCard photos load
+after the import, and the result shows their progress. The Monica import timeout is longer, and a
+private Monica URL can be allowed.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
-locale. This fixes upstream bug [#232](https://github.com/fbuchner/meerkat-crm/issues/232). One
-placeholder for empty values. The add-activity dialog preselects the contact and can add it to
-several existing activities. The edit-activity contact field searches all contacts. Header search
-clears on navigation and Escape. The sidebar collapses to icons. The contact, note and activity
-lists share one toolbar (search, filters, then actions on the right), and buttons are not upper
-case.
+locale. One placeholder for empty values. The add-activity dialog preselects the contact and can add
+it to several existing activities. The edit-activity contact field searches all contacts. Header
+search clears on navigation and Escape. The sidebar collapses to icons. The contact, note and
+activity lists share one toolbar (search, filters, then actions on the right), and buttons are not
+upper case.
 
 **Thumbnails.** Contact thumbnails are files next to the photos, not base64 in the database. The
 database gets smaller and list queries get cheaper. Migration 30; see "Merge impact".
@@ -331,10 +328,11 @@ the Playwright E2E tests is not measured on either side, so both frontend values
 
 - **Frontend:** Vite, npm, Node 26, `noUncheckedIndexedAccess` and related flags, ESLint 9 with
   strict type-checked rules, Vitest 4.
-- **Root `Makefile`:** `make dev` runs backend and frontend with no setup; `make precommit` runs the
-  commit subject check, format, lint, types, i18n key check, architecture check, OpenAPI check,
-  use-case, Markdown link and changelog checks, coverage and E2E. Workflows call the same targets.
-  Optional `lefthook`.
+- **Root `Makefile`:** upstream has a smaller one (format, lint, types, test). The fork adds
+  `make dev`, `make test-e2e` and the seed target: `make dev` runs backend and frontend with no
+  setup; `make precommit` runs the commit subject check, format, lint, types, i18n key check,
+  architecture check, OpenAPI check, use-case, Markdown link and changelog checks, coverage and E2E.
+  Workflows call the same targets. Optional `lefthook`.
 - **Side-by-side checkouts:** `make dev` and `make test-e2e` pick free ports and keep their data per
   checkout or in a temporary directory, so several checkouts and a dev server can run together.
 - **`make seed`:** adds a demo user (`demo`) and about 60 realistic contacts with notes, activities,

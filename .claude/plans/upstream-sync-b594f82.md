@@ -42,11 +42,11 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
 
 ## Steps
 
-- [ ] **0. Environment.** `jj git fetch --remote upstream`; check `main@upstream` is (or contains)
+- [x] **0. Environment.** `jj git fetch --remote upstream`; check `main@upstream` is (or contains)
       `b594f822924a`; `make precommit` is green on `omk`. If upstream moved on, stop and ask. Do not
       extend the range.
 
-- [ ] **1. Ledger and DIFFERENCES** (`chore: record upstream commits up to b594f82`). Add all 44
+- [x] **1. Ledger and DIFFERENCES** (`chore: record upstream commits up to b594f82`). Add all 44
       entries to `upstream-ledger.yml` in upstream order
       (`jj log --reversed --no-graph -r '0c2aaab8a979..b594f822924a ~ merges()'`), with the status
       from the table below. Use `pending` for the commits that later steps port. In the same commit,
@@ -97,12 +97,12 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
   | `d64d1dc2a3db` | superseded       | Fork uses Vite and npm; package not in the lockfile         |
   | `914946071827` | superseded       | Fork has Vite 8                                             |
   | `3587e64178b4` | superseded       | Fork PR #259                                                |
-  | `99af18849258` | superseded       | Fork has newer x/image, x/time, x/oauth2 and Go 1.27        |
+  | `99af18849258` | superseded       | Fork has these versions or newer, and Go 1.27               |
   | `8bbfd251bef5` | skipped          | Fork keeps its stricter linter set                          |
   | `8955b46d7d81` | pending (step 3) |                                                             |
   | `784262cb8c21` | pending (step 6) |                                                             |
   | `e361be7e8505` | skipped          | Fork keeps the Docker-free E2E stack                        |
-  | `7b951629cc0d` | superseded       | Fork pins its own golangci-lint for Go 1.27                 |
+  | `7b951629cc0d` | superseded       | Fork pins golangci-lint v2.14.0 for Go 1.27                 |
   | `c2185e240845` | skipped          | Fork keeps the Prettier gate                                |
   | `fa7d09af438e` | superseded       | The files were never in the fork                            |
   | `da5e274032de` | superseded       | Fixes upstream's date-format change, which the fork skips   |

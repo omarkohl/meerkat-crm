@@ -13,4 +13,159 @@
 # stay after the merge record.
 
 merged: 0c2aaab8a979
-commits: []
+commits:
+  - commit: a063a6deccae
+    subject: "Bump github.com/golang-migrate/migrate/v4 in /backend"
+    status: superseded
+    reason: "Fork has migrate v4.20.1"
+  - commit: b99299aacf27
+    subject: "Bump github.com/gin-contrib/cors from 1.7.7 to 1.7.8 in /backend"
+    status: superseded
+    reason: "Fork has cors v1.7.9"
+  - commit: e64f5daafc6c
+    subject: "chore: run golangci-lint in CI"
+    status: superseded
+    reason: "Fork PR #247"
+  - commit: 64c4f30824d3
+    subject: "build: add root Makefile and Docker-free E2E stack"
+    status: superseded
+    reason: "Fork PR #248"
+  - commit: 27fc3c10a0b0
+    subject: "chore: gate ESLint, tsc and Prettier/gofmt in CI"
+    status: superseded
+    reason: "Fork PR #249"
+  - commit: 4c371f191322
+    subject: "fix: import vCard 2.1 phone, email and other fields"
+    status: superseded
+    reason: "Fork PR #251"
+  - commit: ed8d68cac8dd
+    subject: "Bump shell-quote from 1.10.0 to 1.12.0 in /frontend"
+    status: superseded
+    reason: "Fork uses Vite and npm; package not in the lockfile"
+  - commit: 7c6a808a035b
+    subject: "Bump source-map-js from 1.2.1 to 1.2.2 in /frontend"
+    status: superseded
+    reason: "Fork has source-map-js 1.2.2"
+  - commit: b296e7b3e4f3
+    subject: "chore: add local verification hooks and contact-field skill"
+    status: skipped
+    reason: "Fork has its own agent hooks; skill targets upstream layout"
+  - commit: 8a82df030d87
+    subject: "ci: add Claude Code GitHub Action for @claude dispatch and PR review"
+    status: skipped
+    reason: "Upstream's own CI bot"
+  - commit: bf2fc29a7053
+    subject: "docs: align the contributing AI policy with the tooling this repo now uses"
+    status: pending
+  - commit: d64d1dc2a3db
+    subject: "Bump follow-redirects from 1.16.0 to 1.16.1 in /frontend"
+    status: superseded
+    reason: "Fork uses Vite and npm; package not in the lockfile"
+  - commit: 3587e64178b4
+    subject: "fix: sync contacts with servers that send unquoted ETags"
+    status: superseded
+    reason: "Fork PR #259"
+  - commit: 914946071827
+    subject: "Bump vite from 7.3.6 to 7.3.7 in /frontend"
+    status: superseded
+    reason: "Fork has Vite 8"
+  - commit: 39e18c3a747d
+    subject: "feat: allow toggling birthday reminders on existing contacts"
+    status: pending
+  - commit: ff5354c0def6
+    subject: "feat: add deceased_date validator"
+    status: pending
+  - commit: c004af7306a9
+    subject: "fix: compare calendar dates in deceased_date future-date check"
+    status: pending
+  - commit: daf2320f1c97
+    subject: "feat: add IsDeceased/DeceasedDate fields to Contact model"
+    status: pending
+  - commit: 670a227dfcb2
+    subject: "feat: persist is_deceased/deceased_date through contact create/update"
+    status: pending
+  - commit: 598e8c744d8a
+    subject: "feat: add is_deceased/deceased_date columns to contacts"
+    status: pending
+  - commit: 37aae9cab043
+    subject: "feat: backfill is_deceased/deceased_date from legacy custom field"
+    status: pending
+  - commit: 5f315a22f0ec
+    subject: "feat: map Monica deceased status to typed IsDeceased/DeceasedDate fields"
+    status: pending
+  - commit: 244a867077f7
+    subject: "feat: suppress birthday reminders for deceased contacts"
+    status: pending
+  - commit: c096156ac9e1
+    subject: "chore: add @mui/x-date-pickers and date-fns for deceased-date picker"
+    status: skipped
+    reason: "Fork uses its own DateField; no date-picker dependencies"
+  - commit: b38d404b95c8
+    subject: "feat: add is_deceased field type and settings metadata"
+    status: pending
+  - commit: 648c932256f2
+    subject: "feat: add calculateAgeAtDate helper for age-at-death display"
+    status: pending
+  - commit: b30fa907bb6b
+    subject: "feat: add deceased field translations"
+    status: pending
+  - commit: 76b1d6bb87e2
+    subject: "feat: add deceased checkbox and date picker to contact detail page"
+    status: pending
+  - commit: 2d6e91fa44c6
+    subject: "fix: correct age-at-death parentheses and date formatting in deceased field"
+    status: pending
+  - commit: ed21b6da7066
+    subject: "fix: correct backfill scope, remove stale custom-field name, fix contradictory age display"
+    status: pending
+  - commit: 259b1a9be9d1
+    subject: "fix: format deceased date picker per user's date-format preference"
+    status: superseded
+    reason: "Fork DateField uses the configured date format"
+  - commit: cdbf55b3fa4b
+    subject: "fix: stop wiping deceased status/date on contact refresh"
+    status: pending
+  - commit: d1aa72155924
+    subject: "feat(export): add per-contact vCard export with 3.0/4.0 version choice"
+    status: pending
+  - commit: 89ade1433093
+    subject: "fix(activities): respect configured date format in date fields"
+    status: superseded
+    reason: "Fork fixed #232 with DateField"
+  - commit: 99af18849258
+    subject: "chore(deps): bump x/image, x/time and x/oauth2, moving to Go 1.26"
+    status: superseded
+    reason: "Fork has these versions or newer, and Go 1.27"
+  - commit: 8bbfd251bef5
+    subject: "chore: narrow the linter set to defect-finding linters"
+    status: skipped
+    reason: "Fork keeps its stricter linter set"
+  - commit: 8955b46d7d81
+    subject: "fix: only rewrite vCard files that declare VERSION:2.1"
+    status: pending
+  - commit: 784262cb8c21
+    subject: "feat(export): drop the vCard version choice, keep the per-contact export"
+    status: pending
+  - commit: e361be7e8505
+    subject: "build: drop the Docker-free E2E stack, keep the Makefile"
+    status: skipped
+    reason: "Fork keeps the Docker-free E2E stack"
+  - commit: 7b951629cc0d
+    subject: "ci: bump golangci-lint to v2.15.0 for Go 1.26"
+    status: superseded
+    reason: "Fork pins golangci-lint v2.14.0 for Go 1.27; upstream v2.15.0 is for Go 1.26"
+  - commit: c2185e240845
+    subject: "chore: gate ESLint and tsc in CI, drop the Prettier gate"
+    status: skipped
+    reason: "Fork keeps the Prettier gate"
+  - commit: fa7d09af438e
+    subject: "chore: untrack two local working files committed by mistake"
+    status: superseded
+    reason: "The files were never in the fork"
+  - commit: da5e274032de
+    subject: "fix: declare formatDate in the reminder dialog's effect dependencies"
+    status: superseded
+    reason: "Fixes upstream's date-format change, which the fork skips"
+  - commit: d8b114a686ef
+    subject: "fix: de-duplicate imports after merging the deceased-field change"
+    status: pending
