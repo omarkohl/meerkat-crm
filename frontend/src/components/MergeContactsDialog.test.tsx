@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '../i18n/config';
+import { DateFormatProvider } from '../DateFormatProvider';
 import MergeContactsDialog from './MergeContactsDialog';
 import { planMerge, type MergeContact } from '../utils/mergeContacts';
 
@@ -33,7 +34,11 @@ vi.mock('../hooks/useContactMerge', () => ({
 // @023-US3
 describe('MergeContactsDialog', () => {
   test('refuses to start a merge that gives a contact more than 50 photos', () => {
-    render(<MergeContactsDialog open onClose={vi.fn()} contactIds={[1, 2]} onMerged={vi.fn()} />);
+    render(
+      <DateFormatProvider>
+        <MergeContactsDialog open onClose={vi.fn()} contactIds={[1, 2]} onMerged={vi.fn()} />
+      </DateFormatProvider>,
+    );
     expect(screen.getByRole('alert').textContent).toContain('51 photos');
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Continue' }).disabled).toBe(true);
   });

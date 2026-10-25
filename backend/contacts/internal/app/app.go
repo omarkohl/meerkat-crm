@@ -143,6 +143,9 @@ func (u *UseCases) ShowContact(ctx context.Context, actor domain.UserID, id doma
 
 // CreateContact stores a new contact for the actor, then announces it.
 func (u *UseCases) CreateContact(ctx context.Context, actor domain.UserID, draft domain.Contact, now time.Time) (domain.Contact, error) {
+	if !draft.DeceasedBy(now) {
+		return domain.Contact{}, domain.ErrDeceasedInFuture
+	}
 	draft.SyncPrimary()
 	var created domain.Contact
 	err := u.store.InTx(ctx, func(tx Tx) error {
@@ -159,6 +162,9 @@ func (u *UseCases) CreateContact(ctx context.Context, actor domain.UserID, draft
 
 // UpdateContact replaces the editable fields of a contact, then announces it.
 func (u *UseCases) UpdateContact(ctx context.Context, actor domain.UserID, id domain.ContactID, edit domain.Contact, now time.Time) (domain.Contact, error) {
+	if !edit.DeceasedBy(now) {
+		return domain.Contact{}, domain.ErrDeceasedInFuture
+	}
 	var updated domain.Contact
 	err := u.store.InTx(ctx, func(tx Tx) error {
 		c, err := tx.Get(ctx, actor, id)

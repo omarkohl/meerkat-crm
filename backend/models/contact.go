@@ -110,6 +110,11 @@ type Contact struct {
 	// Anniversary date (vCard X-ANNIVERSARY), same format as Birthday
 	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
 
+	// Deceased status. DeceasedDate is a full YYYY-MM-DD date only (unlike
+	// Birthday/Anniversary, no --MM-DD year-unknown variant is supported).
+	IsDeceased   bool   `gorm:"default:false" json:"is_deceased"`
+	DeceasedDate string `json:"deceased_date" validate:"omitempty,deceased_date"`
+
 	// Free-text note (vCard NOTE). Unlike Notes, this is one value synced with CardDAV.
 	Note string `gorm:"type:text" json:"note" validate:"max=5000"`
 

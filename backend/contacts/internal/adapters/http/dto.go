@@ -74,6 +74,9 @@ type ContactResponse struct {
 	Anniversary string `json:"anniversary"`
 	Note        string `json:"note"`
 
+	IsDeceased   bool   `json:"is_deceased"`
+	DeceasedDate string `json:"deceased_date"`
+
 	CustomFields map[string]string `json:"custom_fields" nullable:"true"`
 
 	Archived bool `json:"archived"`
@@ -145,6 +148,7 @@ func NewContactResponse(c domain.Contact) ContactResponse {
 		Prefix:  c.Prefix, MiddleName: c.MiddleName, Suffix: c.Suffix,
 		Organization: c.Organization, Department: c.Department, JobTitle: c.JobTitle, Role: c.Role,
 		Anniversary: c.Anniversary, Note: c.Note,
+		IsDeceased: c.IsDeceased, DeceasedDate: c.DeceasedDate,
 		CustomFields: c.CustomFields, Archived: c.Archived,
 	}
 	for _, img := range c.Images {

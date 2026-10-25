@@ -146,4 +146,43 @@ test.describe('Contacts', () => {
     const lookup = await page.request.get(`${API_BASE_URL}/contacts/${contact.ID}`);
     expect(lookup.status()).toBe(404);
   });
+
+  test('a contact can be marked deceased and no longer appears in the birthdays @004-US11', async ({ page }) => {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 2);
+    const birthday = `1980-${String(soon.getMonth() + 1).padStart(2, '0')}-${String(soon.getDate()).padStart(2, '0')}`;
+    const contact = await createTestContact(page.request, { birthday });
+
+    try {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Settings' }).click();
+      await page.getByRole('link', { name: 'Data' }).click();
+      await page.getByRole('switch', { name: 'Deceased' }).check();
+
+      await page.goto('/');
+      const birthdayRow = page.getByRole('link', { name: new RegExp(`${contact.firstname} Temp .*years old`) });
+      await expect(birthdayRow).toBeVisible();
+
+      await openContact(page, contact);
+      await page.getByRole('button', { name: 'Edit Deceased' }).click();
+      await page.getByRole('checkbox', { name: 'Deceased' }).check();
+      await page.getByRole('textbox', { name: 'Date of death' }).fill('15.01.2020');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await expect(page.getByText(/15\.01\.2020/)).toBeVisible();
+
+      await page.getByRole('button', { name: 'Edit Work Information' }).click();
+      await page.getByRole('textbox').fill('Plumber');
+      await page.getByRole('textbox').press('Enter');
+      await expect(page.getByText('Plumber')).toBeVisible();
+
+      await page.reload();
+      await expect(page.getByText(/15\.01\.2020/)).toBeVisible();
+
+      await page.goto('/');
+      await expect(page.getByRole('heading', { name: 'Upcoming Birthdays' })).toBeVisible();
+      await expect(birthdayRow).toBeHidden();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
 });

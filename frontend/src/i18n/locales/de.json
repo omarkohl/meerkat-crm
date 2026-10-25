@@ -278,6 +278,7 @@
     "jobTitle": "Position",
     "role": "Rolle",
     "anniversary": "Jahrestag",
+    "deceased": "Verstorben",
     "note": "Notiz",
     "fieldType": "Typ",
     "types": {
@@ -307,6 +308,10 @@
     "phone": "Telefon",
     "birthday": "Geburtstag",
     "birthdayError": "Ungültiges Datumsformat. Überprüfen Sie Ihre Datumsformat-Einstellung.",
+    "deceased": "Verstorben",
+    "deceasedDate": "Todesdatum",
+    "deceasedDateError": "Ungültiges Datum. Muss ein echtes, vergangenes Datum am oder nach dem Geburtstag sein.",
+    "deceasedYes": "Ja",
     "address": "Adresse",
     "workInfo": "Arbeitsinformationen",
     "foodPreferences": "Essensvorlieben",

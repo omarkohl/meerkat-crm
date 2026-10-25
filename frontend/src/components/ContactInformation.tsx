@@ -1,9 +1,22 @@
 import { useState, useMemo, type ReactNode } from 'react';
-import { Card, CardContent, Divider, Stack, Box, Tabs, Tab, Button, Typography } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Checkbox,
+  Divider,
+  FormControlLabel,
+  Stack,
+  Box,
+  Tabs,
+  Tab,
+  Button,
+  Typography,
+} from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import CakeIcon from '@mui/icons-material/Cake';
 import CelebrationIcon from '@mui/icons-material/Celebration';
+import HeartBrokenIcon from '@mui/icons-material/HeartBroken';
 import HomeIcon from '@mui/icons-material/Home';
 import WorkIcon from '@mui/icons-material/Work';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -25,7 +38,9 @@ import RelationshipList from './RelationshipList';
 import { Relationship, IncomingRelationship } from '../api/relationships';
 import { Contact, ContactValue, ContactAddress } from '../api/contacts';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
-import { useDateFormat } from '../DateFormatProvider';
+import { useDateFormat, calculateAgeAtDate } from '../DateFormatProvider';
+import { now } from '../utils/now';
+import DateField from './DateField';
 import EmptyValue from './EmptyValue';
 
 interface ContactInformationProps {
@@ -83,10 +98,18 @@ export default function ContactInformation({
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
-    const age = calculateAge(contact.birthday);
+    const age = contact.is_deceased
+      ? calculateAgeAtDate(contact.birthday, contact.deceased_date ?? '')
+      : calculateAge(contact.birthday);
     if (age === null) return undefined;
     return t('dashboard.yearsOld', { age });
-  }, [contact.birthday, t, calculateAge]);
+  }, [contact.birthday, contact.is_deceased, contact.deceased_date, t, calculateAge]);
+
+  const knownBirthday = contact.birthday && !contact.birthday.startsWith('--') ? contact.birthday : undefined;
+  const isoToday = (d: Date) =>
+    `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const deceasedDateInvalid = (date: string) =>
+    date !== '' && (date > isoToday(now()) || (knownBirthday !== undefined && date < knownBirthday));
 
   const renderValueList = (rows: ContactValue[] | undefined) => {
     if (!rows || rows.length === 0) return <EmptyValue variant="body2" />;
@@ -275,6 +298,66 @@ export default function ContactInformation({
                 onEditCancel={onEditCancel}
                 onEditSave={onEditSave}
                 onEditValueChange={onEditValueChange}
+              />
+            )}
+
+            {isOn('is_deceased') && (
+              <EditableArrayField<{ isDeceased: boolean; deceasedDate: string }>
+                icon={<HeartBrokenIcon sx={iconSx} />}
+                label={t('contactDetail.deceased')}
+                value={{ isDeceased: contact.is_deceased ?? false, deceasedDate: contact.deceased_date ?? '' }}
+                cloneValue={(v) => ({ ...v })}
+                renderDisplay={(v) => {
+                  if (!v.isDeceased) return <EmptyValue variant="body2" />;
+                  const age =
+                    knownBirthday && v.deceasedDate ? calculateAgeAtDate(knownBirthday, v.deceasedDate) : null;
+                  return (
+                    <Typography variant="body2">
+                      {v.deceasedDate ? formatBirthday(v.deceasedDate) : t('contactDetail.deceasedYes')}
+                      {age !== null && ` ${t('dashboard.yearsOld', { age })}`}
+                    </Typography>
+                  );
+                }}
+                renderEditor={(draft, setDraft) => (
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={draft.isDeceased}
+                          onChange={(e) => {
+                            setDraft({
+                              isDeceased: e.target.checked,
+                              deceasedDate: e.target.checked ? draft.deceasedDate : '',
+                            });
+                          }}
+                        />
+                      }
+                      label={t('contactDetail.deceased')}
+                    />
+                    {draft.isDeceased && (
+                      <DateField
+                        label={t('contactDetail.deceasedDate')}
+                        value={draft.deceasedDate}
+                        min={knownBirthday}
+                        error={
+                          deceasedDateInvalid(draft.deceasedDate) ? t('contactDetail.deceasedDateError') : undefined
+                        }
+                        onChange={(deceasedDate) => {
+                          setDraft({ ...draft, deceasedDate });
+                        }}
+                        size="small"
+                        fullWidth
+                        sx={{ mt: 1 }}
+                      />
+                    )}
+                  </Box>
+                )}
+                onSave={(draft) =>
+                  onUpdateContact({
+                    is_deceased: draft.isDeceased,
+                    deceased_date: draft.isDeceased ? draft.deceasedDate : '',
+                  })
+                }
               />
             )}
 

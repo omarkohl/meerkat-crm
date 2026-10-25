@@ -74,57 +74,57 @@ commits:
     status: pending
   - commit: ff5354c0def6
     subject: "feat: add deceased_date validator"
-    status: pending
+    status: ported
   - commit: c004af7306a9
     subject: "fix: compare calendar dates in deceased_date future-date check"
-    status: pending
+    status: ported
   - commit: daf2320f1c97
     subject: "feat: add IsDeceased/DeceasedDate fields to Contact model"
-    status: pending
+    status: ported
   - commit: 670a227dfcb2
     subject: "feat: persist is_deceased/deceased_date through contact create/update"
-    status: pending
+    status: ported
   - commit: 598e8c744d8a
     subject: "feat: add is_deceased/deceased_date columns to contacts"
-    status: pending
+    status: ported
   - commit: 37aae9cab043
     subject: "feat: backfill is_deceased/deceased_date from legacy custom field"
-    status: pending
+    status: ported
   - commit: 5f315a22f0ec
     subject: "feat: map Monica deceased status to typed IsDeceased/DeceasedDate fields"
-    status: pending
+    status: ported
   - commit: 244a867077f7
     subject: "feat: suppress birthday reminders for deceased contacts"
-    status: pending
+    status: ported
   - commit: c096156ac9e1
     subject: "chore: add @mui/x-date-pickers and date-fns for deceased-date picker"
     status: skipped
     reason: "Fork uses its own DateField; no date-picker dependencies"
   - commit: b38d404b95c8
     subject: "feat: add is_deceased field type and settings metadata"
-    status: pending
+    status: ported
   - commit: 648c932256f2
     subject: "feat: add calculateAgeAtDate helper for age-at-death display"
-    status: pending
+    status: ported
   - commit: b30fa907bb6b
     subject: "feat: add deceased field translations"
-    status: pending
+    status: ported
   - commit: 76b1d6bb87e2
     subject: "feat: add deceased checkbox and date picker to contact detail page"
-    status: pending
+    status: ported
   - commit: 2d6e91fa44c6
     subject: "fix: correct age-at-death parentheses and date formatting in deceased field"
-    status: pending
+    status: ported
   - commit: ed21b6da7066
     subject: "fix: correct backfill scope, remove stale custom-field name, fix contradictory age display"
-    status: pending
+    status: ported
   - commit: 259b1a9be9d1
     subject: "fix: format deceased date picker per user's date-format preference"
     status: superseded
     reason: "Fork DateField uses the configured date format"
   - commit: cdbf55b3fa4b
     subject: "fix: stop wiping deceased status/date on contact refresh"
-    status: pending
+    status: ported
   - commit: d1aa72155924
     subject: "feat(export): add per-contact vCard export with 3.0/4.0 version choice"
     status: pending
@@ -168,4 +168,4 @@ commits:
     reason: "Fixes upstream's date-format change, which the fork skips"
   - commit: d8b114a686ef
     subject: "fix: de-duplicate imports after merging the deceased-field change"
-    status: pending
+    status: ported

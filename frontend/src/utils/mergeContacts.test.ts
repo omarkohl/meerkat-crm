@@ -44,6 +44,40 @@ describe('planMerge conflicts', () => {
     expect(buildMergedInput(plan, {}).job_title).toBe('Dev');
   });
 
+  test('a deceased source makes the merged contact deceased with its date', () => {
+    const plan = planMerge(contact(1), [contact(2, { is_deceased: true, deceased_date: '2020-01-15' })]);
+    expect(plan.conflicts).toEqual([]);
+    const input = buildMergedInput(plan, {});
+    expect(input.is_deceased).toBe(true);
+    expect(input.deceased_date).toBe('2020-01-15');
+  });
+
+  test('a deceased target stays deceased when the source is not', () => {
+    const input = buildMergedInput(
+      planMerge(contact(1, { is_deceased: true, deceased_date: '2020-01-15' }), [contact(2)]),
+      {},
+    );
+    expect(input.is_deceased).toBe(true);
+    expect(input.deceased_date).toBe('2020-01-15');
+  });
+
+  test('deceased without a date against a date is one conflict, and the choice is kept', () => {
+    const plan = planMerge(contact(1, { is_deceased: true }), [
+      contact(2, { is_deceased: true, deceased_date: '2020-01-15' }),
+    ]);
+    expect(plan.conflicts.map((c) => c.field)).toEqual(['deceased']);
+    expect(buildMergedInput(plan, { deceased: '2020-01-15' }).deceased_date).toBe('2020-01-15');
+    const kept = buildMergedInput(plan, { deceased: 'yes' });
+    expect(kept.is_deceased).toBe(true);
+    expect(kept.deceased_date).toBe('');
+  });
+
+  test('two living contacts stay living', () => {
+    const input = buildMergedInput(planMerge(contact(1), [contact(2)]), {});
+    expect(input.is_deceased).toBe(false);
+    expect(input.deceased_date).toBe('');
+  });
+
   test('custom fields conflict by key', () => {
     const target = contact(1, { custom_fields: { pet: 'cat', car: 'vw' } });
     const source = contact(2, { custom_fields: { pet: 'dog', car: 'vw', boat: 'yes' } });

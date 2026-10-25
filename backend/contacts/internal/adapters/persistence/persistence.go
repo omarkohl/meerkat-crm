@@ -35,7 +35,7 @@ func (r *Repository) Get(ctx context.Context, actor domain.UserID, id domain.Con
 	return first(r.db.WithContext(ctx), actor, id)
 }
 
-var showable = []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "main_image_id", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "note"}
+var showable = []string{"ID", "firstname", "lastname", "nickname", "gender", "email", "phone", "birthday", "address", "how_we_met", "food_preference", "work_information", "contact_information", "circles", "photo", "main_image_id", "custom_fields", "archived", "emails", "phones", "addresses", "urls", "impps", "prefix", "middle_name", "suffix", "organization", "department", "job_title", "role", "anniversary", "note", "is_deceased", "deceased_date"}
 
 func first(db *gorm.DB, actor domain.UserID, id domain.ContactID) (domain.Contact, error) {
 	var m models.Contact
@@ -332,6 +332,7 @@ func fill(m *models.Contact, c domain.Contact) {
 	m.Prefix, m.MiddleName, m.Suffix = c.Prefix, c.MiddleName, c.Suffix
 	m.Organization, m.Department, m.JobTitle, m.Role = c.Organization, c.Department, c.JobTitle, c.Role
 	m.Anniversary, m.Note = c.Anniversary, c.Note
+	m.IsDeceased, m.DeceasedDate = c.IsDeceased, c.DeceasedDate
 	m.Emails, m.Phones, m.URLs, m.IMPPs, m.Addresses = nil, nil, nil, nil, nil
 	for _, e := range c.Emails {
 		m.Emails = append(m.Emails, models.ContactEmail{Type: e.Type, Value: e.Value})
@@ -368,6 +369,7 @@ func toDomain(m models.Contact) domain.Contact {
 		Prefix: m.Prefix, MiddleName: m.MiddleName, Suffix: m.Suffix,
 		Organization: m.Organization, Department: m.Department, JobTitle: m.JobTitle, Role: m.Role,
 		Anniversary: m.Anniversary, Note: m.Note,
+		IsDeceased: m.IsDeceased, DeceasedDate: m.DeceasedDate,
 		CustomFields: m.CustomFields,
 		Archived:     m.Archived,
 	}

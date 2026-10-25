@@ -47,15 +47,7 @@ const getStoredFormat = (): DateFormat => {
   return 'eu';
 };
 
-/**
- * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
- * Returns null if no year is provided or if the format is invalid
- */
-export function calculateAgeFromBirthday(birthday: string): number | null {
-  if (!birthday || birthday.startsWith('--')) {
-    return null;
-  }
-
+function ageBetween(birthday: string, at: Date): number | null {
   const parts = birthday.split('-');
   const [yearPart = '', monthPart = '', dayPart = ''] = parts;
   if (parts.length !== 3 || yearPart.length !== 4) {
@@ -70,19 +62,35 @@ export function calculateAgeFromBirthday(birthday: string): number | null {
     return null;
   }
 
-  const today = now();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  const currentDay = today.getDate();
-
-  let age = currentYear - birthYear;
-
-  // Adjust if birthday hasn't occurred yet this year
-  if (month > currentMonth || (month === currentMonth && day > currentDay)) {
+  let age = at.getFullYear() - birthYear;
+  if (month > at.getMonth() + 1 || (month === at.getMonth() + 1 && day > at.getDate())) {
     age--;
   }
 
   return age >= 0 ? age : null;
+}
+
+/**
+ * Calculate age from a birthday string (YYYY-MM-DD or --MM-DD)
+ * Returns null if no year is provided or if the format is invalid
+ */
+export function calculateAgeFromBirthday(birthday: string): number | null {
+  if (!birthday || birthday.startsWith('--')) {
+    return null;
+  }
+  return ageBetween(birthday, now());
+}
+
+/** Age on a full date, e.g. at death. Null when either date lacks a year or is malformed. */
+export function calculateAgeAtDate(birthday: string, atDate: string): number | null {
+  if (!birthday || birthday.startsWith('--') || !atDate) {
+    return null;
+  }
+  const [year = NaN, month = NaN, day = NaN] = atDate.split('-').map(Number);
+  if (atDate.split('-')[0]?.length !== 4 || isNaN(year) || isNaN(month) || isNaN(day)) {
+    return null;
+  }
+  return ageBetween(birthday, new Date(year, month - 1, day));
 }
 
 /**

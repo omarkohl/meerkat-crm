@@ -12,6 +12,7 @@ export type ContactFieldKey =
   | 'gender'
   | 'birthday'
   | 'anniversary'
+  | 'is_deceased'
   | 'prefix'
   | 'middle_name'
   | 'suffix'
@@ -54,6 +55,7 @@ export const CONTACT_FIELDS: ContactFieldDef[] = [
   { key: 'gender', labelKey: 'contacts.gender', group: 'personal' },
   { key: 'birthday', labelKey: 'contacts.birthday', group: 'personal' },
   { key: 'anniversary', labelKey: 'contacts.anniversary', group: 'personal' },
+  { key: 'is_deceased', labelKey: 'contacts.deceased', group: 'personal' },
   { key: 'note', labelKey: 'contacts.note', group: 'personal' },
 
   { key: 'how_we_met', labelKey: 'contacts.howWeMet', group: 'meerkat' },

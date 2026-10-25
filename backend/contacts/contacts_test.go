@@ -355,6 +355,52 @@ func TestUpdateRejectsInvalidInputAndLeavesTheContact(t *testing.T) {
 	assert.Equal(t, "Alice", stored.Firstname)
 }
 
+func TestCreateAndUpdateStoreTheDeceasedStatus(t *testing.T) {
+	e := newEnv(t)
+	w := send(e.asA, http.MethodPost, "/contacts", map[string]any{"firstname": "Jane", "is_deceased": true, "deceased_date": "2020-01-15"})
+	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
+	contact := decode(t, w)["contact"].(map[string]any)
+	assert.Equal(t, true, contact["is_deceased"])
+	assert.Equal(t, "2020-01-15", contact["deceased_date"])
+
+	c := e.contact(t, e.a.ID, "John")
+	w = send(e.asA, http.MethodPut, idPath(c, ""), map[string]any{"firstname": "John", "is_deceased": true, "deceased_date": "2019-06-01"})
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var stored models.Contact
+	require.NoError(t, e.db.First(&stored, c.ID).Error)
+	assert.True(t, stored.IsDeceased)
+	assert.Equal(t, "2019-06-01", stored.DeceasedDate)
+
+	w = do(e.asA, http.MethodGet, idPath(c, "?fields=is_deceased,deceased_date"))
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, true, decode(t, w)["is_deceased"])
+}
+
+func TestDeceasedDateMustBeAPastDateOnOrAfterTheBirthday(t *testing.T) {
+	e := newEnv(t)
+	for name, body := range map[string]map[string]any{
+		"partial date":    {"firstname": "A", "is_deceased": true, "deceased_date": "--01-15"},
+		"malformed":       {"firstname": "A", "is_deceased": true, "deceased_date": "15/01/2020"},
+		"future":          {"firstname": "A", "is_deceased": true, "deceased_date": "2999-01-01"},
+		"before birthday": {"firstname": "A", "birthday": "1990-05-01", "is_deceased": true, "deceased_date": "1980-01-01"},
+	} {
+		w := send(e.asA, http.MethodPost, "/contacts", body)
+		assert.Equal(t, http.StatusBadRequest, w.Code, name+": "+w.Body.String())
+		assert.Contains(t, w.Body.String(), "deceased_date must be a valid past date", name)
+	}
+	var n int64
+	e.db.Model(&models.Contact{}).Count(&n)
+	assert.Zero(t, n)
+
+	for name, body := range map[string]map[string]any{
+		"unknown year birthday": {"firstname": "A", "birthday": "--05-01", "is_deceased": true, "deceased_date": "2020-01-15"},
+		"after birthday":        {"firstname": "B", "birthday": "1990-05-01", "is_deceased": true, "deceased_date": "2020-01-15"},
+		"without a date":        {"firstname": "C", "is_deceased": true},
+	} {
+		assert.Equal(t, http.StatusCreated, send(e.asA, http.MethodPost, "/contacts", body).Code, name)
+	}
+}
+
 func TestUpdateAnnouncesTheContactToWebhooks(t *testing.T) {
 	e := newEnv(t)
 	e.subscribe(t, e.a.ID, "contact.updated")

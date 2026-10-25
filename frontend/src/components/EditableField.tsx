@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Box, Typography, TextField, IconButton } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -39,6 +40,7 @@ export default function EditableField({
   onEditSave,
   onEditValueChange,
 }: EditableFieldProps) {
+  const { t } = useTranslation();
   const baseDisplayValue = formattedDisplayValue || value;
   const displayValue = baseDisplayValue ? (
     displaySuffix ? (
@@ -114,6 +116,7 @@ export default function EditableField({
           <IconButton
             className="edit-icon"
             size="small"
+            aria-label={`${t('common.edit')} ${label}`}
             onClick={() => {
               onEditStart(field, value);
             }}

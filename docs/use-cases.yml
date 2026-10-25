@@ -136,6 +136,12 @@
   priority: medium
   status: implemented
 
+- id: 004-US11
+  title: Mark a contact as deceased
+  actor: user
+  priority: medium
+  status: implemented
+
 - id: 005-US1
   title: Add a note to a contact
   actor: user

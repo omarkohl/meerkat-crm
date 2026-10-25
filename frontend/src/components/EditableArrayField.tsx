@@ -89,7 +89,7 @@ export default function EditableArrayField<T>({
         className="edit-button"
         size="small"
         onClick={startEdit}
-        aria-label={t('common.edit')}
+        aria-label={`${t('common.edit')} ${label}`}
         sx={{ opacity: 0, transition: 'opacity 0.2s' }}
       >
         <EditIcon fontSize="small" />

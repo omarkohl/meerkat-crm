@@ -19,13 +19,13 @@ const yearlessBirthdayYear = 1972
 
 const icsLineLimit = 75 // octets per line, excluding CRLF (RFC 5545 3.1)
 
-// BuildICSFeed renders the user's birthdays (non-archived contacts) and open
+// BuildICSFeed renders the user's birthdays (contacts that are neither archived nor deceased) and open
 // reminders as an iCalendar document. Every query is scoped to userID. The output
 // is deterministic for unchanged data (DTSTAMP is the row's update time), so callers
 // can use a hash of it as an ETag.
 func BuildICSFeed(db *gorm.DB, userID uint, lang string) (string, error) {
 	var contacts []models.Contact
-	if err := db.Where("user_id = ? AND archived = ? AND birthday IS NOT NULL AND birthday != ''", userID, false).
+	if err := db.Where("user_id = ? AND archived = ? AND is_deceased = ? AND birthday IS NOT NULL AND birthday != ''", userID, false, false).
 		Order("id ASC").Find(&contacts).Error; err != nil {
 		return "", fmt.Errorf("failed to load birthdays: %w", err)
 	}

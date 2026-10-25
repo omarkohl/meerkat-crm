@@ -1872,6 +1872,7 @@ export interface components {
             custom_fields?: {
                 [key: string]: string;
             };
+            deceased_date?: string;
             department?: string;
             email?: string;
             emails?: components["schemas"]["EmailInput"][] | null;
@@ -1880,6 +1881,7 @@ export interface components {
             gender?: string;
             how_we_met?: string;
             impps?: components["schemas"]["IMPPInput"][] | null;
+            is_deceased?: boolean;
             job_title?: string;
             lastname?: string;
             middle_name?: string;
@@ -1927,6 +1929,7 @@ export interface components {
             custom_fields: {
                 [key: string]: string;
             } | null;
+            deceased_date: string;
             department: string;
             email: string;
             emails: components["schemas"]["ContactValue"][] | null;
@@ -1936,6 +1939,7 @@ export interface components {
             how_we_met: string;
             images?: components["schemas"]["ImageRef"][] | null;
             impps: components["schemas"]["ContactValue"][] | null;
+            is_deceased: boolean;
             job_title: string;
             lastname: string;
             /** Format: int64 */
@@ -2051,6 +2055,7 @@ export interface components {
             custom_fields: {
                 [key: string]: string;
             } | null;
+            deceased_date: string;
             department: string;
             email: string;
             emails: components["schemas"]["ContactValue"][] | null;
@@ -2060,6 +2065,7 @@ export interface components {
             how_we_met: string;
             images?: components["schemas"]["ImageRef"][] | null;
             impps: components["schemas"]["ContactValue"][] | null;
+            is_deceased: boolean;
             job_title: string;
             lastname: string;
             /** Format: int64 */

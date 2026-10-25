@@ -331,6 +331,9 @@ func toAppError(err error, id uint) error {
 	if errors.Is(err, domain.ErrNotFound) {
 		return apperrors.ErrNotFound("Contact").WithDetails("id", strconv.FormatUint(uint64(id), 10))
 	}
+	if errors.Is(err, domain.ErrDeceasedInFuture) {
+		return apperrors.ErrValidation("deceased_date must be a valid past date (YYYY-MM-DD) on or after the birthday")
+	}
 	var f *app.Failure
 	if errors.As(err, &f) {
 		switch f.Stage {

@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateEmail(t *testing.T) {
@@ -265,6 +267,34 @@ func TestValidateStruct_NoAtSign(t *testing.T) {
 			if hasErrors == tt.isValid {
 				t.Errorf("ValidateStructJSON with username %q: hasErrors=%v, want isValid=%v", tt.input, hasErrors, tt.isValid)
 			}
+		})
+	}
+}
+
+type deceasedTestStruct struct {
+	Birthday     string `validate:"omitempty,birthday"`
+	DeceasedDate string `validate:"omitempty,deceased_date"`
+}
+
+func TestValidateDeceasedDate(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       deceasedTestStruct
+		isValid bool
+	}{
+		{"empty", deceasedTestStruct{}, true},
+		{"full date", deceasedTestStruct{DeceasedDate: "2020-01-15"}, true},
+		{"partial date", deceasedTestStruct{DeceasedDate: "--01-15"}, false},
+		{"malformed", deceasedTestStruct{DeceasedDate: "15/01/2020"}, false},
+		{"impossible day", deceasedTestStruct{DeceasedDate: "2020-02-30"}, false},
+		{"before birthday", deceasedTestStruct{Birthday: "1990-05-01", DeceasedDate: "1980-01-01"}, false},
+		{"after birthday", deceasedTestStruct{Birthday: "1990-05-01", DeceasedDate: "2020-01-15"}, true},
+		{"on the birthday", deceasedTestStruct{Birthday: "1990-05-01", DeceasedDate: "1990-05-01"}, true},
+		{"birthday without year", deceasedTestStruct{Birthday: "--05-01", DeceasedDate: "2020-01-15"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.isValid, len(ValidateStructJSON(tt.s)) == 0)
 		})
 	}
 }

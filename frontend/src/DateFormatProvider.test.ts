@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   calculateAgeFromBirthday,
+  calculateAgeAtDate,
   formatDateWithFormat,
   formatDateRangeWithFormat,
   formatBirthdayWithFormat,
@@ -115,6 +116,30 @@ describe('calculateAgeFromBirthday', () => {
 
   test('returns null for future birth years', () => {
     expect(calculateAgeFromBirthday('2030-01-01')).toBeNull();
+  });
+});
+
+describe('calculateAgeAtDate', () => {
+  test('computes age at a full date', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-01-15')).toBe(29);
+  });
+
+  test('is one lower before the birthday of that year', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-04-30')).toBe(29);
+  });
+
+  test('counts the birthday itself', () => {
+    expect(calculateAgeAtDate('1990-05-01', '2020-05-01')).toBe(30);
+  });
+
+  test.each([
+    ['a birthday without a year', '--05-01', '2020-01-15'],
+    ['an empty birthday', '', '2020-01-15'],
+    ['an empty target date', '1990-05-01', ''],
+    ['a malformed target date', '1990-05-01', 'not-a-date'],
+    ['a target date before the birthday', '1990-05-01', '1980-01-01'],
+  ])('is null for %s', (_name, birthday, at) => {
+    expect(calculateAgeAtDate(birthday, at)).toBeNull();
   });
 });
 

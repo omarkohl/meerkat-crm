@@ -26,4 +26,14 @@
   CHARSET values in files that declare 3.0/4.0 or no VERSION. Old behavior converted them. Keep the
   gate?
 
+- Deceased date: the backend rejects dates after the UTC day, the UI compares the local day. East of
+  UTC, shortly after local midnight, the UI accepts a date the backend rejects (same as upstream).
+  Align them?
+
+- Merging a contact so that a picked birthday lies after the kept deceased date gives a 400. Rare;
+  the merge dialog does not check it.
+
+- After migration 000041 a former Monica "Deceased" custom field is hidden until the user enables
+  the Deceased field in the settings (same as upstream).
+
 ## Blocked

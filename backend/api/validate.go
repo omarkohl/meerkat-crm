@@ -6,8 +6,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-// ValidateBody runs the project's validator (go-playground `validate` tags, including the six
-// custom ones: phone, birthday, strong_password, unique_circles, no_at_sign, safeurl) on
+// ValidateBody runs the project's validator (go-playground `validate` tags, including the seven
+// custom ones: phone, birthday, deceased_date, strong_password, unique_circles, no_at_sign, safeurl) on
 // v, the Body field of an operation's input. Call it from the Resolve method of the input
 // struct, so huma reports the errors in the AppError format:
 //

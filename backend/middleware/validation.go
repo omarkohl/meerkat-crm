@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/go-playground/validator/v10"
@@ -40,6 +41,7 @@ func newValidator() *validator.Validate {
 	}{
 		{"phone", validatePhone},
 		{"birthday", validateBirthday},
+		{"deceased_date", validateDeceasedDate},
 		{"strong_password", validateStrongPassword},
 		{"unique_circles", validateUniqueCircles},
 		{"no_at_sign", validateNoAtSign},
@@ -91,6 +93,8 @@ func formatMessage(err validator.FieldError, field string) string {
 		return field + " must be a valid phone number"
 	case "birthday":
 		return field + " must be in YYYY-MM-DD format (use --MM-DD if year unknown)"
+	case "deceased_date":
+		return field + " must be a valid past date (YYYY-MM-DD) on or after the birthday"
 	case "strong_password":
 		return field + " is too weak. Use a longer password (15+ characters) or a passphrase (20+ characters). Avoid common passwords."
 	case "unique_circles":
@@ -166,6 +170,26 @@ func validateBirthday(fl validator.FieldLevel) bool {
 	}
 
 	// Additional validation could check if date is valid
+	return true
+}
+
+// validateDeceasedDate checks a full YYYY-MM-DD date that is not before a known birthday.
+// "Not in the future" is the use case's check, which has the clock.
+func validateDeceasedDate(fl validator.FieldLevel) bool {
+	deceased := fl.Field().String()
+	if deceased == "" {
+		return true
+	}
+	parsed, err := time.Parse("2006-01-02", deceased)
+	if err != nil {
+		return false
+	}
+	birthday := fl.Parent().FieldByName("Birthday")
+	if birthday.IsValid() && birthday.Kind() == reflect.String && !strings.HasPrefix(birthday.String(), "--") {
+		if b, err := time.Parse("2006-01-02", birthday.String()); err == nil && parsed.Before(b) {
+			return false
+		}
+	}
 	return true
 }
 

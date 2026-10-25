@@ -19,7 +19,14 @@ import {
 import AppDialog from './AppDialog';
 import { useContactMerge } from '../hooks/useContactMerge';
 import { useSnackbar } from '../context/SnackbarContext';
-import { CUSTOM_FIELD_PREFIX, type MergeContact, type MergeCounts } from '../utils/mergeContacts';
+import { useDateFormat } from '../DateFormatProvider';
+import {
+  CUSTOM_FIELD_PREFIX,
+  DECEASED_FIELD,
+  DECEASED_UNKNOWN_DATE,
+  type MergeContact,
+  type MergeCounts,
+} from '../utils/mergeContacts';
 import { MAX_CONTACT_IMAGES } from '../api/images';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -29,6 +36,7 @@ const FIELD_LABELS: Record<string, string> = {
   gender: 'contacts.gender',
   birthday: 'contacts.birthday',
   anniversary: 'contacts.anniversary',
+  deceased: 'contacts.deceased',
   prefix: 'contacts.prefix',
   middle_name: 'contacts.middleName',
   suffix: 'contacts.suffix',
@@ -68,6 +76,11 @@ interface MergeContactsDialogProps {
 
 export default function MergeContactsDialog({ open, onClose, contactIds, onMerged }: MergeContactsDialogProps) {
   const { t } = useTranslation();
+  const { formatDate } = useDateFormat();
+  const displayValue = (field: string, value: string) => {
+    if (field !== DECEASED_FIELD) return value;
+    return value === DECEASED_UNKNOWN_DATE ? t('contactDetail.deceasedYes') : formatDate(value);
+  };
   const { showSuccess } = useSnackbar();
   const { contacts, loading, error, merging, merge, planFor } = useContactMerge(contactIds, open);
   const [targetId, setTargetId] = useState<number | null>(null);
@@ -195,7 +208,7 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
                         control={<Radio />}
                         label={
                           <>
-                            {value}
+                            {displayValue(conflict.field, value)}
                             <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                               {conflict.values
                                 .filter((v) => v.value === value)
@@ -206,7 +219,9 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
                         }
                       />
                     ))}
-                    <FormControlLabel value="__custom__" control={<Radio />} label={t('merge.otherValue')} />
+                    {conflict.field !== DECEASED_FIELD && (
+                      <FormControlLabel value="__custom__" control={<Radio />} label={t('merge.otherValue')} />
+                    )}
                   </RadioGroup>
                   {custom && (
                     <TextField

@@ -4,6 +4,8 @@ import { MAX_CONTACT_IMAGES } from '../api/images';
 export type MergeContact = ContactResponse;
 
 export const CUSTOM_FIELD_PREFIX = 'custom_fields.';
+export const DECEASED_FIELD = 'deceased';
+export const DECEASED_UNKNOWN_DATE = 'yes';
 
 type ScalarKey =
   | 'firstname'
@@ -103,6 +105,7 @@ export interface MergePlan {
 const trimmed = (s: string | null | undefined) => (s ?? '').trim();
 
 function scalar(c: MergeContact, key: string): string {
+  if (key === DECEASED_FIELD) return c.is_deceased ? c.deceased_date || DECEASED_UNKNOWN_DATE : '';
   if (key.startsWith(CUSTOM_FIELD_PREFIX)) return c.custom_fields?.[key.slice(CUSTOM_FIELD_PREFIX.length)] ?? '';
   return (c as unknown as Record<string, string | undefined>)[key] ?? '';
 }
@@ -130,7 +133,7 @@ const addressKey = (a: ContactAddress) =>
 export function planMerge(target: MergeContact, sources: MergeContact[]): MergePlan {
   const all = [target, ...sources];
   const customKeys = [...new Set(all.flatMap((c) => Object.keys(c.custom_fields ?? {})))];
-  const fields = [...SCALAR_FIELDS, ...customKeys.map((k) => CUSTOM_FIELD_PREFIX + k)];
+  const fields = [...SCALAR_FIELDS, DECEASED_FIELD, ...customKeys.map((k) => CUSTOM_FIELD_PREFIX + k)];
 
   const conflicts: Conflict[] = [];
   const defaults: Record<string, string> = {};
@@ -278,8 +281,11 @@ export function buildMergedInput(plan: MergePlan, choices: Record<string, string
   for (const key of SCALAR_FIELDS) input[key] = t[key];
   for (const [field, value] of Object.entries(chosen)) {
     if (field.startsWith(CUSTOM_FIELD_PREFIX)) customFields[field.slice(CUSTOM_FIELD_PREFIX.length)] = value;
-    else input[field] = value;
+    else if (field !== DECEASED_FIELD) input[field] = value;
   }
+  const deceased = chosen[DECEASED_FIELD] ?? scalar(t, DECEASED_FIELD);
+  input.is_deceased = deceased !== '';
+  input.deceased_date = deceased === DECEASED_UNKNOWN_DATE ? '' : deceased;
   input['custom_fields'] = customFields;
   return input;
 }

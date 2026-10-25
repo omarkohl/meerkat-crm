@@ -73,6 +73,9 @@ type ContactBody struct {
 	Anniversary string `json:"anniversary" validate:"omitempty,birthday"`
 
 	Note string `json:"note" validate:"max=5000"`
+
+	IsDeceased   bool   `json:"is_deceased"`
+	DeceasedDate string `json:"deceased_date" validate:"omitempty,deceased_date"`
 }
 
 // CreateInput is the request of POST /contacts.
@@ -103,6 +106,7 @@ func (b ContactBody) draft() domain.Contact {
 		Prefix: b.Prefix, MiddleName: b.MiddleName, Suffix: b.Suffix,
 		Organization: b.Organization, Department: b.Department, JobTitle: b.JobTitle, Role: b.Role,
 		Anniversary: b.Anniversary, Note: b.Note,
+		IsDeceased: b.IsDeceased, DeceasedDate: b.DeceasedDate,
 	}
 	for _, e := range b.Emails {
 		c.Emails = append(c.Emails, domain.Value{Type: e.Type, Value: e.Value})

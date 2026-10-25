@@ -472,3 +472,16 @@ func TestFallbackFirstname(t *testing.T) {
 		})
 	}
 }
+
+func TestVCardToContactKeepsTheDeceasedStatusOfAnExistingContact(t *testing.T) {
+	existing := &models.Contact{Firstname: "Ada", IsDeceased: true, DeceasedDate: "1852-11-27"}
+	card := vcard.Card{}
+	card.SetValue(vcard.FieldFormattedName, "Ada Lovelace")
+	card.SetName(&vcard.Name{GivenName: "Ada", FamilyName: "Lovelace"})
+
+	got, _, _, _ := VCardToContact(card, existing)
+
+	if !got.IsDeceased || got.DeceasedDate != "1852-11-27" {
+		t.Errorf("deceased status lost: %v %q", got.IsDeceased, got.DeceasedDate)
+	}
+}

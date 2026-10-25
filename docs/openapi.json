@@ -1262,6 +1262,9 @@
             },
             "type": "object"
           },
+          "deceased_date": {
+            "type": "string"
+          },
           "department": {
             "type": "string"
           },
@@ -1297,6 +1300,9 @@
               "array",
               "null"
             ]
+          },
+          "is_deceased": {
+            "type": "boolean"
           },
           "job_title": {
             "type": "string"
@@ -1482,6 +1488,9 @@
               "null"
             ]
           },
+          "deceased_date": {
+            "type": "string"
+          },
           "department": {
             "type": "string"
           },
@@ -1526,6 +1535,9 @@
               "array",
               "null"
             ]
+          },
+          "is_deceased": {
+            "type": "boolean"
           },
           "job_title": {
             "type": "string"
@@ -1656,6 +1668,8 @@
           "role",
           "anniversary",
           "note",
+          "is_deceased",
+          "deceased_date",
           "custom_fields",
           "archived"
         ],
@@ -2009,6 +2023,9 @@
               "null"
             ]
           },
+          "deceased_date": {
+            "type": "string"
+          },
           "department": {
             "type": "string"
           },
@@ -2053,6 +2070,9 @@
               "array",
               "null"
             ]
+          },
+          "is_deceased": {
+            "type": "boolean"
           },
           "job_title": {
             "type": "string"
@@ -2179,6 +2199,8 @@
           "role",
           "anniversary",
           "note",
+          "is_deceased",
+          "deceased_date",
           "custom_fields",
           "archived"
         ],

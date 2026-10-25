@@ -100,6 +100,28 @@ func TestUpcomingBirthdaysLimit(t *testing.T) {
 	assert.Equal(t, "Soon", got[0].Name)
 }
 
+func TestUpcomingBirthdaysSkipDeceasedContactsAndTheirRelationships(t *testing.T) {
+	db := birthdayDB(t)
+	u := models.User{Username: "me", Email: "me@e.x", Password: "x"}
+	require.NoError(t, db.Create(&u).Error)
+	require.NoError(t, db.Create(&models.Contact{UserID: u.ID, Firstname: "Alive", Birthday: "1990-03-10"}).Error)
+	require.NoError(t, db.Create(&models.Contact{UserID: u.ID, Firstname: "Deceased", Birthday: "1990-03-10", IsDeceased: true}).Error)
+	aliveParent := models.Contact{UserID: u.ID, Firstname: "AliveParent"}
+	deceasedParent := models.Contact{UserID: u.ID, Firstname: "DeceasedParent", IsDeceased: true}
+	require.NoError(t, db.Create(&aliveParent).Error)
+	require.NoError(t, db.Create(&deceasedParent).Error)
+	require.NoError(t, db.Create(&models.Relationship{UserID: u.ID, ContactID: aliveParent.ID, Name: "ChildOfAlive", Type: "Child", Birthday: "2015-03-11"}).Error)
+	require.NoError(t, db.Create(&models.Relationship{UserID: u.ID, ContactID: deceasedParent.ID, Name: "ChildOfDeceased", Type: "Child", Birthday: "2015-03-11"}).Error)
+
+	got, err := GetUpcomingBirthdays(db, u.ID, day(2026, time.March, 10))
+	require.NoError(t, err)
+	var names []string
+	for _, b := range got {
+		names = append(names, b.Name)
+	}
+	assert.Equal(t, []string{"Alive", "ChildOfAlive"}, names)
+}
+
 func TestUpcomingBirthdaysIncludesRelationshipsWithoutContact(t *testing.T) {
 	db := birthdayDB(t)
 	u := models.User{Username: "me", Email: "me@e.x", Password: "x"}

@@ -13,6 +13,9 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Mark a contact as deceased**: turn on the field in the settings, then set the flag and an
+  optional date of death. The age at death replaces the current age, and the contact no longer shows
+  in birthdays.
 - **A database from upstream Meerkat is refused**: the fork now stops with a clear message instead
   of corrupting a database that upstream migrated.
 

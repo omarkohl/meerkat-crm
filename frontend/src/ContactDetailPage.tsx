@@ -86,6 +86,8 @@ const CONTACT_FIELDS = [
   'role',
   'anniversary',
   'note',
+  'is_deceased',
+  'deceased_date',
 ];
 
 export default function ContactDetailPage() {

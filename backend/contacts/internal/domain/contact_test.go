@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"testing"
+	"time"
 
 	"meerkat/contacts/internal/domain"
 
@@ -49,4 +50,12 @@ func TestReplaceKeepsIdentityPhotoAndArchiveState(t *testing.T) {
 	assert.True(t, c.Archived)
 	assert.Equal(t, "Alicia", c.Firstname)
 	assert.Equal(t, "a@example.com", c.Email)
+}
+
+func TestDeceasedByAcceptsTodayAndPastDatesOnly(t *testing.T) {
+	now := time.Date(2026, 3, 10, 23, 30, 0, 0, time.UTC)
+	assert.True(t, domain.Contact{}.DeceasedBy(now))
+	assert.True(t, domain.Contact{DeceasedDate: "2026-03-10"}.DeceasedBy(now))
+	assert.True(t, domain.Contact{DeceasedDate: "2020-01-15"}.DeceasedBy(now))
+	assert.False(t, domain.Contact{DeceasedDate: "2026-03-11"}.DeceasedBy(now))
 }

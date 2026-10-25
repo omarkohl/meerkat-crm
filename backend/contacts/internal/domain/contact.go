@@ -18,6 +18,8 @@ type ContactID uint
 // another user looks like, so existence is never leaked.
 var ErrNotFound = errors.New("contact not found")
 
+var ErrDeceasedInFuture = errors.New("deceased date is in the future")
+
 // Value is a typed value: an email address, phone number, website or messaging handle.
 type Value struct {
 	Type  string
@@ -172,6 +174,9 @@ type Contact struct {
 	Anniversary string
 	Note        string
 
+	IsDeceased   bool
+	DeceasedDate string
+
 	CustomFields map[string]string
 
 	Archived bool
@@ -181,6 +186,11 @@ type Contact struct {
 	Notes         []Note
 	Activities    []Activity
 	Reminders     []Reminder
+}
+
+// DeceasedBy reports whether the deceased date is no later than the calendar day of now (UTC).
+func (c Contact) DeceasedBy(now time.Time) bool {
+	return c.DeceasedDate <= now.UTC().Format("2006-01-02")
 }
 
 // Archive hides the contact from the active lists. Archiving also ends the contact's

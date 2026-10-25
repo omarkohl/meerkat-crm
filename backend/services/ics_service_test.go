@@ -113,6 +113,19 @@ func TestBuildICSFeedBirthdays(t *testing.T) {
 	assert.Contains(t, out, "TRANSP:TRANSPARENT")
 }
 
+func TestBuildICSFeedSkipsDeceasedContactsBirthdays(t *testing.T) {
+	db := setupICSTestDB(t)
+	u := icsUser(t, db, "a")
+	require.NoError(t, db.Create(&models.Contact{UserID: u.ID, Firstname: "Alive", Birthday: "1990-01-01"}).Error)
+	require.NoError(t, db.Create(&models.Contact{UserID: u.ID, Firstname: "Departed", Birthday: "1980-02-02", IsDeceased: true}).Error)
+
+	out, err := BuildICSFeed(db, u.ID, "en")
+	require.NoError(t, err)
+
+	assert.Contains(t, out, "Alive's birthday")
+	assert.NotContains(t, out, "Departed")
+}
+
 func TestBuildICSFeedUIDsAreStableAndStampFollowsUpdate(t *testing.T) {
 	db := setupICSTestDB(t)
 	u := icsUser(t, db, "a")

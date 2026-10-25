@@ -24,6 +24,10 @@ most 400x400px with a 96x96px thumbnail. You upload pictures directly, paste or 
 an image URL and have the backend pull it in from the web. Currently JPEG, PNG and HEIC up to 10 MB
 are supported file formats. See [Images](#images).
 
+You can mark a contact as **deceased**, with an optional date of death, once you turn the field on
+in the settings. A deceased contact no longer appears in the upcoming birthdays, the birthday e-mail
+or the calendar feed. Its reminders stay.
+
 You can **archive** contacts to hide them from default search results and the dashboard. Archiving
 permanently deletes all active reminders for that contact. Notes, activities and relationships are
 preserved. Archived contacts are still synced via CardDAV (as often you might have phone contacts

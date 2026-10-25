@@ -137,7 +137,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
       fork's NOTE import with a folded 3.0 NOTE line (the fork imports NOTE, upstream does not).
       CHANGELOG `Fixed`.
 
-- [ ] **4. Deceased contacts** (`feat: mark contacts as deceased`, footers: the 16 step-4 commits of
+- [x] **4. Deceased contacts** (`feat: mark contacts as deceased`, footers: the 16 step-4 commits of
       the table). Final upstream state, adapted:
   - Migrations `000040_add_contact_deceased` and `000041_backfill_contact_deceased`: the up and down
     SQL of upstream 000024/000025, unchanged. Migration test like
