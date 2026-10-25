@@ -289,3 +289,8 @@ export function buildMergedInput(plan: MergePlan, choices: Record<string, string
   input['custom_fields'] = customFields;
   return input;
 }
+
+export function deceasedBeforeBirthday(plan: MergePlan, choices: Record<string, string>): boolean {
+  const { birthday, deceased_date: deceased } = buildMergedInput(plan, choices);
+  return !!deceased && /^\d{4}-\d{2}-\d{2}$/.test(birthday ?? '') && (birthday ?? '') > deceased;
+}

@@ -1191,6 +1191,7 @@
     "deletes_one": "{{count}} Kontakt wird gelöscht.",
     "deletes_other": "{{count}} Kontakte werden gelöscht.",
     "tooManyImages": "Zusammen haben diese Kontakte {{count}} Fotos. Ein Kontakt kann höchstens {{max}} haben. Löschen Sie zuerst einige Fotos.",
+    "deceasedBeforeBirthday": "Der Geburtstag läge nach dem Todesdatum. Wählen Sie andere Werte.",
     "cannotUndo": "Das lässt sich nicht rückgängig machen. Die zusammengeführten Kontakte landen im Papierkorb, ihre Daten werden aber nicht wieder aufgeteilt.",
     "confirm": "Kontakte zusammenführen",
     "merging": "Wird zusammengeführt…",

@@ -27,9 +27,6 @@
   CHARSET values in files that declare 3.0/4.0 or no VERSION. Old behavior converted them. Keep the
   gate? keep upstream since I have no files to test it with now
 
-- Merging a contact so that a picked birthday lies after the kept deceased date gives a 400. Rare;
-  the merge dialog does not check it. fix it. what do you suggest?
-
 - After migration 000041 a former Monica "Deceased" custom field is hidden until the user enables
   the Deceased field in the settings (same as upstream). leave like upstream
 

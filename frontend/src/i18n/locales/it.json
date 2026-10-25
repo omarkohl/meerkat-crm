@@ -1191,6 +1191,7 @@
     "deletes_one": "{{count}} contatto verrà eliminato.",
     "deletes_other": "{{count}} contatti verranno eliminati.",
     "tooManyImages": "Insieme questi contatti hanno {{count}} foto. Un contatto può averne al massimo {{max}}. Elimina prima alcune foto.",
+    "deceasedBeforeBirthday": "Il compleanno sarebbe dopo la data del decesso. Scegli altri valori.",
     "cannotUndo": "Non si può annullare. I contatti uniti vanno nel cestino, ma i loro dati non vengono separati di nuovo.",
     "confirm": "Unisci contatti",
     "merging": "Unione in corso…",

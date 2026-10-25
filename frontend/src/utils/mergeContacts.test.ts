@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { planMerge, buildMergedInput, type MergeContact } from './mergeContacts';
+import { planMerge, buildMergedInput, deceasedBeforeBirthday, type MergeContact } from './mergeContacts';
 
 function contact(ID: number, overrides: Partial<MergeContact> = {}): MergeContact {
   return {
@@ -196,5 +196,28 @@ describe('planMerge images', () => {
   test('fifty images fit', () => {
     const plan = planMerge(contact(1, { images: images(25) }), [contact(2, { images: images(25, 100) })]);
     expect(plan.tooManyImages).toBe(false);
+  });
+});
+
+describe('deceasedBeforeBirthday', () => {
+  const plan = planMerge(contact(1, { birthday: '1990-05-01', is_deceased: true, deceased_date: '1985-01-01' }), [
+    contact(2, { birthday: '1970-05-01', is_deceased: true, deceased_date: '1985-01-01' }),
+  ]);
+
+  test('is true when the chosen birthday is after the chosen deceased date', () => {
+    expect(deceasedBeforeBirthday(plan, {})).toBe(true);
+  });
+
+  test('is false once the user picks the earlier birthday', () => {
+    expect(deceasedBeforeBirthday(plan, { birthday: '1970-05-01' })).toBe(false);
+  });
+
+  test('ignores a birthday without a year and a deceased flag without a date', () => {
+    const noYear = planMerge(contact(1, { birthday: '--05-01', is_deceased: true }), [
+      contact(2, { is_deceased: true, deceased_date: '1980-01-01' }),
+    ]);
+    expect(deceasedBeforeBirthday(noYear, {})).toBe(false);
+    const noDate = planMerge(contact(1, { birthday: '1990-05-01', is_deceased: true }), [contact(2)]);
+    expect(deceasedBeforeBirthday(noDate, {})).toBe(false);
   });
 });

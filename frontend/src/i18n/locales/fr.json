@@ -1191,6 +1191,7 @@
     "deletes_one": "{{count}} contact sera supprimé.",
     "deletes_other": "{{count}} contacts seront supprimés.",
     "tooManyImages": "Ensemble, ces contacts ont {{count}} photos. Un contact peut en avoir au plus {{max}}. Supprimez d'abord quelques photos.",
+    "deceasedBeforeBirthday": "L'anniversaire serait postérieur à la date du décès. Choisissez d'autres valeurs.",
     "cannotUndo": "Cette action est irréversible. Les contacts fusionnés vont dans la corbeille, mais leurs données ne sont pas séparées à nouveau.",
     "confirm": "Fusionner les contacts",
     "merging": "Fusion en cours…",

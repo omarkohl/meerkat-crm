@@ -24,6 +24,7 @@ import {
   CUSTOM_FIELD_PREFIX,
   DECEASED_FIELD,
   DECEASED_UNKNOWN_DATE,
+  deceasedBeforeBirthday,
   type MergeContact,
   type MergeCounts,
 } from '../utils/mergeContacts';
@@ -109,6 +110,9 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
     field.startsWith(CUSTOM_FIELD_PREFIX) ? field.slice(CUSTOM_FIELD_PREFIX.length) : t(FIELD_LABELS[field] ?? field);
   const valueOf = (field: string, fallback: string) => choices[field] ?? fallback;
 
+  const impossibleDates = plan ? deceasedBeforeBirthday(plan, choices) : false;
+  const dateErrorField = plan?.conflicts.some((c) => c.field === DECEASED_FIELD) ? DECEASED_FIELD : 'birthday';
+
   const handleMerge = async () => {
     if (!plan) return;
     const merged = await merge(plan.target.ID, { ...plan.defaults, ...choices });
@@ -169,6 +173,12 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
               </RadioGroup>
             </FormControl>
 
+            {impossibleDates && !plan.conflicts.some((c) => c.field === dateErrorField) && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {t('merge.deceasedBeforeBirthday')}
+              </Alert>
+            )}
+
             {plan.conflicts.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 {t('merge.noConflicts')}
@@ -223,6 +233,11 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
                       <FormControlLabel value="__custom__" control={<Radio />} label={t('merge.otherValue')} />
                     )}
                   </RadioGroup>
+                  {impossibleDates && conflict.field === dateErrorField && (
+                    <Alert severity="error" sx={{ mt: 1 }}>
+                      {t('merge.deceasedBeforeBirthday')}
+                    </Alert>
+                  )}
                   {custom && (
                     <TextField
                       size="small"
@@ -257,7 +272,7 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
             <Button onClick={onClose}>{t('common.cancel')}</Button>
             <Button
               variant="contained"
-              disabled={!plan || plan.tooManyImages}
+              disabled={!plan || plan.tooManyImages || impossibleDates}
               onClick={() => {
                 setStep('confirm');
               }}
@@ -275,7 +290,12 @@ export default function MergeContactsDialog({ open, onClose, contactIds, onMerge
             >
               {t('common.back')}
             </Button>
-            <Button variant="contained" color="error" disabled={merging} onClick={() => void handleMerge()}>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={merging || impossibleDates}
+              onClick={() => void handleMerge()}
+            >
               {merging ? t('merge.merging') : t('merge.confirm')}
             </Button>
           </>

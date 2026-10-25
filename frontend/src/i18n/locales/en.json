@@ -1191,6 +1191,7 @@
     "deletes_one": "{{count}} contact will be deleted.",
     "deletes_other": "{{count}} contacts will be deleted.",
     "tooManyImages": "Together these contacts have {{count}} photos. A contact can keep at most {{max}}. Delete some photos first.",
+    "deceasedBeforeBirthday": "The birthday would be after the date of death. Pick other values.",
     "cannotUndo": "This cannot be undone. The merged contacts go to the trash, but their data is not split up again.",
     "confirm": "Merge contacts",
     "merging": "Merging…",
