@@ -131,7 +131,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
   - Note: `release_dbs_test.go` will get an upstream v1.8.0 database later. The check must refuse
     it.
 
-- [ ] **3. vCard 2.1 gate** (`fix: only rewrite vCard files that declare VERSION:2.1`, footer
+- [x] **3. vCard 2.1 gate** (`fix: only rewrite vCard files that declare VERSION:2.1`, footer
       `8955b46d7d81`). Port `hasVCard21` and the gate in `backend/carddav/legacy.go`, with
       upstream's test `TestNormalizeLegacyVCF_LeavesFoldedModernCardAlone` first. Also check the
       fork's NOTE import with a folded 3.0 NOTE line (the fork imports NOTE, upstream does not).

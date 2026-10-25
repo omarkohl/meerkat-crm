@@ -142,7 +142,7 @@ commits:
     reason: "Fork keeps its stricter linter set"
   - commit: 8955b46d7d81
     subject: "fix: only rewrite vCard files that declare VERSION:2.1"
-    status: pending
+    status: ported
   - commit: 784262cb8c21
     subject: "feat(export): drop the vCard version choice, keep the per-contact export"
     status: pending

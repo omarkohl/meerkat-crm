@@ -87,6 +87,18 @@ func TestNormalizeLegacyVCF_LeavesModernCardsAlone(t *testing.T) {
 	}
 }
 
+func TestNormalizeLegacyVCF_LeavesFoldedModernCardAlone(t *testing.T) {
+	raw := "BEGIN:VCARD\r\n" +
+		"VERSION:3.0\r\n" +
+		"NOTE;CHARSET=UTF-8:this is a long note that an exporter folded across\r\n" +
+		"  two physical lines\r\n" +
+		"END:VCARD\r\n"
+	got := string(NormalizeLegacyVCF([]byte(raw)))
+	if got != raw {
+		t.Errorf("folded modern card changed:\n%q\nwant\n%q", got, raw)
+	}
+}
+
 // FuzzNormalizeLegacyVCF checks that normalizing arbitrary input never panics and
 // that whatever decodes afterwards still maps.
 //
