@@ -69,6 +69,18 @@ Port upstream commits one at a time, then record a merge that holds no port work
    `jj restore` makes the tree of the merge the same as `omk`. The merge only tells Git that
    upstream up to `X` is integrated.
 
+### Size of the diff
+
+For the table in DIFFERENCES.md run `git diff --numstat <X> <tip of omk>` and give each file the
+first category whose pattern matches its path: Generated (`package-lock.json`, `yarn.lock`,
+`go.sum`, `docs/openapi.json`, `/generated/`), Translations (`/locales/xx.json`, frontend and
+backend), Tests (`_test.go`, `.test.ts(x)`, `frontend/e2e/`, `testdata/`), Docs (`*.md`, `docs/`,
+`use-cases.yml`), Build (`.github/`, `.claude/`, `Makefile`, Dockerfiles, compose files, linter,
+Prettier, Vite, tsconfig and lefthook configs, `scripts/`, `*.mjs`, `*.sh`, `package.json`), Backend
+(`backend/`), Frontend (`frontend/`), else Other. Binary files count as files with no lines. The
+same rules give 245 to 246 test files and 10 translation files for `0c2aaab` to the fork at the time
+of the first table.
+
 ## Coming from upstream
 
 Fork migrations from 000024 on are not upstream's, so a database that upstream Meerkat migrated to

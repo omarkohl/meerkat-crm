@@ -6,9 +6,9 @@ the **current** difference, not the history ([CHANGELOG.md](CHANGELOG.md) has th
 takes a change, its entry is deleted. For branches, versions and releases see
 [fork.md](docs/development/fork.md).
 
-Last compared with upstream: `0c2aaab` (after v1.7.0). Full diff:
-[`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (765
-files, +93.7k and -27.1k lines; see [Size of the diff](#size-of-the-diff)).
+Last compared with upstream: `b594f82`. Full diff:
+[`main...omk`](https://github.com/fbuchner/meerkat-crm/compare/main...omarkohl:meerkat-crm:omk) (866
+files, +104.5k and -29.3k lines; see [Size of the diff](#size-of-the-diff)).
 
 To try the fork, follow the installation instructions in the [README](README.md#installation). They
 are adapted to the fork (images from `ghcr.io/omarkohl`).
@@ -81,16 +81,16 @@ What can hurt when you merge, or when you look at the diff.
 
 | Part                                  | Files | Added | Removed |
 | ------------------------------------- | ----: | ----: | ------: |
-| Tests (Go, Vitest, Playwright, data)  |   245 | 25.5k |    4.6k |
-| Backend code                          |   225 | 22.8k |    6.9k |
-| Frontend code                         |   121 |  7.7k |    3.5k |
-| Documentation (ADRs, guides, designs) |    54 |  4.3k |    0.5k |
-| Build, CI and tooling                 |    48 |  3.3k |    0.1k |
-| Translations (five locales)           |    10 |  1.8k |    0.1k |
-| Generated files and lockfiles         |     9 | 25.4k |   11.2k |
-| Other                                 |    53 |  2.7k |    0.2k |
+| Tests (Go, Vitest, Playwright, data)  |   280 | 29.4k |    4.9k |
+| Backend code                          |   283 | 25.9k |    7.2k |
+| Frontend code                         |   151 | 10.6k |    4.4k |
+| Documentation (ADRs, guides, designs) |    64 |  5.1k |    0.8k |
+| Build, CI and tooling                 |    67 |  5.0k |    0.6k |
+| Translations (five locales)           |    10 |  2.1k |    0.1k |
+| Generated files and lockfiles         |     5 | 26.1k |   11.2k |
+| Other                                 |     6 |  0.3k |    0.0k |
 
-Without generated files, tests are 37% of the added lines and backend code is 33%. The sizes mix new
+Without generated files, tests are 38% of the added lines and backend code is 33%. The sizes mix new
 code with moved code: the module move rewrites many existing files.
 
 ## Overview
@@ -303,7 +303,8 @@ Decisions are in [docs/adr/](docs/adr/README.md). Rules are machine checks
 
 ## Tests in numbers
 
-Upstream `main` is `0c2aaab`. Both columns were measured the same way on a clean checkout.
+Historical measurement: upstream `main` was `0c2aaab` (v1.7.0). Both columns were measured the same
+way on a clean checkout and have not been repeated since.
 
 | Measure                                   | Upstream `main` |  Fork |
 | ----------------------------------------- | --------------: | ----: |

@@ -206,7 +206,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
       Take upstream's paragraph into `README.md` (line ~131). `CONTRIBUTING.md` line 8 says the same
       in short form; make it agree.
 
-- [ ] **8. Merge record.** Check that no ledger entry is `pending`. Then follow fork.md step 3 with
+- [x] **8. Merge record.** Check that no ledger entry is `pending`. Then follow fork.md step 3 with
       `X = b594f822924a`, and in the same commit set `DIFFERENCES.md` "Last compared with upstream"
       to `b594f822924a`, with new numbers in the diff size line and the table (measure the same
       way). Check after the commit: `jj log -r 'b594f822924a..omk' ` lists only fork commits, and
