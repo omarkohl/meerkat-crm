@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,10 +48,18 @@ func TestFilenameCarriesTheDate(t *testing.T) {
 }
 
 // @016-US1
-func TestContactFilenameIsALowercaseHyphenatedNameWithAFallback(t *testing.T) {
-	assert.Equal(t, "alice-johnson.vcf", ContactFilename("Alice", "Johnson"))
-	assert.Equal(t, "jean-luc-o-brien.vcf", ContactFilename(" Jean Luc", "O'Brien "))
-	assert.Equal(t, "bob.vcf", ContactFilename("Bob", ""))
+func TestContactFilenameIsTheNameWithoutControlCharactersAndWithAFallback(t *testing.T) {
+	assert.Equal(t, "Alice Johnson.vcf", ContactFilename("Alice", "Johnson"))
+	assert.Equal(t, "Zoë Müller.vcf", ContactFilename("Zoë", "Müller"))
+	assert.Equal(t, "Bob.vcf", ContactFilename("Bob", ""))
 	assert.Equal(t, "contact.vcf", ContactFilename("", ""))
-	assert.Equal(t, "contact.vcf", ContactFilename("???", ""))
+	assert.Equal(t, "A\"b  Set-Cookie: x=1 O'Brien.vcf", ContactFilename("A\"b\r\nSet-Cookie: x=1", "O'Brien"))
+}
+
+// @016-US1
+func TestContactFilenameIsCutOnACharacterBoundary(t *testing.T) {
+	name := ContactFilename(strings.Repeat("é", 150), "")
+	assert.LessOrEqual(t, len(name), maxNameBytes+len(".vcf"))
+	assert.True(t, utf8.ValidString(name))
+	assert.True(t, strings.HasSuffix(name, "é.vcf"))
 }

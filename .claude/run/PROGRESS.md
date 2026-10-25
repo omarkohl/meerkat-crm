@@ -23,8 +23,4 @@
   (no e-mail channel, queue failure): nothing is marked then. Mark them separately? explain the
   implications
 
-- The per-contact vCard filename is a slug of the name with ASCII letters and digits only, so a name
-  in another script (for example "Zoë" or Cyrillic) loses those characters or falls back to
-  `contact.vcf` (same as upstream). Keep it? what do you suggest?
-
 ## Blocked

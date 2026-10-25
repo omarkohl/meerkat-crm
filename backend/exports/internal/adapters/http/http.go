@@ -67,7 +67,7 @@ func (h *handlers) serve(c *gin.Context, run export, done string) {
 		return
 	}
 	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", doc.Filename))
+	c.Header("Content-Disposition", contentDisposition(doc.Filename))
 	c.Header("Content-Length", fmt.Sprintf("%d", len(doc.Body)))
 	c.Data(http.StatusOK, doc.ContentType, doc.Body)
 	log := logger.FromContext(c)

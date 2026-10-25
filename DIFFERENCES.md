@@ -97,38 +97,39 @@ code with moved code: the module move rewrites many existing files.
 
 "Upstream" is where you can see discussion or an open pull request.
 
-| Area          | Change                                  | Size | Migration | Upstream                                                                                                               |
-| ------------- | --------------------------------------- | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Users         | Two-factor login (TOTP)                 | M    | 28        | not proposed                                                                                                           |
-| Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                           |
-| Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                           |
-| Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                    |
-| Contacts      | Date of death up to the UTC+14 day      | S    | –         | not proposed                                                                                                           |
-| Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                           |
-| Activities    | Activities with a date range            | S    | 37        | not proposed                                                                                                           |
-| Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                           |
-| Operations    | Scheduled backups                       | M    | 31        | not proposed                                                                                                           |
-| Search        | Full-text search (FTS5)                 | M    | 29        | not proposed                                                                                                           |
-| Import        | Preview filter, sort, bulk set          | M    | –         | not proposed                                                                                                           |
-| Import        | vCard fixes and NOTE field              | S    | 33        | not proposed; upstream has the vCard 2.1 part ([PR #251](https://github.com/fbuchner/meerkat-crm/pull/251))            |
-| CardDAV sync  | Sync error reporting                    | S    | –         | not proposed; upstream has the ETag part ([PR #259](https://github.com/fbuchner/meerkat-crm/pull/259))                 |
-| UI            | Date format, placeholder, small fixes   | S    | –         | not proposed                                                                                                           |
-| Storage       | Thumbnails as files                     | S    | 30        | not proposed                                                                                                           |
-| Integrations  | Outbox with retries                     | M    | 32        | not proposed                                                                                                           |
-| Operations    | Prometheus metrics                      | S    | –         | not proposed                                                                                                           |
-| Security      | One SSRF switch, CSP, session checks    | M    | –         | not proposed                                                                                                           |
-| Security      | Separate `ENCRYPTION_KEY`               | S    | 36        | not proposed                                                                                                           |
-| Architecture  | Hexagonal modules                       | L    | –         | not proposed                                                                                                           |
-| Architecture  | huma API contract, OpenAPI, TS types    | L    | –         | not proposed                                                                                                           |
-| Architecture  | Injected clock, `FAKE_NOW`              | S    | –         | not proposed                                                                                                           |
-| Build         | Vite, npm, Node 26, strict TS/ESLint    | M    | –         | not proposed                                                                                                           |
-| Build         | Docker-free E2E stack                   | M    | –         | dropped from [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                               |
-| CI            | Prettier gate                           | S    | –         | dropped from [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                               |
-| CI            | Stricter golangci-lint set              | S    | –         | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247) took a smaller set                                         |
-| CI            | Scans, pinned actions, SBOM, provenance | M    | –         | not proposed                                                                                                           |
-| Testing       | Coverage thresholds, fuzzing, more      | M    | –         | not proposed                                                                                                           |
-| Docs          | ADRs, API reference test, CONTRIBUTING  | S    | –         | not proposed                                                                                                           |
-| Design drafts | Relationships, "myself", phonebook      | –    | –         | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184) |
+| Area          | Change                                                  | Size | Migration | Upstream                                                                                                               |
+| ------------- | ------------------------------------------------------- | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Users         | Two-factor login (TOTP)                                 | M    | 28        | not proposed                                                                                                           |
+| Users         | Sessions and audit log                                  | M    | 27        | not proposed                                                                                                           |
+| Contacts      | Trash                                                   | M    | 25        | not proposed                                                                                                           |
+| Contacts      | Merge duplicate contacts                                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                    |
+| Contacts      | Date of death up to the UTC+14 day                      | S    | –         | not proposed                                                                                                           |
+| Calendar      | Subscribable ICS feed                                   | M    | 24, 26    | not proposed                                                                                                           |
+| Activities    | Activities with a date range                            | S    | 37        | not proposed                                                                                                           |
+| Reminders     | Birthday mail once a day                                | S    | 35        | not proposed                                                                                                           |
+| Operations    | Scheduled backups                                       | M    | 31        | not proposed                                                                                                           |
+| Search        | Full-text search (FTS5)                                 | M    | 29        | not proposed                                                                                                           |
+| Import        | Preview filter, sort, bulk set                          | M    | –         | not proposed                                                                                                           |
+| Import        | vCard fixes and NOTE field                              | S    | 33        | not proposed; upstream has the vCard 2.1 part ([PR #251](https://github.com/fbuchner/meerkat-crm/pull/251))            |
+| Export        | Contact vCard file name keeps accents and other scripts | S    | –         | not proposed; upstream names it with ASCII letters only                                                                |
+| CardDAV sync  | Sync error reporting                                    | S    | –         | not proposed; upstream has the ETag part ([PR #259](https://github.com/fbuchner/meerkat-crm/pull/259))                 |
+| UI            | Date format, placeholder, small fixes                   | S    | –         | not proposed                                                                                                           |
+| Storage       | Thumbnails as files                                     | S    | 30        | not proposed                                                                                                           |
+| Integrations  | Outbox with retries                                     | M    | 32        | not proposed                                                                                                           |
+| Operations    | Prometheus metrics                                      | S    | –         | not proposed                                                                                                           |
+| Security      | One SSRF switch, CSP, session checks                    | M    | –         | not proposed                                                                                                           |
+| Security      | Separate `ENCRYPTION_KEY`                               | S    | 36        | not proposed                                                                                                           |
+| Architecture  | Hexagonal modules                                       | L    | –         | not proposed                                                                                                           |
+| Architecture  | huma API contract, OpenAPI, TS types                    | L    | –         | not proposed                                                                                                           |
+| Architecture  | Injected clock, `FAKE_NOW`                              | S    | –         | not proposed                                                                                                           |
+| Build         | Vite, npm, Node 26, strict TS/ESLint                    | M    | –         | not proposed                                                                                                           |
+| Build         | Docker-free E2E stack                                   | M    | –         | dropped from [PR #248](https://github.com/fbuchner/meerkat-crm/pull/248)                                               |
+| CI            | Prettier gate                                           | S    | –         | dropped from [PR #249](https://github.com/fbuchner/meerkat-crm/pull/249)                                               |
+| CI            | Stricter golangci-lint set                              | S    | –         | [PR #247](https://github.com/fbuchner/meerkat-crm/pull/247) took a smaller set                                         |
+| CI            | Scans, pinned actions, SBOM, provenance                 | M    | –         | not proposed                                                                                                           |
+| Testing       | Coverage thresholds, fuzzing, more                      | M    | –         | not proposed                                                                                                           |
+| Docs          | ADRs, API reference test, CONTRIBUTING                  | S    | –         | not proposed                                                                                                           |
+| Design drafts | Relationships, "myself", phonebook                      | –    | –         | [#185](https://github.com/fbuchner/meerkat-crm/issues/185), [#184](https://github.com/fbuchner/meerkat-crm/issues/184) |
 
 ## User-visible changes
 

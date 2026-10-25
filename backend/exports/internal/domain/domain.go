@@ -8,9 +8,10 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 type UserID uint
@@ -111,14 +112,25 @@ func ContactName(first, last string) string { return first + " " + last }
 
 var ErrContactNotFound = errors.New("contact not found")
 
-var unsafeFilenameChars = regexp.MustCompile(`[^a-z0-9]+`)
+const maxNameBytes = 200
 
+// ContactFilename is the file name for one contact's vCard: their name, without control
+// characters and cut to a length every file system takes.
 func ContactFilename(first, last string) string {
-	slug := strings.Trim(unsafeFilenameChars.ReplaceAllString(strings.ToLower(first+"-"+last), "-"), "-")
-	if slug == "" {
-		slug = "contact"
+	name := strings.TrimSpace(strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, first+" "+last))
+	for len(name) > maxNameBytes {
+		_, size := utf8.DecodeLastRuneInString(name)
+		name = name[:len(name)-size]
 	}
-	return slug + ".vcf"
+	if name = strings.TrimSpace(name); name == "" {
+		name = "contact"
+	}
+	return name + ".vcf"
 }
 
 func id(v *uint) string {

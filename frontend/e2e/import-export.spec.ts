@@ -99,7 +99,7 @@ test.describe('Import and export', () => {
   });
 
   test('export one contact as a vCard file named after them @016-US1', async ({ page }) => {
-    const contact = await createTestContact(page.request, { firstname: 'Zelda', lastname: "O'Brien" });
+    const contact = await createTestContact(page.request, { firstname: 'Zoë', lastname: "O'Brien" });
 
     try {
       await openContact(page, contact);
@@ -107,8 +107,8 @@ test.describe('Import and export', () => {
       await page.getByRole('button', { name: 'Export vCard' }).click();
       const file = await download;
 
-      expect(file.suggestedFilename()).toBe('zelda-o-brien.vcf');
-      expect(await readDownload(file)).toContain("FN:Zelda O'Brien");
+      expect(file.suggestedFilename()).toBe("Zoë O'Brien.vcf");
+      expect(await readDownload(file)).toContain("FN:Zoë O'Brien");
     } finally {
       await deleteTestContact(page.request, contact.ID);
     }

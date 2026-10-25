@@ -167,7 +167,7 @@ func TestSingleContactVCardExportSendsOnlyThatContact(t *testing.T) {
 	w := get(e.asA, fmt.Sprintf("/contacts/%d/vcf", alice.ID))
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.Equal(t, "text/vcard; charset=utf-8", w.Header().Get("Content-Type"))
-	assert.Equal(t, "attachment; filename=alice-johnson.vcf", w.Header().Get("Content-Disposition"))
+	assert.Equal(t, `attachment; filename=alice-johnson.vcf; filename*=UTF-8''Alice%20Johnson.vcf`, w.Header().Get("Content-Disposition"))
 	assert.Equal(t, 1, strings.Count(w.Body.String(), "BEGIN:VCARD"))
 	assert.Contains(t, w.Body.String(), "Alice")
 	assert.NotContains(t, w.Body.String(), "Bob")
@@ -194,4 +194,14 @@ func TestSingleContactVCardExportRefusesOtherUsersTrashedAndUnknownContacts(t *t
 	var n int64
 	e.db.Model(&models.AuditLog{}).Count(&n)
 	assert.Zero(t, n)
+}
+
+// @016-US1
+func TestSingleContactVCardExportKeepsANonASCIINameInTheFilename(t *testing.T) {
+	e := newEnv(t)
+	c := models.Contact{UserID: e.a.ID, Firstname: "Zoë", Lastname: "Müller"}
+	require.NoError(t, e.db.Create(&c).Error)
+	w := get(e.asA, fmt.Sprintf("/contacts/%d/vcf", c.ID))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, `attachment; filename=zoe-muller.vcf; filename*=UTF-8''Zo%C3%AB%20M%C3%BCller.vcf`, w.Header().Get("Content-Disposition"))
 }

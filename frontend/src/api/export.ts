@@ -1,20 +1,29 @@
 // Export API functions
 import { API_BASE_URL, apiFetch, getAuthHeaders, parseErrorResponse } from './client';
 
+export function filenameFromDisposition(header: string | null, defaultFilename: string): string {
+  if (!header) return defaultFilename;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header)?.[1];
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded.trim());
+    } catch {
+      return plainFilename(header) ?? defaultFilename;
+    }
+  }
+  return plainFilename(header) ?? defaultFilename;
+}
+
+function plainFilename(header: string): string | undefined {
+  const captured = /filename=([^;]+)/.exec(header)?.[1];
+  return captured ? captured.replace(/"/g, '').trim() : undefined;
+}
+
 /**
  * Helper function to download a file from an API response
  */
 export async function downloadFileFromResponse(response: Response, defaultFilename: string): Promise<void> {
-  // Get the filename from Content-Disposition header or use default
-  const contentDisposition = response.headers.get('Content-Disposition');
-  let filename = defaultFilename;
-  if (contentDisposition) {
-    const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
-    const captured = filenameMatch?.[1];
-    if (captured) {
-      filename = captured.replace(/"/g, '').trim();
-    }
-  }
+  const filename = filenameFromDisposition(response.headers.get('Content-Disposition'), defaultFilename);
 
   // Get the blob data
   const blob = await response.blob();
