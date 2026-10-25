@@ -12,7 +12,7 @@
 # A merge record may point at upstream commit X only when no entry up to X is pending. Entries
 # stay after the merge record.
 
-merged: b594f822924a
+merged: 5b00215505e5
 commits:
   - commit: a063a6deccae
     subject: "Bump github.com/golang-migrate/migrate/v4 in /backend"
