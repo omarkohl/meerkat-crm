@@ -20,27 +20,24 @@
 ## Questions
 
 - Birthday webhooks (`birthday.occurred`) still fire on every digest run while no mail can be queued
-  (no e-mail channel, queue failure): nothing is marked then. Mark them separately?
+  (no e-mail channel, queue failure): nothing is marked then. Mark them separately? explain the
+  implications
 
 - Upstream's VERSION:2.1 gate (ported as-is) no longer normalizes quoted-printable or non-UTF-8
   CHARSET values in files that declare 3.0/4.0 or no VERSION. Old behavior converted them. Keep the
-  gate?
-
-- Deceased date: the backend rejects dates after the UTC day, the UI compares the local day. East of
-  UTC, shortly after local midnight, the UI accepts a date the backend rejects (same as upstream).
-  Align them?
+  gate? keep upstream since I have no files to test it with now
 
 - Merging a contact so that a picked birthday lies after the kept deceased date gives a 400. Rare;
-  the merge dialog does not check it.
+  the merge dialog does not check it. fix it. what do you suggest?
 
 - After migration 000041 a former Monica "Deceased" custom field is hidden until the user enables
-  the Deceased field in the settings (same as upstream).
+  the Deceased field in the settings (same as upstream). leave like upstream
 
 - The per-contact vCard filename is a slug of the name with ASCII letters and digits only, so a name
   in another script (for example "Zoë" or Cyrillic) loses those characters or falls back to
-  `contact.vcf` (same as upstream). Keep it?
+  `contact.vcf` (same as upstream). Keep it? what do you suggest?
 
 - `docs/development/contributing.md` "Reporting Issues" links the upstream issue tracker
-  (`fbuchner/meerkat-crm`), not the fork's. Point it at the fork?
+  (`fbuchner/meerkat-crm`), not the fork's. Point it at the fork? point at the fork
 
 ## Blocked

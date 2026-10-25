@@ -188,9 +188,10 @@ type Contact struct {
 	Reminders     []Reminder
 }
 
-// DeceasedBy reports whether the deceased date is no later than the calendar day of now (UTC).
+// DeceasedBy reports whether the deceased date is no later than the calendar day in UTC+14, the
+// first timezone to reach a new day, so a date that is today for the user is never refused.
 func (c Contact) DeceasedBy(now time.Time) bool {
-	return c.DeceasedDate <= now.UTC().Format("2006-01-02")
+	return c.DeceasedDate <= now.UTC().Add(14*time.Hour).Format("2006-01-02")
 }
 
 // Archive hides the contact from the active lists. Archiving also ends the contact's

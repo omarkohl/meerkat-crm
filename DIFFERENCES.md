@@ -103,6 +103,7 @@ code with moved code: the module move rewrites many existing files.
 | Users         | Sessions and audit log                  | M    | 27        | not proposed                                                                                                           |
 | Contacts      | Trash                                   | M    | 25        | not proposed                                                                                                           |
 | Contacts      | Merge duplicate contacts                | S    | –         | not proposed; implements [#190](https://github.com/fbuchner/meerkat-crm/issues/190)                                    |
+| Contacts      | Date of death up to the UTC+14 day      | S    | –         | not proposed                                                                                                           |
 | Calendar      | Subscribable ICS feed                   | M    | 24, 26    | not proposed                                                                                                           |
 | Activities    | Activities with a date range            | S    | 37        | not proposed                                                                                                           |
 | Reminders     | Birthday mail once a day                | S    | 35        | not proposed                                                                                                           |

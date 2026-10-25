@@ -52,10 +52,11 @@ func TestReplaceKeepsIdentityPhotoAndArchiveState(t *testing.T) {
 	assert.Equal(t, "a@example.com", c.Email)
 }
 
-func TestDeceasedByAcceptsTodayAndPastDatesOnly(t *testing.T) {
-	now := time.Date(2026, 3, 10, 23, 30, 0, 0, time.UTC)
+func TestDeceasedByAcceptsAnyDateThatHasBegunSomewhereOnEarth(t *testing.T) {
+	now := time.Date(2026, 1, 1, 23, 30, 0, 0, time.UTC)
 	assert.True(t, domain.Contact{}.DeceasedBy(now))
-	assert.True(t, domain.Contact{DeceasedDate: "2026-03-10"}.DeceasedBy(now))
 	assert.True(t, domain.Contact{DeceasedDate: "2020-01-15"}.DeceasedBy(now))
-	assert.False(t, domain.Contact{DeceasedDate: "2026-03-11"}.DeceasedBy(now))
+	assert.True(t, domain.Contact{DeceasedDate: "2026-01-01"}.DeceasedBy(now))
+	assert.True(t, domain.Contact{DeceasedDate: "2026-01-02"}.DeceasedBy(now))
+	assert.False(t, domain.Contact{DeceasedDate: "2026-01-03"}.DeceasedBy(now))
 }
