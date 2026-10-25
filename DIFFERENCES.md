@@ -363,6 +363,8 @@ Not meant for upstream.
   job is skipped.
 - `AGENTS.md`, `CLAUDE.md` and `.claude/` for AI-agent work, and `IMPROVEMENTS.md` (open ideas).
 - Version scheme `vX.Y.Z-omk.N`.
+- `upstream-ledger.yml`: what the fork did with each upstream commit (ported, skipped or
+  superseded).
 
 ## Not implemented yet
 

@@ -1,0 +1,16 @@
+# What the fork did with each upstream commit (fbuchner/meerkat-crm `main`). Process:
+# docs/development/fork.md, decision: docs/adr/0020-upstream-integration.md.
+#
+# merged: the upstream commit the last merge record on `omk` points at. Upstream commits up to
+#   and including it are integrated.
+# commits: one entry per upstream non-merge commit after 0c2aaab8a979 (the fork base), oldest first:
+#   commit: the upstream hash, at least 12 characters
+#   subject: the upstream subject, unchanged
+#   status: pending (not handled yet), ported (a fork commit carries the footer
+#     `Upstream: <hash>`), skipped (not wanted) or superseded (the fork already does it)
+#   reason: required for skipped and superseded, one line
+# A merge record may point at upstream commit X only when no entry up to X is pending. Entries
+# stay after the merge record.
+
+merged: 0c2aaab8a979
+commits: []

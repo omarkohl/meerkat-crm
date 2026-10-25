@@ -30,5 +30,6 @@ supersede it.
 | [0017](0017-fetching-user-supplied-urls.md) | Fetching user-supplied image URLs          | Accepted |
 | [0018](0018-encryption-key.md)              | A separate encryption key                  | Accepted |
 | [0019](0019-images-storage-and-formats.md)  | Images: storage and formats                | Accepted |
+| [0020](0020-upstream-integration.md)        | Integrate upstream: port, ledger, merge    | Accepted |
 
 New ADR: copy a recent one, take the next number, add a row here.
