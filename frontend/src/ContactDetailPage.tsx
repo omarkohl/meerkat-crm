@@ -52,6 +52,7 @@ import { useContactDialogs } from './hooks/useContactDialogs';
 import { useTimelineEditing } from './hooks/useTimelineEditing';
 import { useReminderManagement } from './hooks/useReminderManagement';
 import { useRelationships } from './hooks/useRelationships';
+import { useContactExport } from './hooks/useContactExport';
 import { useRelatedImages } from './hooks/useRelatedImages';
 import AddRelationshipDialog from './components/AddRelationshipDialog';
 import { useSnackbar } from './context/SnackbarContext';
@@ -642,6 +643,18 @@ export default function ContactDetailPage() {
     }
   };
 
+  const { exportVcard } = useContactExport();
+
+  const handleExportVcard = async () => {
+    if (!id) return;
+    try {
+      await exportVcard(id);
+    } catch (err) {
+      console.error('Error exporting contact as vCard:', err);
+      showError(err instanceof ApiError ? err.getDisplayMessage() : t('contactDetail.exportVcardError'));
+    }
+  };
+
   const handleArchiveContact = async () => {
     if (!contact || !id) return;
 
@@ -777,6 +790,7 @@ export default function ContactDetailPage() {
         onMergeContact={() => {
           setMergePickerOpen(true);
         }}
+        onExportVcard={handleExportVcard}
       />
       {mergePickerOpen && (
         <MergePickerDialog

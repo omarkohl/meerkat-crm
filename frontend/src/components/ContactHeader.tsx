@@ -10,6 +10,7 @@ import {
   TextField,
   Autocomplete,
   Button,
+  Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -21,6 +22,7 @@ import AutoModeIcon from '@mui/icons-material/AutoMode';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import MergeIcon from '@mui/icons-material/CallMerge';
+import ContactMailIcon from '@mui/icons-material/ContactMail';
 import { useTranslation } from 'react-i18next';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
 
@@ -66,6 +68,7 @@ interface ContactHeaderProps {
   onUploadProfilePicture: () => void;
   onStayInTouch?: () => void;
   onArchiveContact?: () => void;
+  onExportVcard?: () => Promise<void>;
   onUnarchiveContact?: () => void;
   onMergeContact?: () => void;
 }
@@ -91,6 +94,7 @@ export default function ContactHeader({
   onUploadProfilePicture,
   onStayInTouch,
   onArchiveContact,
+  onExportVcard,
   onUnarchiveContact,
   onMergeContact,
 }: ContactHeaderProps) {
@@ -293,7 +297,18 @@ export default function ContactHeader({
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {onExportVcard && (
+                      <Tooltip title={t('contactDetail.exportVcard')}>
+                        <IconButton
+                          size="small"
+                          aria-label={t('contactDetail.exportVcard')}
+                          onClick={() => void onExportVcard()}
+                        >
+                          <ContactMailIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     {onMergeContact && (
                       <Button variant="outlined" size="small" startIcon={<MergeIcon />} onClick={onMergeContact}>
                         {t('merge.mergeWith')}

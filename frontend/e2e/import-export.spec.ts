@@ -1,4 +1,4 @@
-import { test, expect, createTestContact, deleteTestContact, searchContact } from './fixtures';
+import { test, expect, createTestContact, deleteTestContact, openContact, searchContact } from './fixtures';
 import { API_BASE_URL } from './global-setup';
 
 async function readDownload(download: { createReadStream(): Promise<NodeJS.ReadableStream | null> }) {
@@ -93,6 +93,22 @@ test.describe('Import and export', () => {
       expect(csv).toContain('=== CONTACTS ===');
       expect(csv).toContain(contact.firstname);
       await expect(page.getByText('Your data has been exported successfully.')).toBeVisible();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
+
+  test('export one contact as a vCard file named after them @016-US1', async ({ page }) => {
+    const contact = await createTestContact(page.request, { firstname: 'Zelda', lastname: "O'Brien" });
+
+    try {
+      await openContact(page, contact);
+      const download = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Export vCard' }).click();
+      const file = await download;
+
+      expect(file.suggestedFilename()).toBe('zelda-o-brien.vcf');
+      expect(await readDownload(file)).toContain("FN:Zelda O'Brien");
     } finally {
       await deleteTestContact(page.request, contact.ID);
     }

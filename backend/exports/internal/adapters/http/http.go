@@ -12,6 +12,7 @@ import (
 	apperrors "meerkat/errors"
 	"meerkat/exports/internal/app"
 	"meerkat/exports/internal/domain"
+	"meerkat/idutil"
 	"meerkat/logger"
 	"meerkat/middleware"
 
@@ -25,6 +26,7 @@ func Register(group gin.IRoutes, uc *app.UseCases) {
 	h := &handlers{uc: uc}
 	group.GET("/export", h.csv)
 	group.GET("/export/vcf", h.vcf)
+	group.GET("/contacts/:id/vcf", h.contactVCF)
 }
 
 type handlers struct{ uc *app.UseCases }
@@ -35,6 +37,18 @@ func (h *handlers) csv(c *gin.Context) {
 
 func (h *handlers) vcf(c *gin.Context) {
 	h.serve(c, h.uc.ExportVCF, "VCF export completed successfully")
+}
+
+func (h *handlers) contactVCF(c *gin.Context) {
+	id := c.Param("id")
+	contactID, err := idutil.Parse(id)
+	if err != nil {
+		apperrors.AbortWithError(c, apperrors.ErrNotFound("Contact").WithDetails("id", id))
+		return
+	}
+	h.serve(c, func(ctx context.Context, actor domain.UserID, _ time.Time, client domain.Client) (app.Document, error) {
+		return h.uc.ExportContactVCF(ctx, actor, contactID, client)
+	}, "Single contact VCF export completed successfully")
 }
 
 type export func(ctx context.Context, actor domain.UserID, now time.Time, client domain.Client) (app.Document, error)
@@ -64,6 +78,9 @@ func (h *handlers) serve(c *gin.Context, run export, done string) {
 }
 
 func toAppError(err error) *apperrors.AppError {
+	if errors.Is(err, domain.ErrContactNotFound) {
+		return apperrors.ErrNotFound("Contact")
+	}
 	var fetch *app.FetchError
 	if errors.As(err, &fetch) {
 		return apperrors.ErrInternal("Failed to fetch " + fetch.What)

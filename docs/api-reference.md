@@ -243,10 +243,11 @@ share a server-side session (`session_id`) that belongs to one user and expires 
 
 ### Export
 
-| Method | Path          | Description                                    |
-| ------ | ------------- | ---------------------------------------------- |
-| `GET`  | `/export`     | Download all data as CSV                       |
-| `GET`  | `/export/vcf` | Download all contacts as VCF (includes photos) |
+| Method | Path                | Description                                                                |
+| ------ | ------------------- | -------------------------------------------------------------------------- |
+| `GET`  | `/export`           | Download all data as CSV                                                   |
+| `GET`  | `/export/vcf`       | Download all contacts as VCF (includes photos)                             |
+| `GET`  | `/contacts/:id/vcf` | Download one contact as VCF; `404` for another user's or a deleted contact |
 
 ### Network
 

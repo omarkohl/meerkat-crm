@@ -6,6 +6,7 @@ package persistence
 import (
 	"bytes"
 	"context"
+	"errors"
 
 	"meerkat/carddav"
 	"meerkat/exports/internal/app"
@@ -132,6 +133,21 @@ func (r *Repository) Encode(ctx context.Context, actor domain.UserID) (app.Encod
 	}
 	out.Body = buf.Bytes()
 	return out, nil
+}
+
+func (r *Repository) EncodeOne(ctx context.Context, actor domain.UserID, contactID uint) (app.Card, error) {
+	var contact models.Contact
+	if err := r.db.WithContext(ctx).Where("user_id = ?", uint(actor)).First(&contact, contactID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return app.Card{}, domain.ErrContactNotFound
+		}
+		return app.Card{}, fetch("contact", err)
+	}
+	var buf bytes.Buffer
+	if err := vcard.NewEncoder(&buf).Encode(carddav.ContactToVCard(&contact, r.photoDir)); err != nil {
+		return app.Card{}, &app.GenerateError{Err: err}
+	}
+	return app.Card{Body: buf.Bytes(), Firstname: contact.Firstname, Lastname: contact.Lastname}, nil
 }
 
 type Audit struct{ db *gorm.DB }

@@ -281,7 +281,7 @@
   status: implemented
 
 - id: 016-US1
-  title: Export all data as CSV or vCard
+  title: Export all data as CSV or vCard, or one contact as vCard
   actor: user
   priority: medium
   status: implemented

@@ -24,6 +24,7 @@ var notJSON = map[string]string{
 	"GET /api/v1/images/:id/:variant":          "sends an image (conditional requests, cache)",
 	"GET /api/v1/export":                       "sends a CSV file",
 	"GET /api/v1/export/vcf":                   "sends a vCard file",
+	"GET /api/v1/contacts/:id/vcf":             "sends a vCard file",
 	"GET /api/v1/ics/:file":                    "sends a calendar; its token in the path is the credential",
 	"GET /api/v1/proxy/image":                  "sends a fetched image",
 	"GET /api/v1/auth/oidc/login":              "redirects to the identity provider",

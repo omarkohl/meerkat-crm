@@ -1,6 +1,7 @@
 package exports_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,6 +152,45 @@ func TestExportsNeedAUser(t *testing.T) {
 	for _, path := range []string{"/export", "/export/vcf"} {
 		assert.Equal(t, http.StatusUnauthorized, get(e.anon, path).Code, path)
 	}
+	var n int64
+	e.db.Model(&models.AuditLog{}).Count(&n)
+	assert.Zero(t, n)
+}
+
+// @016-US1
+func TestSingleContactVCardExportSendsOnlyThatContact(t *testing.T) {
+	e := newEnv(t)
+	e.seed(t)
+	var alice models.Contact
+	require.NoError(t, e.db.Where("firstname = ?", "Alice").First(&alice).Error)
+
+	w := get(e.asA, fmt.Sprintf("/contacts/%d/vcf", alice.ID))
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, "text/vcard; charset=utf-8", w.Header().Get("Content-Type"))
+	assert.Equal(t, "attachment; filename=alice-johnson.vcf", w.Header().Get("Content-Disposition"))
+	assert.Equal(t, 1, strings.Count(w.Body.String(), "BEGIN:VCARD"))
+	assert.Contains(t, w.Body.String(), "Alice")
+	assert.NotContains(t, w.Body.String(), "Bob")
+
+	var audit models.AuditLog
+	require.NoError(t, e.db.Last(&audit).Error)
+	assert.Equal(t, fmt.Sprintf("format:vcf contact:%d", alice.ID), audit.Detail)
+}
+
+// @016-US1
+func TestSingleContactVCardExportRefusesOtherUsersTrashedAndUnknownContacts(t *testing.T) {
+	e := newEnv(t)
+	e.seed(t)
+	var alice, bob models.Contact
+	require.NoError(t, e.db.Where("firstname = ?", "Alice").First(&alice).Error)
+	require.NoError(t, e.db.Where("firstname = ?", "Bob").First(&bob).Error)
+	require.NoError(t, e.db.Delete(&bob).Error)
+
+	assert.Equal(t, http.StatusNotFound, get(e.asB, fmt.Sprintf("/contacts/%d/vcf", alice.ID)).Code)
+	assert.Equal(t, http.StatusNotFound, get(e.asA, fmt.Sprintf("/contacts/%d/vcf", bob.ID)).Code)
+	assert.Equal(t, http.StatusNotFound, get(e.asA, "/contacts/9999/vcf").Code)
+	assert.Equal(t, http.StatusNotFound, get(e.asA, "/contacts/abc/vcf").Code)
+	assert.Equal(t, http.StatusUnauthorized, get(e.anon, fmt.Sprintf("/contacts/%d/vcf", alice.ID)).Code)
 	var n int64
 	e.db.Model(&models.AuditLog{}).Count(&n)
 	assert.Zero(t, n)

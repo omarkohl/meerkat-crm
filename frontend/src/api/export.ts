@@ -48,6 +48,20 @@ export async function exportDataAsCsv(): Promise<void> {
   await downloadFileFromResponse(response, 'meerkat-export.csv');
 }
 
+export async function exportContactAsVcf(contactId: number | string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/contacts/${String(contactId)}/vcf`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorResponse(response);
+    throw error;
+  }
+
+  await downloadFileFromResponse(response, `contact-${String(contactId)}.vcf`);
+}
+
 /**
  * Export all contacts as VCF (vCard)
  * Downloads a VCF file containing all contacts with their photos

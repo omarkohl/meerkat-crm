@@ -127,7 +127,7 @@ commits:
     status: ported
   - commit: d1aa72155924
     subject: "feat(export): add per-contact vCard export with 3.0/4.0 version choice"
-    status: pending
+    status: ported
   - commit: 89ade1433093
     subject: "fix(activities): respect configured date format in date fields"
     status: superseded
@@ -145,7 +145,7 @@ commits:
     status: ported
   - commit: 784262cb8c21
     subject: "feat(export): drop the vCard version choice, keep the per-contact export"
-    status: pending
+    status: ported
   - commit: e361be7e8505
     subject: "build: drop the Docker-free E2E stack, keep the Makefile"
     status: skipped

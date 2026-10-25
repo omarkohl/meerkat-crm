@@ -6,7 +6,9 @@ package domain
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -106,6 +108,18 @@ func Filename(prefix, extension string, now time.Time) string {
 }
 
 func ContactName(first, last string) string { return first + " " + last }
+
+var ErrContactNotFound = errors.New("contact not found")
+
+var unsafeFilenameChars = regexp.MustCompile(`[^a-z0-9]+`)
+
+func ContactFilename(first, last string) string {
+	slug := strings.Trim(unsafeFilenameChars.ReplaceAllString(strings.ToLower(first+"-"+last), "-"), "-")
+	if slug == "" {
+		slug = "contact"
+	}
+	return slug + ".vcf"
+}
 
 func id(v *uint) string {
 	if v == nil {

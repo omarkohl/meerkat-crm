@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"meerkat/exports/internal/domain"
@@ -17,6 +18,14 @@ type Source interface {
 // Cards writes the actor's contacts, with photos, as vCards.
 type Cards interface {
 	Encode(ctx context.Context, actor domain.UserID) (Encoded, error)
+	EncodeOne(ctx context.Context, actor domain.UserID, contactID uint) (Card, error)
+}
+
+// Card is one contact written as a vCard.
+type Card struct {
+	Body      []byte
+	Firstname string
+	Lastname  string
 }
 
 // Encoded is the vCard file; Skipped are contacts that could not be encoded and are not in it.
@@ -84,4 +93,13 @@ func (u *UseCases) ExportVCF(ctx context.Context, actor domain.UserID, now time.
 	}
 	u.audit.Record(ctx, actor, domain.EventExport, "format:vcf", client)
 	return Document{Filename: domain.Filename("meerkat-contacts", "vcf", now), ContentType: domain.VCardType, Body: enc.Body, Contacts: enc.Contacts, Skipped: enc.Skipped}, nil
+}
+
+func (u *UseCases) ExportContactVCF(ctx context.Context, actor domain.UserID, contactID uint, client domain.Client) (Document, error) {
+	card, err := u.cards.EncodeOne(ctx, actor, contactID)
+	if err != nil {
+		return Document{}, err
+	}
+	u.audit.Record(ctx, actor, domain.EventExport, fmt.Sprintf("format:vcf contact:%d", contactID), client)
+	return Document{Filename: domain.ContactFilename(card.Firstname, card.Lastname), ContentType: domain.VCardType, Body: card.Body, Contacts: 1}, nil
 }

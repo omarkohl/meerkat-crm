@@ -13,6 +13,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Export a single contact as a vCard**: a button in the contact header downloads one .vcf file
+  named after the contact.
 - **Turn the birthday reminder on or off for an existing contact**: a switch next to the birthday.
   Changing the birthday moves the reminder, clearing it removes the reminder.
 - **Mark a contact as deceased**: turn on the field in the settings, then set the flag and an

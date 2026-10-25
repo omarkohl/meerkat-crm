@@ -183,7 +183,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
       the Reminders tab; switch off → gone. Key `contactDetail.birthdayReminder` in five locales.
       CHANGELOG `Added`.
 
-- [ ] **6. Per-contact vCard export** (`feat: export one contact as a vCard`, footers
+- [x] **6. Per-contact vCard export** (`feat: export one contact as a vCard`, footers
       `d1aa72155924`, `784262cb8c21`).
   - Backend in the `exports` module: use case
     `ExportContactVCF(ctx, actor, contactID, now, client)`. Persistence loads the contact scoped by

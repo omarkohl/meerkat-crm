@@ -36,4 +36,8 @@
 - After migration 000041 a former Monica "Deceased" custom field is hidden until the user enables
   the Deceased field in the settings (same as upstream).
 
+- The per-contact vCard filename is a slug of the name with ASCII letters and digits only, so a name
+  in another script (for example "Zoë" or Cyrillic) loses those characters or falls back to
+  `contact.vcf` (same as upstream). Keep it?
+
 ## Blocked

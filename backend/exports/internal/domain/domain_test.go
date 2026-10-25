@@ -45,3 +45,12 @@ func TestRenderCSVReminderFlagsDefault(t *testing.T) {
 func TestFilenameCarriesTheDate(t *testing.T) {
 	assert.Equal(t, "meerkat-export-2026-03-10.csv", Filename("meerkat-export", "csv", at))
 }
+
+// @016-US1
+func TestContactFilenameIsALowercaseHyphenatedNameWithAFallback(t *testing.T) {
+	assert.Equal(t, "alice-johnson.vcf", ContactFilename("Alice", "Johnson"))
+	assert.Equal(t, "jean-luc-o-brien.vcf", ContactFilename(" Jean Luc", "O'Brien "))
+	assert.Equal(t, "bob.vcf", ContactFilename("Bob", ""))
+	assert.Equal(t, "contact.vcf", ContactFilename("", ""))
+	assert.Equal(t, "contact.vcf", ContactFilename("???", ""))
+}
