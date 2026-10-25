@@ -169,3 +169,35 @@ commits:
   - commit: d8b114a686ef
     subject: "fix: de-duplicate imports after merging the deceased-field change"
     status: ported
+  - commit: 069345a250e4
+    subject: "build(deps): bump body-parser from 1.20.8 to 1.20.9 in /frontend"
+    status: superseded
+    reason: "Fork has no body-parser: it uses Vite, not the upstream dev server"
+  - commit: 3fba5daf0dae
+    subject: "build(deps): bump launch-editor from 2.14.1 to 2.14.2 in /frontend"
+    status: superseded
+    reason: "Fork has no launch-editor: it uses Vite, not the upstream dev server"
+  - commit: f50724826eb2
+    subject: "build(deps): bump fast-uri from 3.1.8 to 3.1.9 in /frontend"
+    status: superseded
+    reason: "Fork has no fast-uri: it uses Vite, not the upstream dev server"
+  - commit: 3d30502a93eb
+    subject: "ci: run CodeQL and Claude Review on pull requests from forks"
+    status: skipped
+    reason: "Fork has neither the CodeQL nor the Claude Review workflow"
+  - commit: c8d6ca1e451f
+    subject: "ci: do not check out the PR head in the privileged review job"
+    status: skipped
+    reason: "Fork has no Claude Review workflow"
+  - commit: 4c363c5720b0
+    subject: "ci: skip bot-authored PRs in the review job instead of failing them"
+    status: skipped
+    reason: "Fork has no Claude Review workflow"
+  - commit: bf2f62a2bc9f
+    subject: "docs: bring the Claude action setup notes in line with the workflows"
+    status: skipped
+    reason: "Fork has no Claude action setup notes"
+  - commit: 71ae9aa17804
+    subject: "ci: authenticate the fork-PR review with GITHUB_TOKEN, not the GitHub App"
+    status: skipped
+    reason: "Fork has no Claude Review workflow"
