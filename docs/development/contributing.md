@@ -146,8 +146,9 @@ with the fix to the chapter where it bites.
 ## Pull Requests
 
 - Keep PRs focused with one feature or fix per PR.
-- AI tools may assist coding but you are responsible for the code quality. Do not open hands-off
-  vibe-coded PRs. In those cases rather open a feature request instead.
+- AI assistants are welcome, but you are responsible for the quality of what you submit and must
+  understand it well enough to explain it in review. Do not open hands-off vibe-coded PRs you have
+  not read and tested; open a feature request instead (same wording as `CONTRIBUTING.md`).
 - Describe what changed and why, not how.
 
 ## Reporting Issues

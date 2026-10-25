@@ -5,8 +5,9 @@
 [Open an issue](https://github.com/omarkohl/meerkat-crm/issues/new/choose) to report a bug or
 request a feature. Pull requests are welcome.
 
-AI assistants are fine, but you are responsible for the code quality. Do not open pull requests for
-hands-off "vibe-coding"; open a feature request instead.
+AI assistants are welcome, but you are responsible for the quality of what you submit and must
+understand it well enough to explain it in review. Do not open hands-off "vibe-coded" pull requests
+you have not read and tested; open a feature request instead.
 
 ## Set up
 

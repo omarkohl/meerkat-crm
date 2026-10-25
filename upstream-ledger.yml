@@ -56,7 +56,7 @@ commits:
     reason: "Upstream's own CI bot"
   - commit: bf2fc29a7053
     subject: "docs: align the contributing AI policy with the tooling this repo now uses"
-    status: pending
+    status: ported
   - commit: d64d1dc2a3db
     subject: "Bump follow-redirects from 1.16.0 to 1.16.1 in /frontend"
     status: superseded

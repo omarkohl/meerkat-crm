@@ -202,7 +202,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
   - E2E in `import-export.spec.ts`: open the contact by name, export, the download name is
     `<first>-<last>.vcf` and has the `FN`. CHANGELOG `Added`.
 
-- [ ] **7. README AI policy** (`docs: align the AI policy with upstream`, footer `bf2fc29a7053`).
+- [x] **7. README AI policy** (`docs: align the AI policy with upstream`, footer `bf2fc29a7053`).
       Take upstream's paragraph into `README.md` (line ~131). `CONTRIBUTING.md` line 8 says the same
       in short form; make it agree.
 
