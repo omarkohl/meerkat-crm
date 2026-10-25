@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"meerkat/database/upstreamguard"
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -26,6 +27,12 @@ func main() {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
+
+	if command == "up" || command == "down" {
+		if err := upstreamguard.CheckCurrent(db); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	// Create migration driver
 	driver, err := migrateSQLite.WithInstance(db, &migrateSQLite.Config{})

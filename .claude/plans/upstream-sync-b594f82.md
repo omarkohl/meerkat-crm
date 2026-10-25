@@ -112,7 +112,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
   `.github/workflows` before you write it. If a claim is wrong, change the status to `pending` and
   write it in your report.
 
-- [ ] **2. Refuse upstream databases** (`feat: refuse to open a database migrated by upstream`).
+- [x] **2. Refuse upstream databases** (`feat: refuse to open a database migrated by upstream`).
       Fork-only, test first. In `backend/database/migrate.go`, add a check that runs in
       `RunMigrations` right after `m.Version()` and **before** the dirty `m.Force`: version ≥ 24 and
       no table `ics_feeds` (created by fork migration 000024) → return an error and write nothing.

@@ -44,7 +44,9 @@ structure with a generated API contract, and a much larger automated test and ch
 
 What can hurt when you merge, or when you look at the diff.
 
-- **New migrations 000024 to 000038.** No upstream migration is changed. Each has a down migration.
+- **Migration numbers from 000024 differ from upstream's.** The fork refuses a database that
+  upstream migrated ([Coming from upstream](docs/development/fork.md#coming-from-upstream)).
+- **New migrations 000024 to 000039.** No upstream migration is changed. Each has a down migration.
   A test steps every migration down and up on a seeded database and compares the schema. 000030 adds
   a column for thumbnail files and copies old thumbnails into files at startup; the old column
   stays.

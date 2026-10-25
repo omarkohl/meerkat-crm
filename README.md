@@ -118,6 +118,10 @@ docker run -d --name meerkat --restart unless-stopped \
 All other settings are optional, see [`.env.example`](.env.example) for e-mail notifications,
 CardDAV, and SSO. Pass them with additional `-e` flags, or use `--env-file .env`.
 
+**Coming from upstream Meerkat?** Do not point the fork at a database that upstream Meerkat
+migrated. Migrations from 000024 on differ, so the fork refuses to start and changes nothing in the
+file (see [Coming from upstream](docs/development/fork.md#coming-from-upstream)).
+
 ## Contributing
 
 ### Bugs and feature requests

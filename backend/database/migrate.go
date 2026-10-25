@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"math"
+	"meerkat/database/upstreamguard"
 	"meerkat/logger"
 	"regexp"
 	"strconv"
@@ -170,6 +171,10 @@ func RunMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to get migration version: %w", err)
 	}
 
+	if err := upstreamguard.Check(db, version); err != nil {
+		return err
+	}
+
 	if dirty {
 		logger.Warn().Uint("version", version).Msg("Database is in dirty state, forcing version")
 		if version > math.MaxInt32 {
@@ -201,36 +206,5 @@ func RunMigrations(db *sql.DB) error {
 		logger.Info().Uint("version", version).Msg("Migrations applied successfully")
 	}
 
-	return nil
-}
-
-// MigrateDown rolls back the last migration (use with caution)
-func MigrateDown(dbPath string) error {
-	sqlDB, err := sql.Open("sqlite", sqliteDSN(dbPath, false))
-	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
-	}
-	defer sqlDB.Close()
-
-	driver, err := withInstance(sqlDB, &sqliteConfig{})
-	if err != nil {
-		return fmt.Errorf("failed to create migration driver: %w", err)
-	}
-
-	sourceDriver, err := iofs.New(migrationsFS, "migrations")
-	if err != nil {
-		return fmt.Errorf("failed to create migration source: %w", err)
-	}
-
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "sqlite", driver)
-	if err != nil {
-		return fmt.Errorf("failed to create migration instance: %w", err)
-	}
-
-	if err := m.Steps(-1); err != nil {
-		return fmt.Errorf("failed to rollback migration: %w", err)
-	}
-
-	logger.Info().Msg("Migration rolled back successfully")
 	return nil
 }

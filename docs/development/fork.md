@@ -69,6 +69,18 @@ Port upstream commits one at a time, then record a merge that holds no port work
    `jj restore` makes the tree of the merge the same as `omk`. The merge only tells Git that
    upstream up to `X` is integrated.
 
+## Coming from upstream
+
+Fork migrations from 000024 on are not upstream's, so a database that upstream Meerkat migrated to
+version 24 or later cannot be used by the fork. At startup (`RunMigrations`) and in
+`backend/cmd/migrate` (`up`, `down`), Meerkat checks the version: 24 or later without the fork's
+`ics_feeds` table is refused with an error, and nothing is migrated or forced. Opening the file may
+still switch it to WAL journal mode.
+
+To move to the fork, export your data from upstream Meerkat (Settings, Data) and import it into a
+new fork instance. Upstream's down migrations can lose data, so the fork does not convert such a
+database.
+
 ## Release
 
 First rename `[Unreleased]` in `CHANGELOG.md` to the version and date, add the compare link, and
