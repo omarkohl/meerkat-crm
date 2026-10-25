@@ -87,6 +87,7 @@ export default function EditableField({
                 <IconButton
                   size="small"
                   color="primary"
+                  aria-label={`${t('common.save')} ${label}`}
                   onClick={() => {
                     onEditSave(field);
                   }}

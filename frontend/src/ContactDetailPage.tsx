@@ -17,7 +17,19 @@ import { getCurrentUser } from './api/admin';
 import { resolveEnabledFields, ContactFieldKey } from './contactFields';
 import { getContactNotes, Note } from './api/notes';
 import { getContactActivities, Activity } from './api/activities';
-import { ReminderCompletion, getCompletionsForContact, deleteCompletion } from './api/reminders';
+import {
+  ReminderCompletion,
+  getCompletionsForContact,
+  deleteCompletion,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+} from './api/reminders';
+import {
+  computeNextBirthdayOccurrence,
+  findBirthdayReminder,
+  buildBirthdayReminderPayload,
+} from './utils/birthdayReminder';
 import { Box, Card, CardContent, Divider, Button, Tabs, Tab, Typography } from '@mui/material';
 import { ContactDetailHeaderSkeleton, TimelineSkeleton } from './components/LoadingSkeletons';
 import NoteIcon from '@mui/icons-material/Note';
@@ -185,6 +197,7 @@ export default function ContactDetailPage() {
     reminders,
     reminderDialogOpen,
     editingReminder,
+    remindersLoaded,
     refreshReminders,
     handleSaveReminder,
     handleCompleteReminder,
@@ -194,6 +207,8 @@ export default function ContactDetailPage() {
     setReminderDialogOpen,
     setEditingReminder,
   } = useReminderManagement(id, { showError });
+
+  const [birthdayReminderBusy, setBirthdayReminderBusy] = useState(false);
 
   // State for pre-filled reminder values (used by Stay in Touch)
   const [reminderInitialValues, setReminderInitialValues] = useState<
@@ -401,6 +416,7 @@ export default function ContactDetailPage() {
     }
 
     try {
+      const previousBirthday = field === 'birthday' ? contact.birthday : undefined;
       const updatedContact = await updateContact(id!, {
         ...contact,
         [field]: valueToSave,
@@ -409,6 +425,9 @@ export default function ContactDetailPage() {
       setEditingField(null);
       setEditValue('');
       setValidationError('');
+      if (previousBirthday && valueToSave !== previousBirthday) {
+        await syncBirthdayReminder(previousBirthday, valueToSave);
+      }
     } catch (err) {
       console.error('Error updating contact:', err);
       if (err instanceof ApiError) {
@@ -418,6 +437,61 @@ export default function ContactDetailPage() {
       } else {
         showError(t('contactDetail.updateError'));
       }
+    }
+  };
+
+  const syncBirthdayReminder = async (previousBirthday: string, birthday: string) => {
+    const existingReminder = findBirthdayReminder(reminders, previousBirthday);
+    if (!existingReminder) return;
+    try {
+      const nextOccurrence = computeNextBirthdayOccurrence(birthday);
+      if (!birthday) {
+        await deleteReminder(existingReminder.ID);
+      } else if (nextOccurrence) {
+        await updateReminder(existingReminder.ID, {
+          message: existingReminder.message,
+          by_mail: existingReminder.by_mail,
+          recurrence: existingReminder.recurrence,
+          reoccur_from_completion: existingReminder.reoccur_from_completion,
+          contact_id: existingReminder.contact_id,
+          remind_at: nextOccurrence.toISOString(),
+        });
+      }
+      await refreshReminders();
+    } catch (err) {
+      console.error('Error updating birthday reminder:', err);
+      showError(err instanceof ApiError ? err.getDisplayMessage() : t('contactDetail.updateError'));
+    }
+  };
+
+  const handleToggleBirthdayReminder = async () => {
+    if (!contact?.birthday || birthdayReminderBusy) return;
+    setBirthdayReminderBusy(true);
+
+    const existingReminder = findBirthdayReminder(reminders, contact.birthday);
+    try {
+      if (existingReminder) {
+        await deleteReminder(existingReminder.ID);
+      } else {
+        const payload = buildBirthdayReminderPayload(
+          contact.ID,
+          contact.birthday,
+          t('reminders.birthdayMessage', { name: `${contact.firstname} ${contact.lastname}` }),
+        );
+        if (payload) {
+          await createReminder(contact.ID, payload);
+        }
+      }
+      await refreshReminders();
+    } catch (err) {
+      console.error('Error toggling birthday reminder:', err);
+      if (err instanceof ApiError) {
+        showError(err.getDisplayMessage());
+      } else {
+        showError(t('contactDetail.updateError'));
+      }
+    } finally {
+      setBirthdayReminderBusy(false);
     }
   };
 
@@ -744,6 +818,9 @@ export default function ContactDetailPage() {
         {/* General Information */}
         <ContactInformation
           contact={contact}
+          reminders={reminders}
+          onToggleBirthdayReminder={handleToggleBirthdayReminder}
+          birthdayReminderDisabled={birthdayReminderBusy || !remindersLoaded}
           editingField={editingField}
           editValue={editValue}
           validationError={validationError}

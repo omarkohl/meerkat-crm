@@ -71,7 +71,7 @@ commits:
     reason: "Fork has Vite 8"
   - commit: 39e18c3a747d
     subject: "feat: allow toggling birthday reminders on existing contacts"
-    status: pending
+    status: ported
   - commit: ff5354c0def6
     subject: "feat: add deceased_date validator"
     status: ported

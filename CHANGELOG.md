@@ -13,6 +13,8 @@ of this fork (see [fork.md](docs/development/fork.md)).
 
 ### Added
 
+- **Turn the birthday reminder on or off for an existing contact**: a switch next to the birthday.
+  Changing the birthday moves the reminder, clearing it removes the reminder.
 - **Mark a contact as deceased**: turn on the field in the settings, then set the flag and an
   optional date of death. The age at death replaces the current age, and the contact no longer shows
   in birthdays.

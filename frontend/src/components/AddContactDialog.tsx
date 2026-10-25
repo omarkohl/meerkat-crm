@@ -23,7 +23,7 @@ import { useSnackbar } from '../context/SnackbarContext';
 import { handleError, getErrorMessage } from '../utils/errorHandler';
 import { useDateFormat } from '../DateFormatProvider';
 import { ContactFieldKey, resolveEnabledFields } from '../contactFields';
-import { now } from '../utils/now';
+import { buildBirthdayReminderPayload } from '../utils/birthdayReminder';
 
 interface AddContactDialogProps {
   open: boolean;
@@ -189,38 +189,13 @@ export default function AddContactDialog({
       const newContact = await createContact(contactData);
 
       if (createBirthdayReminder && birthdayISO) {
-        let day: number | undefined;
-        let month: number | undefined;
-
-        if (birthdayISO.startsWith('--')) {
-          month = parseInt(birthdayISO.substring(2, 4), 10) - 1;
-          day = parseInt(birthdayISO.substring(5, 7), 10);
-        } else {
-          const parts = birthdayISO.split('-');
-          if (parts.length === 3) {
-            month = parseInt(parts[1] ?? '', 10) - 1;
-            day = parseInt(parts[2] ?? '', 10);
-          }
-        }
-
-        if (day !== undefined && month !== undefined && !isNaN(day) && !isNaN(month)) {
-          const today = now();
-          const nextBirthday = new Date(today.getFullYear(), month, day);
-
-          if (nextBirthday < today) {
-            nextBirthday.setFullYear(today.getFullYear() + 1);
-          }
-
-          nextBirthday.setHours(9, 0, 0, 0);
-
-          await createReminder(newContact.ID, {
-            message: t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
-            by_mail: true,
-            remind_at: nextBirthday.toISOString(),
-            recurrence: 'yearly',
-            reoccur_from_completion: false,
-            contact_id: newContact.ID,
-          });
+        const payload = buildBirthdayReminderPayload(
+          newContact.ID,
+          birthdayISO,
+          t('reminders.birthdayMessage', { name: `${newContact.firstname} ${newContact.lastname}` }),
+        );
+        if (payload) {
+          await createReminder(newContact.ID, payload);
         }
       }
 

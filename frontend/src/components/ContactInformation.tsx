@@ -3,6 +3,7 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Switch,
   Divider,
   FormControlLabel,
   Stack,
@@ -42,6 +43,8 @@ import { useDateFormat, calculateAgeAtDate } from '../DateFormatProvider';
 import { now } from '../utils/now';
 import DateField from './DateField';
 import EmptyValue from './EmptyValue';
+import type { Reminder } from '../api/reminders';
+import { findBirthdayReminder } from '../utils/birthdayReminder';
 
 interface ContactInformationProps {
   contact: Partial<Contact>;
@@ -65,6 +68,10 @@ interface ContactInformationProps {
   // Photos tab
   photosCount?: number;
   photos?: ReactNode;
+  // Birthday reminder
+  reminders?: Reminder[];
+  onToggleBirthdayReminder?: () => Promise<void>;
+  birthdayReminderDisabled?: boolean;
 }
 
 const iconSx = { mr: 1, color: 'text.secondary', fontSize: '1.2rem' };
@@ -89,12 +96,20 @@ export default function ContactInformation({
   customFieldNames = [],
   photosCount = 0,
   photos,
+  reminders = [],
+  onToggleBirthdayReminder,
+  birthdayReminderDisabled = false,
 }: ContactInformationProps) {
   const { t } = useTranslation();
   const { formatBirthday, getBirthdayPlaceholder, calculateAge } = useDateFormat();
   const [activeTab, setActiveTab] = useState(0);
   const enabled = enabledFields ?? resolveEnabledFields(null);
   const isOn = (key: ContactFieldKey) => enabled.has(key);
+
+  const hasBirthdayReminder = useMemo(
+    () => !!(contact.birthday && findBirthdayReminder(reminders, contact.birthday)),
+    [reminders, contact.birthday],
+  );
 
   const birthdayAgeSuffix = useMemo(() => {
     if (!contact.birthday) return undefined;
@@ -265,22 +280,37 @@ export default function ContactInformation({
             )}
 
             {isOn('birthday') && (
-              <EditableField
-                icon={<CakeIcon sx={iconSx} />}
-                label={t('contactDetail.birthday')}
-                field="birthday"
-                value={contact.birthday || ''}
-                formattedDisplayValue={contact.birthday ? formatBirthday(contact.birthday) : undefined}
-                placeholder={getBirthdayPlaceholder()}
-                displaySuffix={birthdayAgeSuffix}
-                isEditing={editingField === 'birthday'}
-                editValue={editValue}
-                validationError={validationError}
-                onEditStart={onEditStart}
-                onEditCancel={onEditCancel}
-                onEditSave={onEditSave}
-                onEditValueChange={onEditValueChange}
-              />
+              <>
+                <EditableField
+                  icon={<CakeIcon sx={iconSx} />}
+                  label={t('contactDetail.birthday')}
+                  field="birthday"
+                  value={contact.birthday || ''}
+                  formattedDisplayValue={contact.birthday ? formatBirthday(contact.birthday) : undefined}
+                  placeholder={getBirthdayPlaceholder()}
+                  displaySuffix={birthdayAgeSuffix}
+                  isEditing={editingField === 'birthday'}
+                  editValue={editValue}
+                  validationError={validationError}
+                  onEditStart={onEditStart}
+                  onEditCancel={onEditCancel}
+                  onEditSave={onEditSave}
+                  onEditValueChange={onEditValueChange}
+                />
+                {contact.birthday && onToggleBirthdayReminder && (
+                  <FormControlLabel
+                    sx={{ ml: 4 }}
+                    control={
+                      <Switch
+                        checked={hasBirthdayReminder}
+                        disabled={birthdayReminderDisabled}
+                        onChange={() => void onToggleBirthdayReminder()}
+                      />
+                    }
+                    label={t('contactDetail.birthdayReminder')}
+                  />
+                )}
+              </>
             )}
 
             {isOn('anniversary') && (

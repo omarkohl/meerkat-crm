@@ -46,4 +46,29 @@ test.describe('Reminders', () => {
       await deleteTestContact(page.request, contact.ID);
     }
   });
+
+  test('should toggle the birthday reminder of a contact @006-US1', async ({ page }) => {
+    const contact = await createTestContact(page.request, { birthday: '1980-06-15' });
+
+    try {
+      await openContact(page, contact);
+
+      await page.getByRole('switch', { name: 'Birthday reminder' }).click();
+      await expect(page.getByRole('switch', { name: 'Birthday reminder' })).toBeChecked();
+      await page.getByRole('tab', { name: /reminders/i }).click();
+      await expect(page.getByText(`Birthday of ${contact.firstname} Temp`)).toBeVisible();
+
+      await page.getByRole('button', { name: 'Edit Birthday' }).click();
+      await page.getByRole('textbox').fill('20.07.1980');
+      await page.getByRole('button', { name: 'Save Birthday' }).click();
+      await expect(page.getByText(/^20\.07\.20\d\d$/)).toBeVisible();
+
+      await page.getByRole('button', { name: 'Edit Birthday' }).click();
+      await page.getByRole('textbox').fill('');
+      await page.getByRole('button', { name: 'Save Birthday' }).click();
+      await expect(page.getByText(`Birthday of ${contact.firstname} Temp`)).toBeHidden();
+    } finally {
+      await deleteTestContact(page.request, contact.ID);
+    }
+  });
 });

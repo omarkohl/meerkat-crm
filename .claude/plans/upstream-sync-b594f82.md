@@ -173,7 +173,7 @@ one commit; tick it in this file in the same commit. Each commit passes `make pr
   - Docs: `docs/api-reference.md`; DIFFERENCES Merge impact: "upstream 000024/000025 are fork
     000040/000041". CHANGELOG `Added`.
 
-- [ ] **5. Birthday reminder toggle** (`feat: toggle the birthday reminder on a contact`, footer
+- [x] **5. Birthday reminder toggle** (`feat: toggle the birthday reminder on a contact`, footer
       `39e18c3a747d`). Port `frontend/src/utils/birthdayReminder.ts` with `now()` instead of
       `new Date()`, the switch in `ContactInformation.tsx` and the handlers in
       `ContactDetailPage.tsx`. `AddContactDialog.tsx` uses the shared helper. Change the birthday →

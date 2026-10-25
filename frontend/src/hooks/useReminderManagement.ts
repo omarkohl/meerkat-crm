@@ -14,6 +14,7 @@ export function useReminderManagement(contactId: string | undefined, notifier?: 
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [remindersLoaded, setRemindersLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refreshReminders = useCallback(async () => {
@@ -22,6 +23,7 @@ export function useReminderManagement(contactId: string | undefined, notifier?: 
     try {
       const fetchedReminders = await getRemindersForContact(parseInt(contactId));
       setReminders(fetchedReminders);
+      setRemindersLoaded(true);
     } catch (err) {
       const message = handleFetchError(err, 'fetching reminders');
       setError(message);
@@ -78,6 +80,7 @@ export function useReminderManagement(contactId: string | undefined, notifier?: 
 
   return {
     reminders,
+    remindersLoaded,
     reminderDialogOpen,
     editingReminder,
     error,
