@@ -153,5 +153,5 @@ with the fix to the chapter where it bites.
 
 ## Reporting Issues
 
-Open an issue on [GitHub](https://github.com/fbuchner/meerkat-crm/issues/new/choose). Try to include
+Open an issue on [GitHub](https://github.com/omarkohl/meerkat-crm/issues/new/choose). Try to include
 steps to reproduce for bugs. Use the feature request template for new ideas.
