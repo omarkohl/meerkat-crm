@@ -28,7 +28,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o meerkat .
 # =============================================================================
 # Stage 2: Build React frontend (same-origin API, served by nginx)
 # =============================================================================
-FROM --platform=$BUILDPLATFORM node:26.12.0-alpine AS frontend-builder
+FROM --platform=$BUILDPLATFORM node:26.12.1-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -50,7 +50,7 @@ RUN npm run build
 # =============================================================================
 # Stage 3: Runtime - nginx + Go backend under supervisord
 # =============================================================================
-FROM alpine:3.24.2 AS runtime
+FROM alpine:3.24.3 AS runtime
 
 # Runtime dependencies; apk upgrade picks up Alpine fixes newer than the base image (Trivy gate).
 # shadow provides usermod/groupmod for PUID/PGID remap.
