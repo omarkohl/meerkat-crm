@@ -751,6 +751,74 @@ export default function MonicaImportDialog({ open, onClose, onImportComplete }: 
             ))}
           </Box>
         )}
+
+        {result.skipped_rows.length > 0 && (
+          <TableContainer component={Paper} sx={{ mt: 2, maxHeight: 250 }}>
+            <Table stickyHeader size="small" aria-label={t('contacts.import.result.skippedRows', 'Skipped rows')}>
+              <TableHead>
+                <TableRow>
+                  <TableCell width={50}>{t('contacts.import.preview.row', 'Row')}</TableCell>
+                  <TableCell>{t('contacts.import.result.name', 'Name')}</TableCell>
+                  <TableCell>{t('contacts.import.result.reason', 'Reason')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {result.skipped_rows.map((r) => (
+                  <TableRow key={r.row}>
+                    <TableCell>{r.row}</TableCell>
+                    <TableCell>{r.name || <EmptyValue />}</TableCell>
+                    <TableCell sx={{ color: r.reason === 'skipped' ? 'text.secondary' : 'error.main' }}>
+                      {t(`contacts.import.result.reasons.${r.reason}`, r.reason)}
+                      {r.detail ? `: ${r.detail}` : ''}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {result.related_skipped.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              {t('settings.monicaImport.result.relatedSkipped', '{{count}} related items were not imported', {
+                count: result.related_skipped.length + result.related_skipped_more,
+              })}
+              {result.related_skipped_more > 0 &&
+                t('settings.monicaImport.result.relatedSkippedMore', '({{count}} not listed)', {
+                  count: result.related_skipped_more,
+                })}
+            </Typography>
+            <TableContainer component={Paper} sx={{ maxHeight: 250 }}>
+              <Table
+                stickyHeader
+                size="small"
+                aria-label={t('settings.monicaImport.result.relatedSkippedAria', 'Skipped related items')}
+              >
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t('settings.monicaImport.result.relatedColumns.type', 'Type')}</TableCell>
+                    <TableCell>{t('settings.monicaImport.result.relatedColumns.contact', 'Contact')}</TableCell>
+                    <TableCell>{t('contacts.import.result.name', 'Name')}</TableCell>
+                    <TableCell>{t('contacts.import.result.reason', 'Reason')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {result.related_skipped.map((r, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{t(`settings.monicaImport.result.relatedTypes.${r.type}`, r.type)}</TableCell>
+                      <TableCell>{r.contact || <EmptyValue />}</TableCell>
+                      <TableCell>{r.name || <EmptyValue />}</TableCell>
+                      <TableCell sx={{ color: r.reason === 'invalid' ? 'error.main' : 'text.secondary' }}>
+                        {t(`settings.monicaImport.result.relatedReasons.${r.reason}`, r.reason)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
       </Box>
     );
   };

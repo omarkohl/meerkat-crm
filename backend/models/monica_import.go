@@ -119,4 +119,17 @@ type MonicaImportResult struct {
 	PhotosQueued           int `json:"photos_queued"`
 	PhotosSaved            int `json:"photos_saved"`
 	PhotosFailed           int `json:"photos_failed"`
+	// RelatedSkipped lists related entities that were dropped, so every
+	// fetched record can be accounted for; RelatedSkippedMore counts the
+	// ones beyond the recorded maximum.
+	RelatedSkipped     []MonicaRelatedSkip `json:"related_skipped"`
+	RelatedSkippedMore int                 `json:"related_skipped_more"`
+}
+
+// MonicaRelatedSkip names one related entity that was not imported.
+type MonicaRelatedSkip struct {
+	Type    string `json:"type"`    // activity, note, reminder, relationship, call, task, gift or debt
+	Contact string `json:"contact"` // display name of the owning Monica contact
+	Name    string `json:"name,omitempty"`
+	Reason  string `json:"reason"` // contact_skipped, contact_missing or invalid
 }

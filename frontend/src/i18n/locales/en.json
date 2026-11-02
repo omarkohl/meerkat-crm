@@ -556,7 +556,7 @@
         "notesCount": "{{count}} notes",
         "remindersCount": "{{count}} reminders",
         "extrasCount": "{{count}} calls, tasks, gifts & debts",
-        "includeRelationships": "Import relationships (slower: needs one request per contact)",
+        "includeRelationships": "Import relationships (slower: one request per contact; family members kept outside the address book are imported as contacts)",
         "collapseReciprocal": "Import each relationship only once",
         "collapseReciprocalHelp": "Monica saves every relationship on both contacts. Meerkat needs only one entry — the other contact shows it under \"Incoming Relationships\". Turn this off to create a separate entry on each contact, as Monica does.",
         "includeExtras": "Import calls, tasks, gifts and debts as notes",
@@ -598,7 +598,26 @@
         "relationships": "{{count}} relationships imported",
         "relationshipsCollapsed": "{{count}} reciprocal duplicates skipped (shown as incoming relationships)",
         "photos": "{{count}} photos imported",
-        "photosFailed": "{{count}} photos could not be downloaded"
+        "photosFailed": "{{count}} photos could not be downloaded",
+        "relatedSkipped": "{{count}} related items were not imported",
+        "relatedSkippedMore": "({{count}} not listed)",
+        "relatedSkippedAria": "Skipped related items",
+        "relatedColumns": { "type": "Type", "contact": "Contact" },
+        "relatedTypes": {
+          "activity": "activity",
+          "note": "note",
+          "reminder": "reminder",
+          "relationship": "relationship",
+          "call": "call",
+          "task": "task",
+          "gift": "gift",
+          "debt": "debt"
+        },
+        "relatedReasons": {
+          "contact_skipped": "The related contact was skipped",
+          "contact_missing": "The related contact was not imported",
+          "invalid": "Invalid or unsupported content"
+        }
       },
       "errors": {
         "fetchFailed": "Fetching data from Monica failed"

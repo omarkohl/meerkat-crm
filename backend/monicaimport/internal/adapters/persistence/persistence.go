@@ -124,12 +124,16 @@ func related(c models.MonicaRowRelatedCounts) domain.RelatedCounts {
 func result(r *models.MonicaImportResult) domain.Result {
 	out := domain.Result{
 		TotalProcessed: r.TotalProcessed, Created: r.Created, Updated: r.Updated, Skipped: r.Skipped, Errors: r.Errors,
-		ActivitiesCreated: r.ActivitiesCreated, NotesCreated: r.NotesCreated, RemindersCreated: r.RemindersCreated,
+		RelatedSkippedMore: r.RelatedSkippedMore,
+		ActivitiesCreated:  r.ActivitiesCreated, NotesCreated: r.NotesCreated, RemindersCreated: r.RemindersCreated,
 		RelationshipsCreated: r.RelationshipsCreated, RelationshipsCollapsed: r.RelationshipsCollapsed,
 		PhotosQueued: r.PhotosQueued, PhotosSaved: r.PhotosSaved, PhotosFailed: r.PhotosFailed,
 	}
 	for _, s := range r.SkippedRows {
 		out.SkippedRows = append(out.SkippedRows, domain.SkippedRow{Row: s.Row, Name: s.Name, Reason: s.Reason, Detail: s.Detail})
+	}
+	for _, s := range r.RelatedSkipped {
+		out.RelatedSkipped = append(out.RelatedSkipped, domain.RelatedSkip{Type: s.Type, Contact: s.Contact, Name: s.Name, Reason: s.Reason})
 	}
 	return out
 }

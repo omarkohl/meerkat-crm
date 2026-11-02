@@ -493,3 +493,57 @@ func TestMapMonicaReminderKeepsLeapDayAcrossRollForward(t *testing.T) {
 	require.NotNil(t, reminder.ReoccurFromCompletion)
 	assert.False(t, *reminder.ReoccurFromCompletion)
 }
+
+// issue #249: Monica keeps family members added outside the address book as
+// partial contacts that GET /contacts never returns; the data embedded in
+// relationship edges is all the import gets.
+func TestPartialContactsMaterializedFromRelationshipEdges(t *testing.T) {
+	childEdge := func() monica.Relationship {
+		rel := monica.Relationship{OfContact: &monica.ContactRef{
+			ID: 77, FirstName: "Kim", IsPartial: true, GenderType: "F",
+			Information: monica.ContactShortInfo{Birthdate: monica.SpecialDate{Date: strPtr("2015-06-01T00:00:00Z")}},
+		}}
+		rel.RelationshipType.Name = "parent"
+		return rel
+	}
+	realRef := monica.Relationship{OfContact: &monica.ContactRef{ID: 88, FirstName: "Real"}}
+	snapshot := &monica.Snapshot{
+		Contacts: []monica.Contact{{ID: 10, FirstName: "Ada"}, {ID: 88, FirstName: "Real"}},
+		Relationships: map[int][]monica.Relationship{
+			10: {childEdge(), realRef},
+			20: {childEdge()},
+		},
+	}
+
+	partial := PartialContacts(snapshot)
+
+	require.Len(t, partial, 1, "both edges yield one contact; the real contact is not duplicated")
+	kim := partial[0]
+	assert.Equal(t, 77, kim.ID)
+	assert.Equal(t, "Kim", kim.FirstName)
+	assert.True(t, kim.IsPartial)
+	assert.Equal(t, "F", kim.GenderType)
+	require.NotNil(t, kim.Information.Dates.Birthdate.Date)
+	assert.Equal(t, "2015-06-01T00:00:00Z", *kim.Information.Dates.Birthdate.Date)
+}
+
+func TestPartialContactsFallbackToCompleteName(t *testing.T) {
+	rel := monica.Relationship{OfContact: &monica.ContactRef{ID: 5, CompleteName: "Buddy", IsPartial: true}}
+	snapshot := &monica.Snapshot{Relationships: map[int][]monica.Relationship{1: {rel}}}
+
+	partial := PartialContacts(snapshot)
+
+	require.Len(t, partial, 1)
+	assert.Equal(t, "Buddy", partial[0].FirstName)
+}
+
+func TestMapMonicaContactMarksPartialContacts(t *testing.T) {
+	mc := monica.Contact{ID: 77, FirstName: "Kim", IsPartial: true, GenderType: "F"}
+	mc.Information.Dates.Birthdate = monica.SpecialDate{Date: strPtr("2015-06-01T00:00:00Z")}
+
+	mapped := MapMonicaContact(mc, time.Date(2026, 3, 10, 12, 0, 0, 0, time.UTC))
+
+	assert.Equal(t, "yes", mapped.Contact.CustomFields[monicaFieldPartialContact])
+	assert.Equal(t, "female", mapped.Contact.Gender)
+	assert.Equal(t, "2015-06-01", mapped.Contact.Birthday)
+}

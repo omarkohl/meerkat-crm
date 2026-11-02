@@ -2430,6 +2430,13 @@ export interface components {
             photos_queued: number;
             /** Format: int64 */
             photos_saved: number;
+            /** @description Related entities that were not imported */
+            related_skipped: components["schemas"]["MonicaRelatedSkip"][];
+            /**
+             * Format: int64
+             * @description Number of additional skipped items beyond the reported 500
+             */
+            related_skipped_more: number;
             /**
              * Format: int64
              * @description Reciprocal halves skipped because the other direction was imported
@@ -2474,6 +2481,15 @@ export interface components {
             relationships: number;
             /** Format: int64 */
             reminders: number;
+        };
+        MonicaRelatedSkip: {
+            /** @description Display name of the Monica contact the entity belonged to */
+            contact: string;
+            name?: string;
+            /** @description contact_skipped, contact_missing or invalid */
+            reason: string;
+            /** @description activity, note, reminder, relationship, call, task, gift or debt */
+            type: string;
         };
         MonicaRowAction: {
             action: string;

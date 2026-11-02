@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -75,6 +76,9 @@ func MapMonicaContact(mc monica.Contact, now time.Time) MonicaMappedContact {
 	if mc.IsStarred {
 		contact.CustomFields[monicaFieldStarred] = "yes"
 	}
+	if mc.IsPartial {
+		contact.CustomFields[monicaFieldPartialContact] = "yes"
+	}
 
 	if mc.Information.Career.Job != nil {
 		contact.JobTitle = truncateRunes(strings.TrimSpace(*mc.Information.Career.Job), 200)
@@ -144,7 +148,54 @@ func MapMonicaContact(mc monica.Contact, now time.Time) MonicaMappedContact {
 const (
 	monicaFieldStarred        = "Starred"
 	monicaFieldApproximateAge = "Approximate age"
+	// monicaFieldPartialContact marks contacts Monica kept as name-only
+	// household members outside the address book (typically children).
+	monicaFieldPartialContact = "Monica partial contact"
 )
+
+// PartialContacts materializes the partial contacts referenced by the fetched
+// relationship edges as ordinary Monica contacts. GET /contacts only returns
+// real contacts, but the short contact form embedded in each edge carries
+// enough to import them: names, gender type and birthday. The birthday is
+// what lets their reminders — which the account-wide reminders endpoint does
+// return for partial contacts — attach after import.
+func PartialContacts(snapshot *monica.Snapshot) []monica.Contact {
+	real := make(map[int]bool, len(snapshot.Contacts))
+	for _, c := range snapshot.Contacts {
+		real[c.ID] = true
+	}
+	byID := map[int]monica.Contact{}
+	for _, rels := range snapshot.Relationships {
+		for _, rel := range rels {
+			ref := rel.OfContact
+			if ref == nil || !ref.IsPartial || real[ref.ID] {
+				continue
+			}
+			if _, seen := byID[ref.ID]; seen {
+				continue
+			}
+			c := monica.Contact{
+				ID:         ref.ID,
+				FirstName:  ref.FirstName,
+				LastName:   ref.LastName,
+				Nickname:   ref.Nickname,
+				IsPartial:  true,
+				GenderType: ref.GenderType,
+			}
+			c.Information.Dates.Birthdate = ref.Information.Birthdate
+			if c.FirstName == "" && c.LastName == "" && c.Nickname == "" {
+				c.FirstName = strings.TrimSpace(ref.CompleteName)
+			}
+			byID[ref.ID] = c
+		}
+	}
+	out := make([]monica.Contact, 0, len(byID))
+	for _, c := range byID {
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
 
 // mapMonicaContactField routes a denormalized Monica contact field into the
 // matching multi-value list (email, phone, URL, or instant messaging/social).

@@ -54,12 +54,25 @@ type ContactField struct {
 	} `json:"contact_field_type"`
 }
 
-// ContactRef is the minimal contact reference embedded in related entities.
+// ContactShortInfo is the information block of Monica's short contact form —
+// flatter than the full resource's information.dates layout.
+type ContactShortInfo struct {
+	Birthdate SpecialDate `json:"birthdate"`
+}
+
+// ContactRef is the contact reference embedded in related entities. Monica
+// sends its short contact form here; for family members stored outside the
+// address book (is_partial) it is the only copy of their names, gender and
+// birthday, since GET /contacts never returns those contacts.
 type ContactRef struct {
-	ID           int    `json:"id"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	CompleteName string `json:"complete_name"`
+	ID           int              `json:"id"`
+	FirstName    string           `json:"first_name"`
+	LastName     string           `json:"last_name"`
+	Nickname     string           `json:"nickname"`
+	CompleteName string           `json:"complete_name"`
+	IsPartial    bool             `json:"is_partial"`
+	GenderType   string           `json:"gender_type"` // "M", "F", "O"
+	Information  ContactShortInfo `json:"information"`
 }
 
 // Contact is a Monica contact as returned by GET /contacts?with=contactfields.

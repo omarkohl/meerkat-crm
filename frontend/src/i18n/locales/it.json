@@ -556,7 +556,7 @@
         "notesCount": "{{count}} note",
         "remindersCount": "{{count}} promemoria",
         "extrasCount": "{{count}} chiamate, compiti, regali e debiti",
-        "includeRelationships": "Importa le relazioni (più lento: richiede una richiesta per contatto)",
+        "includeRelationships": "Importa le relazioni (più lento: una richiesta per contatto; i familiari fuori dalla rubrica vengono importati come contatti)",
         "collapseReciprocal": "Importa ogni relazione una sola volta",
         "collapseReciprocalHelp": "Monica salva ogni relazione su entrambi i contatti. A Meerkat basta una sola voce: l'altro contatto la mostra in «Relazioni in entrata». Disattiva questa opzione per creare una voce separata su ogni contatto, come fa Monica.",
         "includeExtras": "Importa chiamate, compiti, regali e debiti come note",
@@ -598,7 +598,26 @@
         "relationships": "{{count}} relazioni importate",
         "relationshipsCollapsed": "{{count}} duplicati reciproci saltati (mostrati come relazioni in entrata)",
         "photos": "{{count}} foto importate",
-        "photosFailed": "{{count}} foto non sono state scaricate"
+        "photosFailed": "{{count}} foto non sono state scaricate",
+        "relatedSkipped": "{{count}} elementi correlati non sono stati importati",
+        "relatedSkippedMore": "({{count}} non elencati)",
+        "relatedSkippedAria": "Elementi correlati non importati",
+        "relatedColumns": { "type": "Tipo", "contact": "Contatto" },
+        "relatedTypes": {
+          "activity": "attività",
+          "note": "nota",
+          "reminder": "promemoria",
+          "relationship": "relazione",
+          "call": "chiamata",
+          "task": "compito",
+          "gift": "regalo",
+          "debt": "debito"
+        },
+        "relatedReasons": {
+          "contact_skipped": "Il contatto correlato è stato saltato",
+          "contact_missing": "Il contatto correlato non è stato importato",
+          "invalid": "Contenuto non valido o non supportato"
+        }
       },
       "errors": {
         "fetchFailed": "Recupero dei dati da Monica non riuscito"

@@ -556,7 +556,7 @@
         "notesCount": "{{count}} notes",
         "remindersCount": "{{count}} rappels",
         "extrasCount": "{{count}} appels, tâches, cadeaux et dettes",
-        "includeRelationships": "Importer les relations (plus lent : une requête par contact)",
+        "includeRelationships": "Importer les relations (plus lent : une requête par contact ; les membres de la famille hors du carnet d’adresses sont importés comme contacts)",
         "collapseReciprocal": "N'importer chaque relation qu'une seule fois",
         "collapseReciprocalHelp": "Monica enregistre chaque relation sur les deux contacts. Meerkat n'a besoin que d'une seule entrée : l'autre contact l'affiche sous « Relations entrantes ». Désactivez cette option pour créer une entrée distincte sur chaque contact, comme le fait Monica.",
         "includeExtras": "Importer les appels, tâches, cadeaux et dettes comme notes",
@@ -598,7 +598,26 @@
         "relationships": "{{count}} relations importées",
         "relationshipsCollapsed": "{{count}} doublons réciproques ignorés (affichés comme relations entrantes)",
         "photos": "{{count}} photos importées",
-        "photosFailed": "{{count}} photos n'ont pas pu être téléchargées"
+        "photosFailed": "{{count}} photos n'ont pas pu être téléchargées",
+        "relatedSkipped": "{{count}} éléments associés n’ont pas été importés",
+        "relatedSkippedMore": "({{count}} non listés)",
+        "relatedSkippedAria": "Éléments associés non importés",
+        "relatedColumns": { "type": "Type", "contact": "Contact" },
+        "relatedTypes": {
+          "activity": "activité",
+          "note": "note",
+          "reminder": "rappel",
+          "relationship": "relation",
+          "call": "appel",
+          "task": "tâche",
+          "gift": "cadeau",
+          "debt": "dette"
+        },
+        "relatedReasons": {
+          "contact_skipped": "Le contact associé a été ignoré",
+          "contact_missing": "Le contact associé n’a pas été importé",
+          "invalid": "Contenu invalide ou non pris en charge"
+        }
       },
       "errors": {
         "fetchFailed": "Échec de la récupération des données depuis Monica"

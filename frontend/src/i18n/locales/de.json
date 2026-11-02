@@ -556,7 +556,7 @@
         "notesCount": "{{count}} Notizen",
         "remindersCount": "{{count}} Erinnerungen",
         "extrasCount": "{{count}} Anrufe, Aufgaben, Geschenke & Schulden",
-        "includeRelationships": "Beziehungen importieren (langsamer: eine Anfrage pro Kontakt nötig)",
+        "includeRelationships": "Beziehungen importieren (langsamer: eine Anfrage pro Kontakt; Familienmitglieder außerhalb der Kontaktliste werden als Kontakte importiert)",
         "collapseReciprocal": "Jede Beziehung nur einmal importieren",
         "collapseReciprocalHelp": "Monica speichert jede Beziehung bei beiden Kontakten. Meerkat benötigt nur einen Eintrag — beim anderen Kontakt erscheint er unter „Eingehende Beziehungen“. Deaktiviere dies, um wie in Monica bei jedem Kontakt einen eigenen Eintrag anzulegen.",
         "includeExtras": "Anrufe, Aufgaben, Geschenke und Schulden als Notizen importieren",
@@ -598,7 +598,26 @@
         "relationships": "{{count}} Beziehungen importiert",
         "relationshipsCollapsed": "{{count}} doppelte Gegenrichtungen übersprungen (erscheinen als eingehende Beziehungen)",
         "photos": "{{count}} Fotos importiert",
-        "photosFailed": "{{count}} Fotos konnten nicht heruntergeladen werden"
+        "photosFailed": "{{count}} Fotos konnten nicht heruntergeladen werden",
+        "relatedSkipped": "{{count}} zugehörige Einträge wurden nicht importiert",
+        "relatedSkippedMore": "({{count}} nicht aufgeführt)",
+        "relatedSkippedAria": "Nicht importierte zugehörige Einträge",
+        "relatedColumns": { "type": "Typ", "contact": "Kontakt" },
+        "relatedTypes": {
+          "activity": "Aktivität",
+          "note": "Notiz",
+          "reminder": "Erinnerung",
+          "relationship": "Beziehung",
+          "call": "Anruf",
+          "task": "Aufgabe",
+          "gift": "Geschenk",
+          "debt": "Schulden"
+        },
+        "relatedReasons": {
+          "contact_skipped": "Der zugehörige Kontakt wurde übersprungen",
+          "contact_missing": "Der zugehörige Kontakt wurde nicht importiert",
+          "invalid": "Ungültiger oder nicht unterstützter Inhalt"
+        }
       },
       "errors": {
         "fetchFailed": "Abrufen der Daten von Monica fehlgeschlagen"

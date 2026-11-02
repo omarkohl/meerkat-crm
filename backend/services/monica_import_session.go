@@ -370,6 +370,9 @@ func (m *MonicaImportManager) runFetch(ctx context.Context, db *gorm.DB, s *moni
 			}
 			s.setProgress(i+1, len(snapshot.Contacts))
 		}
+		// Family members Monica kept outside the address book never appear
+		// in /contacts; the edges fetched above carry their data.
+		snapshot.Contacts = append(snapshot.Contacts, PartialContacts(snapshot)...)
 	}
 
 	s.setPhase(models.MonicaPhaseBuildingPreview, 0, len(snapshot.Contacts))
@@ -495,6 +498,13 @@ func (m *MonicaImportManager) buildPreview(db *gorm.DB, s *monicaImportSession, 
 		} else if duplicate := duplicates.Detect(mappedContact.Contact.Firstname, mappedContact.Contact.Lastname, mappedContact.Contact.Email, mappedContact.Contact.Phone); duplicate != nil {
 			preview.DuplicateMatch = duplicate
 			preview.SuggestedAction = "update"
+		} else if mc.IsPartial {
+			// Partials usually carry only one name, which the generic detector
+			// never matches; without this a rerun imports every child twice.
+			if duplicate := duplicates.DetectPartialName(mappedContact.Contact.Firstname + " " + mappedContact.Contact.Lastname); duplicate != nil {
+				preview.DuplicateMatch = duplicate
+				preview.SuggestedAction = "update"
+			}
 		}
 		previews = append(previews, preview)
 		s.setProgress(rowIdx+1, len(snapshot.Contacts))
@@ -596,6 +606,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 
 	actionMap := buildActionMap(req.Actions)
 	result := models.MonicaImportResult{ImportResult: models.ImportResult{Errors: []string{}, SkippedRows: []models.SkippedRow{}}}
+	skippedMonica := map[int]bool{}
 	idMap := make(map[int]uint) // Monica contact ID → Meerkat contact ID
 	var avatarTasks []avatarTask
 
@@ -612,6 +623,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 
 			switch action {
 			case "skip":
+				skippedMonica[contactData.MonicaID] = true
 				result.SkipChosenRow(&preview.ImportRowPreview)
 
 			case "add":
@@ -670,21 +682,22 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 		// are recorded in result.Errors and do not abort the import; only a
 		// failure to load the dedupe keys does, since importing without them
 		// would silently duplicate everything.
-		if err := m.importRelationships(tx, userID, snapshot, idMap, s.collapseReciprocal, &result); err != nil {
+		skips := newRelatedSkips(snapshot, skippedMonica, &result)
+		if err := m.importRelationships(tx, userID, snapshot, idMap, s.collapseReciprocal, skips, &result); err != nil {
 			return err
 		}
-		if err := m.importActivities(tx, userID, user.Language, snapshot, idMap, &result); err != nil {
+		if err := m.importActivities(tx, userID, user.Language, snapshot, idMap, skips, &result); err != nil {
 			return err
 		}
 		noteKeys, err := loadNoteKeys(tx, userID)
 		if err != nil {
 			return err
 		}
-		m.importNotes(tx, userID, snapshot, idMap, noteKeys, &result)
-		if err := m.importReminders(tx, userID, snapshot, idMap, &result); err != nil {
+		m.importNotes(tx, userID, snapshot, idMap, skips, noteKeys, &result)
+		if err := m.importReminders(tx, userID, snapshot, idMap, skips, &result); err != nil {
 			return err
 		}
-		m.importExtraNotes(tx, userID, user.Language, snapshot, idMap, noteKeys, &result)
+		m.importExtraNotes(tx, userID, user.Language, snapshot, idMap, skips, noteKeys, &result)
 
 		// Make the custom fields created by the import visible in the UI.
 		// This is cosmetic: a failure here must not roll back thousands of
@@ -726,6 +739,7 @@ func (m *MonicaImportManager) Confirm(db *gorm.DB, userID uint, req models.Monic
 		Int("reminders", result.RemindersCreated).
 		Int("relationships", result.RelationshipsCreated).
 		Int("photos_queued", result.PhotosQueued).
+		Int("related_skipped", len(result.RelatedSkipped)).
 		Int("errors", len(result.Errors)).
 		Msg("Monica import completed")
 
@@ -806,6 +820,62 @@ func textKey(text string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(text)))
 }
 
+// relatedSkipLimit bounds result.RelatedSkipped so repeated status polling
+// does not keep shipping a huge list; overflow lands in RelatedSkippedMore.
+const relatedSkipLimit = 500
+
+// relatedSkips records related entities the import dropped, naming the
+// Monica contact whose fate caused the drop.
+type relatedSkips struct {
+	out     *models.MonicaImportResult
+	names   map[int]string
+	skipped map[int]bool
+}
+
+func newRelatedSkips(snapshot *monica.Snapshot, skipped map[int]bool, out *models.MonicaImportResult) *relatedSkips {
+	names := make(map[int]string, len(snapshot.Contacts))
+	for _, mc := range snapshot.Contacts {
+		name := strings.TrimSpace(mc.FirstName + " " + mc.LastName)
+		if name == "" {
+			name = strings.TrimSpace(mc.Nickname)
+		}
+		names[mc.ID] = name
+	}
+	return &relatedSkips{out: out, names: names, skipped: skipped}
+}
+
+// ownerReason classifies a related entity whose contact has no imported row.
+// A nil recorder treats every owner as missing.
+func (s *relatedSkips) ownerReason(monicaID int) string {
+	if s != nil && s.skipped[monicaID] {
+		return "contact_skipped"
+	}
+	return "contact_missing"
+}
+
+func (s *relatedSkips) record(kind, name string, monicaID int, reason string) {
+	if s == nil {
+		return
+	}
+	if len(s.out.RelatedSkipped) >= relatedSkipLimit {
+		s.out.RelatedSkippedMore++
+		return
+	}
+	contact := ""
+	if monicaID != 0 {
+		contact = fmt.Sprintf("#%d", monicaID)
+		if known := s.names[monicaID]; known != "" {
+			contact = known
+		}
+	}
+	s.out.RelatedSkipped = append(s.out.RelatedSkipped, models.MonicaRelatedSkip{
+		Type:    kind,
+		Contact: contact,
+		Name:    truncateRunes(name, 200),
+		Reason:  reason,
+	})
+}
+
 // reciprocalEdgeIndex records which directed relationship edges the snapshot
 // contains, so the importer can tell one half of a Monica pair from a
 // genuinely one-sided relationship.
@@ -862,7 +932,7 @@ func loadRelationshipKeys(tx *gorm.DB, userID uint) (importKeySet, error) {
 
 // importRelationships creates relationship rows for imported contacts,
 // deduplicated within the batch and against existing rows.
-func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, collapseReciprocal bool, result *models.MonicaImportResult) error {
+func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, collapseReciprocal bool, skips *relatedSkips, result *models.MonicaImportResult) error {
 	seen, err := loadRelationshipKeys(tx, userID)
 	if err != nil {
 		return err
@@ -881,6 +951,7 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 	for monicaID, rels := range snapshot.Relationships {
 		contactID, imported := idMap[monicaID]
 		if !imported {
+			skips.record("relationship", "", monicaID, skips.ownerReason(monicaID))
 			continue
 		}
 		for _, rel := range rels {
@@ -895,6 +966,11 @@ func (m *MonicaImportManager) importRelationships(tx *gorm.DB, userID uint, snap
 			}
 			relationship, otherMonicaID, ok := MapMonicaRelationship(rel, related)
 			if !ok {
+				other := ""
+				if rel.OfContact != nil {
+					other = rel.OfContact.CompleteName
+				}
+				skips.record("relationship", other, monicaID, "invalid")
 				continue
 			}
 			// Only collapse when the other contact is imported too: without
@@ -988,7 +1064,7 @@ func loadActivityKeys(tx *gorm.DB, userID uint) (importKeySet, error) {
 
 // importActivities creates activities whose attendees resolved to at least
 // one imported contact and links them through the join table.
-func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang string, snapshot *monica.Snapshot, idMap map[int]uint, result *models.MonicaImportResult) error {
+func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang string, snapshot *monica.Snapshot, idMap map[int]uint, skips *relatedSkips, result *models.MonicaImportResult) error {
 	seen, err := loadActivityKeys(tx, userID)
 	if err != nil {
 		return err
@@ -997,6 +1073,11 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 	for _, ma := range snapshot.Activities {
 		activity, attendeeMonicaIDs, ok := MapMonicaActivity(ma, lang)
 		if !ok {
+			owner := 0
+			if len(ma.Attendees.Contacts) > 0 {
+				owner = ma.Attendees.Contacts[0].ID
+			}
+			skips.record("activity", ma.Summary, owner, "invalid")
 			continue
 		}
 		var contactIDs []uint
@@ -1006,6 +1087,18 @@ func (m *MonicaImportManager) importActivities(tx *gorm.DB, userID uint, lang st
 			}
 		}
 		if len(contactIDs) == 0 {
+			owner := 0
+			for _, monicaID := range attendeeMonicaIDs {
+				if _, imported := idMap[monicaID]; !imported {
+					owner = monicaID
+					break
+				}
+			}
+			reason := skips.ownerReason(owner)
+			if owner == 0 {
+				reason = "invalid"
+			}
+			skips.record("activity", ma.Summary, owner, reason)
 			continue
 		}
 
@@ -1066,15 +1159,22 @@ func (m *MonicaImportManager) createImportedNote(tx *gorm.DB, userID uint, note 
 	result.NotesCreated++
 }
 
-func (m *MonicaImportManager) importNotes(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, seen importKeySet, result *models.MonicaImportResult) {
+func (m *MonicaImportManager) importNotes(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, skips *relatedSkips, seen importKeySet, result *models.MonicaImportResult) {
 	now := m.now() // once per import, not per row
 	for _, mn := range snapshot.Notes {
 		note, monicaContactID, ok := MapMonicaNote(mn, now)
 		if !ok {
+			owner := 0
+			if mn.Contact != nil {
+				owner = mn.Contact.ID
+			}
+			skips.record("note", strings.TrimSpace(mn.Body), owner, "invalid")
 			continue
 		}
 		if contactID, imported := idMap[monicaContactID]; imported {
 			m.createImportedNote(tx, userID, note, contactID, seen, result)
+		} else {
+			skips.record("note", note.Content, monicaContactID, skips.ownerReason(monicaContactID))
 		}
 	}
 }
@@ -1103,7 +1203,7 @@ func loadReminderKeys(tx *gorm.DB, userID uint) (importKeySet, error) {
 	return keys, nil
 }
 
-func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, result *models.MonicaImportResult) error {
+func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot *monica.Snapshot, idMap map[int]uint, skips *relatedSkips, result *models.MonicaImportResult) error {
 	seen, err := loadReminderKeys(tx, userID)
 	if err != nil {
 		return err
@@ -1117,10 +1217,16 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 		}
 		reminder, monicaContactID, ok := MapMonicaReminder(mr, now, birthdayMonthDay)
 		if !ok {
+			owner := 0
+			if mr.Contact != nil {
+				owner = mr.Contact.ID
+			}
+			skips.record("reminder", mr.Title, owner, "invalid")
 			continue
 		}
 		contactID, imported := idMap[monicaContactID]
 		if !imported {
+			skips.record("reminder", reminder.Message, monicaContactID, skips.ownerReason(monicaContactID))
 			continue
 		}
 		if !seen.addIfNew(reminderKey(contactID, reminder.Message, reminder.RemindAt)) {
@@ -1138,31 +1244,39 @@ func (m *MonicaImportManager) importReminders(tx *gorm.DB, userID uint, snapshot
 }
 
 // importExtraNotes converts calls, tasks, gifts and debts into dated notes.
-func (m *MonicaImportManager) importExtraNotes(tx *gorm.DB, userID uint, lang string, snapshot *monica.Snapshot, idMap map[int]uint, seen importKeySet, result *models.MonicaImportResult) {
+func (m *MonicaImportManager) importExtraNotes(tx *gorm.DB, userID uint, lang string, snapshot *monica.Snapshot, idMap map[int]uint, skips *relatedSkips, seen importKeySet, result *models.MonicaImportResult) {
 	now := m.now() // once per import, not per row
-	create := func(note models.Note, monicaContactID int, ok bool) {
+	create := func(kind, identity string, note models.Note, monicaContactID int, ref *monica.ContactRef, ok bool) {
 		if !ok {
+			owner := 0
+			if ref != nil {
+				owner = ref.ID
+			}
+			skips.record(kind, identity, owner, "invalid")
 			return
 		}
-		if contactID, imported := idMap[monicaContactID]; imported {
-			m.createImportedNote(tx, userID, note, contactID, seen, result)
+		contactID, imported := idMap[monicaContactID]
+		if !imported {
+			skips.record(kind, identity, monicaContactID, skips.ownerReason(monicaContactID))
+			return
 		}
+		m.createImportedNote(tx, userID, note, contactID, seen, result)
 	}
 	for _, call := range snapshot.Calls {
 		note, contactID, ok := MapMonicaCall(call, lang, now)
-		create(note, contactID, ok)
+		create("call", call.Content, note, contactID, call.Contact, ok)
 	}
 	for _, task := range snapshot.Tasks {
 		note, contactID, ok := MapMonicaTask(task, lang, now)
-		create(note, contactID, ok)
+		create("task", task.Title, note, contactID, task.Contact, ok)
 	}
 	for _, gift := range snapshot.Gifts {
 		note, contactID, ok := MapMonicaGift(gift, lang, now)
-		create(note, contactID, ok)
+		create("gift", gift.Name, note, contactID, gift.Contact, ok)
 	}
 	for _, debt := range snapshot.Debts {
 		note, contactID, ok := MapMonicaDebt(debt, lang, now)
-		create(note, contactID, ok)
+		create("debt", debt.Reason, note, contactID, debt.Contact, ok)
 	}
 }
 

@@ -556,7 +556,7 @@
         "notesCount": "{{count}} notas",
         "remindersCount": "{{count}} recordatorios",
         "extrasCount": "{{count}} llamadas, tareas, regalos y deudas",
-        "includeRelationships": "Importar relaciones (más lento: requiere una petición por contacto)",
+        "includeRelationships": "Importar relaciones (más lento: una petición por contacto; los familiares fuera de la agenda se importan como contactos)",
         "collapseReciprocal": "Importar cada relación solo una vez",
         "collapseReciprocalHelp": "Monica guarda cada relación en ambos contactos. Meerkat solo necesita una entrada: el otro contacto la muestra en «Relaciones entrantes». Desactiva esta opción para crear una entrada en cada contacto, como hace Monica.",
         "includeExtras": "Importar llamadas, tareas, regalos y deudas como notas",
@@ -598,7 +598,26 @@
         "relationships": "{{count}} relaciones importadas",
         "relationshipsCollapsed": "{{count}} duplicados recíprocos omitidos (se muestran como relaciones entrantes)",
         "photos": "{{count}} fotos importadas",
-        "photosFailed": "{{count}} fotos no se pudieron descargar"
+        "photosFailed": "{{count}} fotos no se pudieron descargar",
+        "relatedSkipped": "{{count}} elementos relacionados no se importaron",
+        "relatedSkippedMore": "({{count}} sin listar)",
+        "relatedSkippedAria": "Elementos relacionados no importados",
+        "relatedColumns": { "type": "Tipo", "contact": "Contacto" },
+        "relatedTypes": {
+          "activity": "actividad",
+          "note": "nota",
+          "reminder": "recordatorio",
+          "relationship": "relación",
+          "call": "llamada",
+          "task": "tarea",
+          "gift": "regalo",
+          "debt": "deuda"
+        },
+        "relatedReasons": {
+          "contact_skipped": "El contacto relacionado se omitió",
+          "contact_missing": "El contacto relacionado no se importó",
+          "invalid": "Contenido no válido o no compatible"
+        }
       },
       "errors": {
         "fetchFailed": "Error al obtener los datos de Monica"

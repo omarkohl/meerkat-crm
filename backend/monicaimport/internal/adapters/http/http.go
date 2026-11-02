@@ -95,21 +95,30 @@ type MonicaSkippedRow struct {
 	Detail string `json:"detail,omitempty"`
 }
 
+type MonicaRelatedSkip struct {
+	Type    string `json:"type" doc:"activity, note, reminder, relationship, call, task, gift or debt"`
+	Contact string `json:"contact" doc:"Display name of the Monica contact the entity belonged to"`
+	Name    string `json:"name,omitempty"`
+	Reason  string `json:"reason" doc:"contact_skipped, contact_missing or invalid"`
+}
+
 type MonicaImportResult struct {
-	TotalProcessed         int                `json:"total_processed"`
-	Created                int                `json:"created"`
-	Updated                int                `json:"updated"`
-	Skipped                int                `json:"skipped"`
-	Errors                 []string           `json:"errors" nullable:"false"`
-	SkippedRows            []MonicaSkippedRow `json:"skipped_rows" nullable:"false"`
-	ActivitiesCreated      int                `json:"activities_created"`
-	NotesCreated           int                `json:"notes_created"`
-	RemindersCreated       int                `json:"reminders_created"`
-	RelationshipsCreated   int                `json:"relationships_created"`
-	RelationshipsCollapsed int                `json:"relationships_collapsed" doc:"Reciprocal halves skipped because the other direction was imported"`
-	PhotosQueued           int                `json:"photos_queued"`
-	PhotosSaved            int                `json:"photos_saved"`
-	PhotosFailed           int                `json:"photos_failed"`
+	TotalProcessed         int                 `json:"total_processed"`
+	Created                int                 `json:"created"`
+	Updated                int                 `json:"updated"`
+	Skipped                int                 `json:"skipped"`
+	Errors                 []string            `json:"errors" nullable:"false"`
+	SkippedRows            []MonicaSkippedRow  `json:"skipped_rows" nullable:"false"`
+	RelatedSkipped         []MonicaRelatedSkip `json:"related_skipped" doc:"Related entities that were not imported" nullable:"false"`
+	RelatedSkippedMore     int                 `json:"related_skipped_more" doc:"Number of additional skipped items beyond the reported 500"`
+	ActivitiesCreated      int                 `json:"activities_created"`
+	NotesCreated           int                 `json:"notes_created"`
+	RemindersCreated       int                 `json:"reminders_created"`
+	RelationshipsCreated   int                 `json:"relationships_created"`
+	RelationshipsCollapsed int                 `json:"relationships_collapsed" doc:"Reciprocal halves skipped because the other direction was imported"`
+	PhotosQueued           int                 `json:"photos_queued"`
+	PhotosSaved            int                 `json:"photos_saved"`
+	PhotosFailed           int                 `json:"photos_failed"`
 }
 
 type MonicaStatusResponse struct {
@@ -319,12 +328,16 @@ func relatedResponse(c domain.RelatedCounts) MonicaRelatedCounts {
 func resultResponse(r domain.Result) MonicaImportResult {
 	out := MonicaImportResult{
 		TotalProcessed: r.TotalProcessed, Created: r.Created, Updated: r.Updated, Skipped: r.Skipped, Errors: nonNil(r.Errors),
-		SkippedRows: make([]MonicaSkippedRow, len(r.SkippedRows)), ActivitiesCreated: r.ActivitiesCreated, NotesCreated: r.NotesCreated,
+		SkippedRows: make([]MonicaSkippedRow, len(r.SkippedRows)), RelatedSkipped: make([]MonicaRelatedSkip, 0, len(r.RelatedSkipped)),
+		RelatedSkippedMore: r.RelatedSkippedMore, ActivitiesCreated: r.ActivitiesCreated, NotesCreated: r.NotesCreated,
 		RemindersCreated: r.RemindersCreated, RelationshipsCreated: r.RelationshipsCreated, RelationshipsCollapsed: r.RelationshipsCollapsed,
 		PhotosQueued: r.PhotosQueued, PhotosSaved: r.PhotosSaved, PhotosFailed: r.PhotosFailed,
 	}
 	for i, s := range r.SkippedRows {
 		out.SkippedRows[i] = MonicaSkippedRow{Row: s.Row, Name: s.Name, Reason: s.Reason, Detail: s.Detail}
+	}
+	for _, s := range r.RelatedSkipped {
+		out.RelatedSkipped = append(out.RelatedSkipped, MonicaRelatedSkip{Type: s.Type, Contact: s.Contact, Name: s.Name, Reason: s.Reason})
 	}
 	return out
 }

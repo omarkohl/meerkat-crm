@@ -3326,6 +3326,18 @@
             "format": "int64",
             "type": "integer"
           },
+          "related_skipped": {
+            "description": "Related entities that were not imported",
+            "items": {
+              "$ref": "#/components/schemas/MonicaRelatedSkip"
+            },
+            "type": "array"
+          },
+          "related_skipped_more": {
+            "description": "Number of additional skipped items beyond the reported 500",
+            "format": "int64",
+            "type": "integer"
+          },
           "relationships_collapsed": {
             "description": "Reciprocal halves skipped because the other direction was imported",
             "format": "int64",
@@ -3365,6 +3377,8 @@
           "skipped",
           "errors",
           "skipped_rows",
+          "related_skipped",
+          "related_skipped_more",
           "activities_created",
           "notes_created",
           "reminders_created",
@@ -3450,6 +3464,32 @@
           "reminders",
           "relationships",
           "extra_notes"
+        ],
+        "type": "object"
+      },
+      "MonicaRelatedSkip": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "description": "Display name of the Monica contact the entity belonged to",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "description": "contact_skipped, contact_missing or invalid",
+            "type": "string"
+          },
+          "type": {
+            "description": "activity, note, reminder, relationship, call, task, gift or debt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "contact",
+          "reason"
         ],
         "type": "object"
       },

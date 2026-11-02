@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"meerkat/clock"
 	"testing"
 	"time"
@@ -58,7 +59,7 @@ func TestImportActivitiesDedupeConsidersAttendeesAndDescription(t *testing.T) {
 
 	m := NewMonicaImportManager()
 	result := models.MonicaImportResult{}
-	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, &result))
+	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, nil, &result))
 
 	assert.Equal(t, 4, result.ActivitiesCreated, "only the exact duplicate should collapse")
 	assert.Empty(t, result.Errors)
@@ -90,7 +91,7 @@ func TestImportActivitiesIgnoresUnrelatedExistingActivity(t *testing.T) {
 
 	m := NewMonicaImportManager()
 	result := models.MonicaImportResult{}
-	require.NoError(t, m.importActivities(db, 1, "en", snapshot, map[int]uint{10: alice.ID}, &result))
+	require.NoError(t, m.importActivities(db, 1, "en", snapshot, map[int]uint{10: alice.ID}, nil, &result))
 
 	assert.Equal(t, 1, result.ActivitiesCreated)
 }
@@ -108,11 +109,11 @@ func TestImportActivitiesIsIdempotent(t *testing.T) {
 	m := NewMonicaImportManager()
 
 	first := models.MonicaImportResult{}
-	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, &first))
+	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, nil, &first))
 	assert.Equal(t, 1, first.ActivitiesCreated)
 
 	second := models.MonicaImportResult{}
-	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, &second))
+	require.NoError(t, m.importActivities(db, 1, "en", snapshot, idMap, nil, &second))
 	assert.Equal(t, 0, second.ActivitiesCreated, "second run should dedupe against the first")
 
 	var stored int64
@@ -157,6 +158,29 @@ func TestDuplicateIndexMatchesDetectDuplicate(t *testing.T) {
 			assert.Equal(t, want, got)
 		})
 	}
+}
+
+// issue #249: a rerun must update an imported partial instead of creating it
+// a second time; the generic detector needs both names and misses them.
+func TestDetectPartialNameMatchesSingleNameContacts(t *testing.T) {
+	db := newMonicaImportDB(t)
+	kim := models.Contact{UserID: 1, Firstname: "Kim"}
+	gary := models.Contact{UserID: 1, Firstname: "Gary", Lastname: "Gadget"}
+	other := models.Contact{UserID: 2, Firstname: "Kim"}
+	require.NoError(t, db.Create(&kim).Error)
+	require.NoError(t, db.Create(&gary).Error)
+	require.NoError(t, db.Create(&other).Error)
+
+	idx, err := NewDuplicateIndex(db, 1)
+	require.NoError(t, err)
+
+	match := idx.DetectPartialName("kim ")
+	require.NotNil(t, match)
+	assert.Equal(t, kim.ID, match.ExistingContactID)
+	assert.NotNil(t, idx.DetectPartialName("Gary Gadget"))
+	assert.Nil(t, idx.DetectPartialName(""), "no name is never a match")
+	assert.Nil(t, idx.DetectPartialName("Kimberly"))
+	assert.Nil(t, idx.Detect("Kim", "", "", ""), "generic detection keeps its semantics")
 }
 
 // Finding #9: dedupe keys are preloaded, so a second pass over the same data
@@ -239,7 +263,7 @@ func TestImportRelationshipsCollapsesReciprocalPairs(t *testing.T) {
 
 		m := NewMonicaImportManager()
 		result := models.MonicaImportResult{}
-		require.NoError(t, m.importRelationships(db, 1, newSnapshot(), map[int]uint{10: alice.ID, 20: bob.ID}, true, &result))
+		require.NoError(t, m.importRelationships(db, 1, newSnapshot(), map[int]uint{10: alice.ID, 20: bob.ID}, true, nil, &result))
 
 		assert.Equal(t, 1, result.RelationshipsCreated)
 		assert.Equal(t, 1, result.RelationshipsCollapsed)
@@ -261,7 +285,7 @@ func TestImportRelationshipsCollapsesReciprocalPairs(t *testing.T) {
 
 		m := NewMonicaImportManager()
 		result := models.MonicaImportResult{}
-		require.NoError(t, m.importRelationships(db, 1, newSnapshot(), map[int]uint{10: alice.ID, 20: bob.ID}, false, &result))
+		require.NoError(t, m.importRelationships(db, 1, newSnapshot(), map[int]uint{10: alice.ID, 20: bob.ID}, false, nil, &result))
 
 		assert.Equal(t, 2, result.RelationshipsCreated)
 		assert.Equal(t, 0, result.RelationshipsCollapsed)
@@ -287,7 +311,7 @@ func TestImportRelationshipsKeepsOneSidedEdges(t *testing.T) {
 
 	m := NewMonicaImportManager()
 	result := models.MonicaImportResult{}
-	require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{10: alice.ID, 20: bob.ID}, true, &result))
+	require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{10: alice.ID, 20: bob.ID}, true, nil, &result))
 
 	assert.Equal(t, 1, result.RelationshipsCreated)
 	assert.Equal(t, 0, result.RelationshipsCollapsed)
@@ -314,7 +338,7 @@ func TestImportRelationshipsKeepsEdgeWhenOtherContactNotImported(t *testing.T) {
 	m := NewMonicaImportManager()
 	result := models.MonicaImportResult{}
 	// Alice (Monica id 10) was skipped in the review step.
-	require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{20: bob.ID}, true, &result))
+	require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{20: bob.ID}, true, nil, &result))
 
 	assert.Equal(t, 1, result.RelationshipsCreated)
 	assert.Equal(t, 0, result.RelationshipsCollapsed)
@@ -344,7 +368,7 @@ func TestImportRelationshipsCollapseIsDeterministic(t *testing.T) {
 		}
 		m := NewMonicaImportManager()
 		result := models.MonicaImportResult{}
-		require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{10: alice.ID, 20: bob.ID}, true, &result))
+		require.NoError(t, m.importRelationships(db, 1, snapshot, map[int]uint{10: alice.ID, 20: bob.ID}, true, nil, &result))
 
 		rels := importedRelationships(t, db)
 		require.Len(t, rels, 1)
@@ -382,7 +406,7 @@ func TestImportRemindersPinsBirthdaysToTheCalendar(t *testing.T) {
 
 	m := NewMonicaImportManager()
 	result := models.MonicaImportResult{}
-	require.NoError(t, m.importReminders(db, 1, snapshot, map[int]uint{10: alice.ID}, &result))
+	require.NoError(t, m.importReminders(db, 1, snapshot, map[int]uint{10: alice.ID}, nil, &result))
 	assert.Equal(t, 2, result.RemindersCreated)
 
 	var reminders []models.Reminder
@@ -415,4 +439,50 @@ func TestMonicaImportManagerCleanupUsesItsClock(t *testing.T) {
 	fake.Advance(90 * time.Minute)
 	m.CleanupExpired()
 	assert.Empty(t, m.sessions, "expired by the injected clock")
+}
+
+// issue #249: a summary count that hides what was dropped is useless for
+// reviewing an import; every dropped related entity names its contact.
+func TestImportRemindersRecordsWhyItDroppedRows(t *testing.T) {
+	db := newMonicaImportDB(t)
+	alice := models.Contact{UserID: 1, Firstname: "Alice", Lastname: "A"}
+	require.NoError(t, db.Create(&alice).Error)
+	future := "2099-05-04T00:00:00Z"
+	past := "2020-01-01T00:00:00Z"
+	snapshot := &monica.Snapshot{
+		Contacts: []monica.Contact{{ID: 10, FirstName: "Alice", LastName: "A"}, {ID: 77, FirstName: "Kim", IsPartial: true}},
+		Reminders: []monica.Reminder{
+			{Title: "Birthday: Kim", FrequencyType: "year", FrequencyNumber: 1, InitialDate: strPtr(future), Contact: &monica.ContactRef{ID: 77}},
+			{Title: "Old one-off", FrequencyType: "one_time", InitialDate: strPtr(past), Contact: &monica.ContactRef{ID: 10}},
+			{Title: "From an archived contact", FrequencyType: "year", FrequencyNumber: 1, InitialDate: strPtr(future), Contact: &monica.ContactRef{ID: 99}},
+		},
+	}
+	result := models.MonicaImportResult{}
+	skips := newRelatedSkips(snapshot, map[int]bool{77: true}, &result)
+
+	require.NoError(t, NewMonicaImportManager().importReminders(db, 1, snapshot, map[int]uint{10: alice.ID}, skips, &result))
+	assert.Zero(t, result.RemindersCreated)
+
+	byName := map[string]models.MonicaRelatedSkip{}
+	for _, s := range result.RelatedSkipped {
+		byName[s.Name] = s
+	}
+	require.Len(t, byName, 3)
+	assert.Equal(t, "Kim", byName["Birthday: Kim"].Contact)
+	assert.Equal(t, "contact_skipped", byName["Birthday: Kim"].Reason)
+	assert.Equal(t, "Alice A", byName["Old one-off"].Contact)
+	assert.Equal(t, "invalid", byName["Old one-off"].Reason)
+	assert.Equal(t, "#99", byName["From an archived contact"].Contact)
+	assert.Equal(t, "contact_missing", byName["From an archived contact"].Reason)
+}
+
+func TestRelatedSkipsStopListingPastTheCap(t *testing.T) {
+	snapshot := &monica.Snapshot{}
+	result := models.MonicaImportResult{}
+	skips := newRelatedSkips(snapshot, nil, &result)
+	for i := 0; i < relatedSkipLimit+10; i++ {
+		skips.record("note", fmt.Sprintf("note %d", i), 0, "invalid")
+	}
+	assert.Len(t, result.RelatedSkipped, relatedSkipLimit)
+	assert.Equal(t, 10, result.RelatedSkippedMore)
 }

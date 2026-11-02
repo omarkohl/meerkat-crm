@@ -646,10 +646,11 @@ func newDuplicateMatch(c *models.Contact, reason string) *models.DuplicateMatch 
 // is O(n*m) for a bulk import. Match priority (email, then name, then phone) and first-match-wins
 // ordering are identical.
 type DuplicateIndex struct {
-	contacts []models.Contact
-	byEmail  map[string]*models.Contact
-	byName   map[string]*models.Contact
-	byPhone  map[string]*models.Contact
+	contacts  []models.Contact
+	byEmail   map[string]*models.Contact
+	byName    map[string]*models.Contact
+	byPhone   map[string]*models.Contact
+	byPartial map[string]*models.Contact
 }
 
 func nameKey(firstname, lastname string) string {
@@ -659,9 +660,10 @@ func nameKey(firstname, lastname string) string {
 // NewDuplicateIndex loads every contact of the user and indexes them.
 func NewDuplicateIndex(db *gorm.DB, userID uint) (*DuplicateIndex, error) {
 	idx := &DuplicateIndex{
-		byEmail: map[string]*models.Contact{},
-		byName:  map[string]*models.Contact{},
-		byPhone: map[string]*models.Contact{},
+		byEmail:   map[string]*models.Contact{},
+		byName:    map[string]*models.Contact{},
+		byPhone:   map[string]*models.Contact{},
+		byPartial: map[string]*models.Contact{},
 	}
 	// Ordered by id so the lowest-id contact wins a key, matching the
 	// ORDER BY id that GORM's First() applies in DetectDuplicate.
@@ -680,6 +682,9 @@ func NewDuplicateIndex(db *gorm.DB, userID uint) (*DuplicateIndex, error) {
 		}
 		if c.Firstname != "" && c.Lastname != "" {
 			put(idx.byName, nameKey(c.Firstname, c.Lastname), c)
+		}
+		if full := strings.ToLower(strings.TrimSpace(c.Firstname + " " + c.Lastname)); full != "" {
+			put(idx.byPartial, full, c)
 		}
 		if c.Phone != "" {
 			if normalized := normalizePhoneForComparison(c.Phone); len(normalized) >= 5 {
@@ -708,6 +713,20 @@ func (idx *DuplicateIndex) Detect(firstname, lastname, email, phone string) *mod
 			if c, found := idx.byPhone[normalized]; found {
 				return newDuplicateMatch(c, "phone")
 			}
+		}
+	}
+	return nil
+}
+
+// DetectPartialName matches a Monica partial contact, which usually has only
+// a single name, against the full display name of an existing contact. The
+// generic Detect needs first and last name together and would let a rerun of
+// a Monica import create every child a second time. Only the Monica preview
+// calls this; CSV and VCF keep the original semantics.
+func (idx *DuplicateIndex) DetectPartialName(fullname string) *models.DuplicateMatch {
+	if key := strings.ToLower(strings.TrimSpace(fullname)); key != "" {
+		if c, found := idx.byPartial[key]; found {
+			return newDuplicateMatch(c, "name")
 		}
 	}
 	return nil

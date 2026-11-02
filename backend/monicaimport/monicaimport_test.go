@@ -75,10 +75,6 @@ func fakeMonicaServer(t *testing.T) *httptest.Server {
 			"gender_type": "M", "is_partial": false,
 			"information": map[string]any{},
 		},
-		{
-			"id": 103, "first_name": "Stub", "last_name": "Person", "is_partial": true,
-			"information": map[string]any{},
-		},
 	}
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -90,11 +86,19 @@ func fakeMonicaServer(t *testing.T) *httptest.Server {
 		case r.URL.Path == "/api/contacts":
 			paged(w, contacts)
 		case r.URL.Path == "/api/contacts/101/relationships":
-			paged(w, []map[string]any{{
-				"relationship_type": map[string]any{"name": "daughter"},
-				"contact_is":        map[string]any{"id": 101},
-				"of_contact":        map[string]any{"id": 102, "first_name": "Bob", "last_name": "Existing", "complete_name": "Bob Existing"},
-			}})
+			paged(w, []map[string]any{
+				{
+					"relationship_type": map[string]any{"name": "daughter"},
+					"contact_is":        map[string]any{"id": 101},
+					"of_contact":        map[string]any{"id": 102, "first_name": "Bob", "last_name": "Existing", "complete_name": "Bob Existing"},
+				},
+				{
+					"relationship_type": map[string]any{"name": "parent"},
+					"contact_is":        map[string]any{"id": 101},
+					"of_contact": map[string]any{"id": 103, "first_name": "Kim", "is_partial": true, "gender_type": "F",
+						"information": map[string]any{"birthdate": map[string]any{"date": "2015-06-01T00:00:00Z", "is_age_based": false, "is_year_unknown": false}}},
+				},
+			})
 		case strings.HasPrefix(r.URL.Path, "/api/contacts/") && strings.HasSuffix(r.URL.Path, "/relationships"):
 			paged(w, nil)
 		case r.URL.Path == "/api/activities":
@@ -104,7 +108,7 @@ func fakeMonicaServer(t *testing.T) *httptest.Server {
 					"attendees": map[string]any{"contacts": []map[string]any{{"id": 101}, {"id": 102}}},
 				},
 				{
-					"id": 2, "summary": "Stub only", "happened_at": "2023-05-02",
+					"id": 2, "summary": "Park visit", "happened_at": "2023-05-02",
 					"attendees": map[string]any{"contacts": []map[string]any{{"id": 103}}},
 				},
 			})
@@ -116,6 +120,7 @@ func fakeMonicaServer(t *testing.T) *httptest.Server {
 			future := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
 			paged(w, []map[string]any{
 				{"title": "Wish happy birthday", "frequency_type": "year", "frequency_number": 1, "initial_date": future, "contact": map[string]any{"id": 101}},
+				{"title": "Birthday: Kim", "frequency_type": "year", "frequency_number": 1, "initial_date": "2015-06-01", "contact": map[string]any{"id": 103}},
 			})
 		case r.URL.Path == "/api/calls":
 			paged(w, []map[string]any{
@@ -203,7 +208,7 @@ func connect(t *testing.T, r http.Handler, url string) string {
 		Totals    struct{ Contacts int }
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Equal(t, 3, resp.Totals.Contacts)
+	assert.Equal(t, 2, resp.Totals.Contacts)
 	assert.NotEmpty(t, resp.SessionID)
 	return resp.SessionID
 }
@@ -248,21 +253,24 @@ func TestMonicaImportEndToEnd(t *testing.T) {
 
 	session, p := flow(t, e.asA, server.URL)
 
-	assert.Equal(t, 2, p.TotalRows, "the partial contact is filtered out")
+	assert.Equal(t, 3, p.TotalRows, "the partial child referenced by a relationship becomes a row of its own")
 	assert.Equal(t, 1, p.DuplicateCount)
 	rows := map[string]row{}
 	for _, r := range p.Rows {
 		rows[fmt.Sprint(r.ParsedContact["firstname"])] = r
 	}
-	adaRow, bobRow := rows["Ada"], rows["Bob"]
+	adaRow, bobRow, kimRow := rows["Ada"], rows["Bob"], rows["Kim"]
 	assert.Equal(t, "add", adaRow.SuggestedAction)
 	assert.Nil(t, adaRow.DuplicateMatch)
 	assert.Equal(t, "update", bobRow.SuggestedAction)
 	assert.NotNil(t, bobRow.DuplicateMatch)
-	assert.Equal(t, map[string]int{"activities": 1, "notes": 1, "reminders": 1, "relationships": 1, "extra_notes": 1}, adaRow.Related)
+	assert.Equal(t, "add", kimRow.SuggestedAction)
+	assert.Equal(t, map[string]int{"activities": 1, "notes": 0, "reminders": 1, "relationships": 0, "extra_notes": 0}, kimRow.Related)
+	assert.Equal(t, map[string]int{"activities": 1, "notes": 1, "reminders": 1, "relationships": 2, "extra_notes": 1}, adaRow.Related)
 
 	w := send(e.asA, "POST", prefix+"/confirm", map[string]any{"session_id": session, "actions": []map[string]any{
 		{"row_index": adaRow.RowIndex, "action": "add"}, {"row_index": bobRow.RowIndex, "action": "update"},
+		{"row_index": kimRow.RowIndex, "action": "add"},
 	}})
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	var result struct {
@@ -275,12 +283,12 @@ func TestMonicaImportEndToEnd(t *testing.T) {
 		PhotosQueued         int `json:"photos_queued"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
-	assert.Equal(t, 1, result.Created)
+	assert.Equal(t, 2, result.Created)
 	assert.Equal(t, 1, result.Updated)
-	assert.Equal(t, 1, result.ActivitiesCreated)
+	assert.Equal(t, 2, result.ActivitiesCreated)
 	assert.Equal(t, 2, result.NotesCreated)
-	assert.Equal(t, 1, result.RemindersCreated)
-	assert.Equal(t, 1, result.RelationshipsCreated)
+	assert.Equal(t, 2, result.RemindersCreated)
+	assert.Equal(t, 2, result.RelationshipsCreated)
 	assert.Equal(t, 0, result.PhotosQueued)
 
 	var ada models.Contact
@@ -294,16 +302,33 @@ func TestMonicaImportEndToEnd(t *testing.T) {
 	assert.Equal(t, "Engines Ltd", ada.Organization)
 	assert.Equal(t, "yes", ada.CustomFields["Starred"])
 
+	var kim models.Contact
+	require.NoError(t, e.db.Where("firstname = ?", "Kim").First(&kim).Error, "the partial child is imported as a contact")
+	assert.Equal(t, "female", kim.Gender)
+	assert.Equal(t, "2015-06-01", kim.Birthday, "the birthday from the relationship payload survives")
+	assert.Equal(t, "yes", kim.CustomFields["Monica partial contact"])
+
 	var activity models.Activity
 	require.NoError(t, e.db.Preload("Contacts").Where("title = ?", "Lunch").First(&activity).Error)
 	assert.Len(t, activity.Contacts, 2)
 
 	var relationship models.Relationship
-	require.NoError(t, e.db.Where("contact_id = ?", ada.ID).First(&relationship).Error)
-	assert.Equal(t, "daughter", relationship.Type)
+	require.NoError(t, e.db.Where("contact_id = ? AND type = ?", ada.ID, "daughter").First(&relationship).Error)
 	assert.Equal(t, "Bob Existing", relationship.Name)
 	require.NotNil(t, relationship.RelatedContactID)
 	assert.Equal(t, existing.ID, *relationship.RelatedContactID)
+
+	var parentEdge models.Relationship
+	require.NoError(t, e.db.Where("contact_id = ? AND type = ?", ada.ID, "parent").First(&parentEdge).Error)
+	require.NotNil(t, parentEdge.RelatedContactID, "the edge to a partial child links the imported child")
+	assert.Equal(t, kim.ID, *parentEdge.RelatedContactID)
+
+	var kimReminders []models.Reminder
+	require.NoError(t, e.db.Where("contact_id = ?", kim.ID).Find(&kimReminders).Error)
+	require.Len(t, kimReminders, 1, "Monica's birthday reminder for the child follows it into Meerkat")
+	assert.Equal(t, "2026-06-01", kimReminders[0].RemindAt.Format("2006-01-02"), "rolled to the next occurrence")
+	require.NotNil(t, kimReminders[0].ReoccurFromCompletion)
+	assert.False(t, *kimReminders[0].ReoccurFromCompletion, "birthday reminders stay pinned to the calendar")
 
 	var reminders, notes int64
 	e.db.Model(&models.Reminder{}).Where("contact_id = ?", ada.ID).Count(&reminders)
@@ -314,10 +339,11 @@ func TestMonicaImportEndToEnd(t *testing.T) {
 	var user models.User
 	e.db.First(&user, e.a.ID)
 	assert.Contains(t, user.CustomFieldNames, "Starred")
+	assert.Contains(t, user.CustomFieldNames, "Monica partial contact")
 
 	var stubs int64
-	e.db.Model(&models.Contact{}).Where("firstname = ?", "Stub").Count(&stubs)
-	assert.Zero(t, stubs)
+	e.db.Model(&models.Contact{}).Count(&stubs)
+	assert.EqualValues(t, 3, stubs, "two Monica contacts plus the household child")
 }
 
 func TestMonicaImportRerunIsIdempotent(t *testing.T) {
@@ -347,11 +373,11 @@ func TestMonicaImportRerunIsIdempotent(t *testing.T) {
 	e.db.Model(&models.Note{}).Where("content IN ?", []string{"Loves poetry"}).Count(&notes)
 	e.db.Model(&models.Reminder{}).Count(&reminders)
 	e.db.Model(&models.Relationship{}).Count(&relationships)
-	assert.EqualValues(t, 2, contacts)
-	assert.EqualValues(t, 1, activities)
+	assert.EqualValues(t, 3, contacts)
+	assert.EqualValues(t, 2, activities)
 	assert.EqualValues(t, 1, notes)
-	assert.EqualValues(t, 1, reminders)
-	assert.EqualValues(t, 1, relationships)
+	assert.EqualValues(t, 2, reminders)
+	assert.EqualValues(t, 2, relationships)
 }
 
 func TestConnectRejectsABadTokenAndInvalidBodies(t *testing.T) {

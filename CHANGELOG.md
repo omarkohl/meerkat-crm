@@ -23,6 +23,13 @@ of this fork (see [fork.md](docs/development/fork.md)).
 - **A database from upstream Meerkat is refused**: the fork now stops with a clear message instead
   of corrupting a database that upstream migrated.
 
+### Fixed
+
+- **Monica children now import with their birthdays**
+  (https://github.com/omarkohl/meerkat-crm/issues/249): family members kept outside the Monica
+  address book come over as contacts with reminders, and the import result now lists every item it
+  skipped or failed, with the reason.
+
 ## [1.7.0-omk.5] - 2026-10-24
 
 ### Fixed

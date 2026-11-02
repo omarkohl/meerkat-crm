@@ -184,7 +184,9 @@ work, duplicate phones, emails, URLs and IMs are dropped, and `NOTE` is imported
 contact note (migration 33). Rows with errors are never imported, and an unreadable card no longer
 shifts the cards after it. Importing a deleted contact asks whether to restore it. vCard photos load
 after the import, and the result shows their progress. The Monica import timeout is longer, and a
-private Monica URL can be allowed.
+private Monica URL can be allowed. Monica family members kept outside the address book (typically
+children) are imported as contacts with their birthdays when relationships are fetched, and the
+Monica result lists related items it could not import with the reason.
 
 **Small UI fixes.** All date inputs and filters use the configured date format, not the browser
 locale. One placeholder for empty values. The add-activity dialog preselects the contact and can add

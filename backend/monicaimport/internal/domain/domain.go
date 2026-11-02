@@ -73,6 +73,14 @@ type SkippedRow struct {
 	Detail string
 }
 
+// RelatedSkip names one related entity that was not imported.
+type RelatedSkip struct {
+	Type    string
+	Contact string
+	Name    string
+	Reason  string
+}
+
 type Result struct {
 	TotalProcessed         int
 	Created                int
@@ -80,6 +88,8 @@ type Result struct {
 	Skipped                int
 	Errors                 []string
 	SkippedRows            []SkippedRow
+	RelatedSkipped         []RelatedSkip
+	RelatedSkippedMore     int
 	ActivitiesCreated      int
 	NotesCreated           int
 	RemindersCreated       int

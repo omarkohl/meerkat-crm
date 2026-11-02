@@ -231,6 +231,8 @@ images.
 
 Imports contacts from a [Monica](https://www.monicahq.com/) instance through its REST API. The steps
 share a server-side session (`session_id`) that belongs to one user and expires after a while.
+Family members Monica keeps outside the address book (typically children) are imported as contacts
+when relationships are fetched; they carry the custom field "Monica partial contact".
 
 | Method   | Path                              | Description                                                                                                                                                                         |
 | -------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -240,6 +242,11 @@ share a server-side session (`session_id`) that belongs to one user and expires 
 | `GET`    | `/contacts/import/monica/preview` | The fetched contacts with duplicate detection. Query parameter `session_id` is required (`400` without)                                                                             |
 | `POST`   | `/contacts/import/monica/confirm` | Body `{"session_id", "actions": [...]}` with a decision per row. Executes the import                                                                                                |
 | `DELETE` | `/contacts/import/monica/session` | Cancel and discard the session. Query parameter `session_id` is required (`400` without)                                                                                            |
+
+The confirm result lists what it did not import: `skipped_rows` for contact rows and
+`related_skipped` for activities, notes, reminders, relationships, calls, tasks, gifts and debts
+that were dropped, each with its Monica contact and a reason (`contact_skipped`, `contact_missing`
+or `invalid`).
 
 ### Export
 
